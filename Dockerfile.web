@@ -1,0 +1,20 @@
+# DSTAC Platform — Frontend (Next.js 14)
+# Contexto de build: RAIZ del repo
+FROM node:20-slim AS build
+WORKDIR /app
+
+COPY apps/web/package*.json ./apps/web/
+RUN cd apps/web && npm ci
+
+COPY apps/web ./apps/web
+
+# NEXT_PUBLIC_* se hornea en build. Relativo /api -> mismo origen (Next hace rewrite a la API)
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN cd apps/web && npm run build
+
+# ---- runtime ----
+ENV NODE_ENV=production
+# INTERNAL_API_URL lo inyecta EasyPanel (nombre interno del servicio API, ej http://api:3001)
+EXPOSE 3000
+CMD ["sh", "-c", "cd apps/web && npm run start"]

@@ -1,0 +1,75 @@
+# ── Dependencias ──────────────────────────────────────────────
+node_modules/
+.npm
+
+# ── Variables de entorno (NUNCA subir al repo) ────────────────
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+apps/api/.env
+apps/web/.env.local
+
+# ── Next.js ───────────────────────────────────────────────────
+apps/web/.next/
+apps/web/out/
+apps/web/.swc/
+
+# ── Build de producción ───────────────────────────────────────
+dist/
+build/
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+pids/
+*.pid
+*.seed
+
+# ── Sistema operativo ─────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ── Editores e IDEs ───────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ── Puppeteer / Chromium ──────────────────────────────────────
+.local-chromium/
+apps/api/.cache/
+
+# ── Archivos temporales y uploads ─────────────────────────────
+tmp/
+temp/
+uploads/
+*.tmp
+
+# ── Archivos de reportes generados ───────────────────────────
+*.pdf
+*.xlsx
+reports/generated/
+
+# ── Backups de base de datos ──────────────────────────────────
+*.sql
+backups/
+
+# ── Claude Code ───────────────────────────────────────────────
+.claude/settings.local.json
+
+# ── Scripts de uso interno / one-shot ─────────────────────────
+apps/api/fix_limit.js
+apps/api/test_pending*.js
+apps/api/db/addClientTables.js

@@ -1,0 +1,306 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+:root {
+  /* Panel DSTAC */
+  --dstac-900: #26215C;
+  --dstac-800: #3C3489;
+  --dstac-600: #534AB7;
+  --dstac-400: #7F77DD;
+  --dstac-200: #AFA9EC;
+  --dstac-100: #CECBF6;
+  --dstac-50:  #EEEDFE;
+
+  /* Portal cliente — se inyecta dinámicamente desde BD */
+  --brand-color: #3C3489;
+  --brand-light: #EEEDFE;
+  --brand-mid:   #534AB7;
+
+  /* Superficies */
+  --bg-page:    #f8f7f4;
+  --bg-card:    #ffffff;
+  --border:     #e2e0d8;
+  --border-sub: #f1efe8;
+
+  /* Texto */
+  --text-primary:   #2C2C2A;
+  --text-secondary: #888780;
+  --text-hint:      #B4B2A9;
+
+  /* Semántica */
+  --color-critical: #E24B4A;
+  --color-high:     #EF9F27;
+  --color-medium:   #639922;
+  --color-low:      #B4B2A9;
+  --color-ok:       #1D9E75;
+
+  /* Aliases para widgets (compatibilidad con PROMPT_WIDGETS_DASHBOARD) */
+  --color-background-primary:   #ffffff;
+  --color-background-secondary: #f1efe8;
+  --color-border-tertiary:      #e2e0d8;
+  --color-border-secondary:     #e2e0d8;
+  --color-text-primary:         #2C2C2A;
+  --color-text-secondary:       #888780;
+}
+
+/* ── Widget sistema ────────────────────────────────────────────────────────── */
+.widget-container {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  transition: box-shadow 0.15s;
+}
+.widget-container:hover {
+  box-shadow: 0 2px 12px rgba(60, 52, 137, 0.08);
+}
+.widget-drag-handle {
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  background: var(--color-background-secondary);
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  flex-shrink: 0;
+  position: relative;
+}
+.widget-drag-handle:active { cursor: grabbing; }
+.widget-variant-toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+}
+.widget-variant-toggle:hover {
+  background: var(--color-background-primary);
+  color: #534AB7;
+}
+.widget-content {
+  flex: 1;
+  padding: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.widget-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.widget-title i { font-size: 14px; }
+.score-ring {
+  width: 72px;
+  height: 72px;
+  position: relative;
+  flex-shrink: 0;
+}
+.score-ring svg { transform: rotate(-90deg); }
+.score-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Dashboard claro (blanco plomito) ──────────────────────────────────────── */
+.dashboard-bg {
+  background: var(--dash-bg, #f1f1f7);
+  min-height: 100%;
+}
+
+/* Widget tarjeta blanca sobre fondo claro */
+.widget {
+  background: #ffffff;
+  border: 0.5px solid rgba(var(--brand-mid-rgb, 83, 74, 183), 0.15);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.widget:hover {
+  border-color: rgba(var(--brand-mid-rgb, 83, 74, 183), 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+}
+.widget.dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+.widget.dragover {
+  border: 1.5px dashed #7F77DD;
+}
+
+/* Header de cada widget */
+.widget-header {
+  height: 30px;
+  background: rgba(var(--brand-mid-rgb, 83, 74, 183), 0.04);
+  border-bottom: 0.5px solid rgba(var(--brand-mid-rgb, 83, 74, 183), 0.12);
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.widget-header-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #4A43A8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.widget-grip {
+  color: #534AB7;
+  font-size: 12px;
+  opacity: 0.6;
+  cursor: grab;
+}
+
+/* KPI card */
+.kpi-card {
+  background: #ffffff;
+  border: 0.5px solid rgba(var(--brand-mid-rgb, 83, 74, 183), 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+/* Separador interno de widget */
+.widget-divider {
+  border: none;
+  border-top: 0.5px solid rgba(var(--brand-mid-rgb, 83, 74, 183), 0.25);
+  margin: 8px 0;
+}
+
+/* Topbar del portal cliente */
+.client-topbar {
+  height: 44px;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(var(--brand-mid-rgb, 83, 74, 183), 0.12);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 8px;
+  flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* ── Modal selector de empresa ─────────────────────────────────────────────── */
+
+/* Corrección 2: el overlay bloquea clicks e interacciones del fondo */
+.empresa-modal-overlay {
+  pointer-events: all;
+  user-select: none;
+}
+
+/* Corrección 3: mientras el modal está abierto, los inputs del fondo
+   no reciben eventos de puntero (evita que queden resaltados) */
+body[data-modal-open] input,
+body[data-modal-open] textarea,
+body[data-modal-open] select {
+  pointer-events: none;
+}
+
+/* Excepción: los elementos dentro del modal propio siguen siendo interactivos
+   — el input del buscador tiene pointer-events: auto como inline style */
+
+/* Quitar outline/ring de focus en inputs que quedan detrás del overlay */
+body[data-modal-open] input:focus,
+body[data-modal-open] textarea:focus,
+body[data-modal-open] select:focus,
+body[data-modal-open] button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--color-border-tertiary) !important;
+}
+
+/* react-grid-layout */
+.react-grid-item.react-grid-placeholder {
+  background: #EEEDFE !important;
+  border: 1.5px dashed #534AB7 !important;
+  border-radius: 10px;
+  opacity: 0.7 !important;
+}
+.react-grid-item > .react-resizable-handle::after {
+  border-color: var(--border) !important;
+}
+
+/* ── Importar Excel Modal ────────────────────────────────────────────────── */
+.import-summary {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.summary-item {
+  flex: 1;
+  background: #f8f7f4;
+  border: 1px solid #e2e0d8;
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-align: center;
+}
+.import-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #FCEBEB;
+  border: 1px solid #F5C6C6;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #791F1F;
+}
+.import-warning {
+  padding: 8px 12px;
+  background: #FAEEDA;
+  border: 1px solid #F5D99A;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #633806;
+}
+.import-error-row {
+  padding: 8px 12px;
+  background: #FDF5F5;
+  border: 1px solid #F5C6C6;
+  border-radius: 6px;
+  font-size: 12px;
+}

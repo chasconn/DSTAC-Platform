@@ -1,0 +1,30 @@
+# DSTAC Platform — API (Express + Puppeteer)
+# Contexto de build: RAIZ del repo (necesita shared/ y apps/api)
+FROM node:20-slim
+
+# Chromium del sistema para los reportes PDF (puppeteer findSystemBrowser)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      chromium \
+      fonts-liberation \
+      ca-certificates \
+      tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# Puppeteer NO descarga su propio Chromium; usa el del sistema
+ENV PUPPETEER_SKIP_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    NODE_ENV=production \
+    TZ=America/Santiago
+
+WORKDIR /app
+
+# Deps del API (cacheable)
+COPY apps/api/package*.json ./apps/api/
+RUN cd apps/api && npm ci --omit=dev
+
+# Código
+COPY shared ./shared
+COPY apps/api ./apps/api
+
+EXPOSE 3001
+CMD ["node", "apps/api/index.js"]
