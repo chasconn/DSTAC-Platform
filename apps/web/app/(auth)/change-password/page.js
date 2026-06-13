@@ -41,13 +41,8 @@ export default function ChangePasswordPage() {
     setLoading(true)
 
     try {
-      // Usar el mismo hostname del browser para que la cookie quede en el dominio correcto.
-      // Si el browser está en 127.0.0.1:3000 y el fetch va a localhost:3001, la cookie queda
-      // en "localhost" y Next.js no la ve cuando carga /client/dashboard desde 127.0.0.1.
-      const apiBase = process.env.NEXT_PUBLIC_API_URL
-        || `${window.location.protocol}//${window.location.hostname}:3001`
-
-      const res = await fetch(`${apiBase}/api/auth/change-password`, {
+      // Mismo origen: Next reescribe /api -> API interno (evita duplicar el prefijo /api)
+      const res = await fetch(`/api/auth/change-password`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
