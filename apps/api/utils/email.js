@@ -1,28 +1,12 @@
-const nodemailer = require('nodemailer')
-
-function crearTransporter() {
-  return nodemailer.createTransport({
-    host:   process.env.SMTP_HOST,
-    port:   Number(process.env.SMTP_PORT) || 465,
-    secure: process.env.SMTP_SECURE !== 'false',
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  })
-}
+// Correos de gestión de usuarios (bienvenida / reset) vía Microsoft Graph.
+// Usa el mismo emisor OAuth2 que services/emailService.js (sin SMTP básico).
+const { sendMail } = require('../services/emailService')
 
 async function enviarEmailBienvenida({ to, first_name, tempPassword, role, loginUrl, expiresHoras = 48 }) {
-  const transporter = crearTransporter()
-
   const esCliente = role?.startsWith('cliente')
   const tipoPortal = esCliente ? 'Portal Cliente' : 'Panel DSTAC'
 
-  await transporter.sendMail({
-    from:    `"DSTAC Platform" <${process.env.SMTP_USER}>`,
-    to,
-    subject: 'Bienvenido a DSTAC Platform — Tus credenciales de acceso',
-    html: `
+  const html = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#2C2C2A">
         <div style="background:#26215C;padding:24px 28px;border-radius:10px 10px 0 0">
           <h1 style="margin:0;font-size:20px;color:#CECBF6;letter-spacing:0.5px">DSTAC Platform</h1>
@@ -75,18 +59,12 @@ async function enviarEmailBienvenida({ to, first_name, tempPassword, role, login
           </p>
         </div>
       </div>
-    `,
-  })
+    `
+  await sendMail(to, 'Bienvenido a DSTAC Platform — Tus credenciales de acceso', html)
 }
 
 async function enviarEmailResetPassword({ to, first_name, tempPassword, loginUrl, expiresHoras = 48 }) {
-  const transporter = crearTransporter()
-
-  await transporter.sendMail({
-    from:    `"DSTAC Platform" <${process.env.SMTP_USER}>`,
-    to,
-    subject: 'DSTAC Platform — Nueva contraseña temporal',
-    html: `
+  const html = `
       <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#2C2C2A">
         <div style="background:#26215C;padding:24px 28px;border-radius:10px 10px 0 0">
           <h1 style="margin:0;font-size:20px;color:#CECBF6">DSTAC Platform</h1>
@@ -129,8 +107,8 @@ async function enviarEmailResetPassword({ to, first_name, tempPassword, loginUrl
           </p>
         </div>
       </div>
-    `,
-  })
+    `
+  await sendMail(to, 'DSTAC Platform — Nueva contraseña temporal', html)
 }
 
 module.exports = { enviarEmailBienvenida, enviarEmailResetPassword }

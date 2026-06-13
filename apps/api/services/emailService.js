@@ -75,4 +75,4 @@ async function sendMFACode(email, code) {
   await sendMail(email, 'Tu código de verificación DSTAC', html)
 }
 
-module.exports = { sendMFACode }
+module.exports = { sendMFACode, sendMail }
