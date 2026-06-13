@@ -26,6 +26,8 @@ export default function Sidebar() {
   const [user, setUser]                   = useState(null)
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [selectorOpen, setSelectorOpen]   = useState(false)
+  const [isMobile, setIsMobile]           = useState(false)
+  const [mobileOpen, setMobileOpen]       = useState(false)
   const pathname = usePathname()
   const router   = useRouter()
 
@@ -69,6 +71,17 @@ export default function Sidebar() {
     }
   }, [])
 
+  // Responsive: detectar móvil; en móvil el menú es un drawer (no colapsado)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 820px)')
+    const upd = () => { setIsMobile(mq.matches); if (mq.matches) setCollapsed(false) }
+    upd()
+    mq.addEventListener('change', upd)
+    return () => mq.removeEventListener('change', upd)
+  }, [])
+  // Cerrar el drawer al navegar
+  useEffect(() => { setMobileOpen(false) }, [pathname])
+
   function limpiarEmpresa(e) {
     e.stopPropagation()
     localStorage.removeItem('empresa_activa')
@@ -87,18 +100,33 @@ export default function Sidebar() {
   const enAccesos      = pathname.startsWith('/admin/accesos')
 
   return (
+    <>
+      {isMobile && !mobileOpen && (
+        <button onClick={() => setMobileOpen(true)} aria-label="Abrir menú"
+          style={{ position: 'fixed', top: 10, left: 10, zIndex: 1001, width: 42, height: 42, borderRadius: 10,
+                   background: '#26215C', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                   boxShadow: '0 2px 12px rgba(0,0,0,.35)', cursor: 'pointer' }}>
+          <IconMenu color="#fff" />
+        </button>
+      )}
+      {isMobile && mobileOpen && (
+        <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 999 }} />
+      )}
     <aside
       style={{
-        width: collapsed ? 52 : 210,
-        minWidth: collapsed ? 52 : 210,
+        width: isMobile ? 250 : (collapsed ? 52 : 210),
+        minWidth: isMobile ? 250 : (collapsed ? 52 : 210),
         background: '#26215C',
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        transition: 'width 0.2s, min-width 0.2s',
+        transition: 'transform .25s ease, width 0.2s, min-width 0.2s',
         overflow: 'hidden',
-        position: 'sticky',
-        top: 0,
+        position: isMobile ? 'fixed' : 'sticky',
+        top: 0, left: 0,
+        zIndex: isMobile ? 1000 : 'auto',
+        transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+        boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,.4)' : 'none',
       }}
     >
       {/* Logo + colapsar */}
@@ -112,9 +140,9 @@ export default function Sidebar() {
           </span>
         )}
         <button
-          onClick={() => setCollapsed(c => !c)}
+          onClick={() => isMobile ? setMobileOpen(false) : setCollapsed(c => !c)}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, marginLeft: collapsed ? 'auto' : 0 }}
-          title={collapsed ? 'Expandir' : 'Colapsar'}
+          title={isMobile ? 'Cerrar' : (collapsed ? 'Expandir' : 'Colapsar')}
         >
           <IconMenu color="#AFA9EC" />
         </button>
@@ -287,6 +315,7 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   )
 }
 

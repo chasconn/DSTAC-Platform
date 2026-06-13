@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }) {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
-      <main style={{ flex: 1, overflowY: 'auto', background: '#f8f7f4' }}>
+      <main className="admin-shell-main" style={{ flex: 1, overflowY: 'auto', background: '#f8f7f4' }}>
         {children}
       </main>
     </div>
