@@ -1,21 +1,64 @@
-const nodemailer = require('nodemailer')
+// Envío de correo vía Microsoft Graph (OAuth2 client-credentials).
+// Sin contraseñas ni SMTP básico → no requiere bajar Security Defaults de M365.
+// Variables de entorno necesarias:
+//   GRAPH_TENANT_ID, GRAPH_CLIENT_ID, GRAPH_CLIENT_SECRET, MAIL_FROM (buzón emisor)
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT) || 465,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+const TENANT        = process.env.GRAPH_TENANT_ID
+const CLIENT_ID     = process.env.GRAPH_CLIENT_ID
+const CLIENT_SECRET = process.env.GRAPH_CLIENT_SECRET
+const MAIL_FROM     = process.env.MAIL_FROM || process.env.SMTP_USER
+
+let _token = null
+let _exp = 0
+
+async function getToken() {
+  if (_token && Date.now() < _exp - 60000) return _token
+  if (!TENANT || !CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error('Faltan GRAPH_TENANT_ID / GRAPH_CLIENT_ID / GRAPH_CLIENT_SECRET en el entorno')
   }
-})
+  const body = new URLSearchParams({
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    scope: 'https://graph.microsoft.com/.default',
+    grant_type: 'client_credentials'
+  })
+  const r = await fetch(`https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body
+  })
+  const j = await r.json().catch(() => ({}))
+  if (!r.ok) throw new Error('Graph token error: ' + (j.error_description || JSON.stringify(j)))
+  _token = j.access_token
+  _exp = Date.now() + (parseInt(j.expires_in || 3600) * 1000)
+  return _token
+}
+
+async function sendMail(to, subject, html) {
+  const token = await getToken()
+  const r = await fetch(
+    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(MAIL_FROM)}/sendMail`,
+    {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: {
+          subject,
+          body: { contentType: 'HTML', content: html },
+          toRecipients: [{ emailAddress: { address: to } }]
+        },
+        saveToSentItems: false
+      })
+    }
+  )
+  if (!r.ok) {
+    const t = await r.text().catch(() => '')
+    throw new Error('Graph sendMail error ' + r.status + ': ' + t)
+  }
+}
 
 async function sendMFACode(email, code) {
-  await transporter.sendMail({
-    from: `"DSTAC Seguridad" <${process.env.SMTP_USER}>`,
-    to: email,
-    subject: 'Tu código de verificación DSTAC',
-    html: `
+  const html = `
       <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
         <h2 style="color: #3C3489;">Código de verificación</h2>
         <p>Ingresa el siguiente código para acceder a tu cuenta:</p>
@@ -29,7 +72,7 @@ async function sendMFACode(email, code) {
         </p>
       </div>
     `
-  })
+  await sendMail(email, 'Tu código de verificación DSTAC', html)
 }
 
 module.exports = { sendMFACode }
