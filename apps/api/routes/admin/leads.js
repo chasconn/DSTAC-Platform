@@ -40,12 +40,23 @@ router.get('/:id', async (req, res, next) => {
   } catch (e) { next(e) }
 })
 
-// PATCH /api/admin/leads/:id  { estado }
+// PATCH /api/admin/leads/:id  { estado?, company_id? }
+// company_id se usa al convertir el prospecto en cliente (lo enlaza con la empresa creada).
 router.patch('/:id', async (req, res, next) => {
   try {
-    const { estado } = req.body
-    if (!ESTADOS.includes(estado)) return res.status(400).json({ error: 'Estado inválido' })
-    const [r] = await centralDB.execute('UPDATE leads SET estado = ? WHERE id = ?', [estado, req.params.id])
+    const { estado, company_id } = req.body
+    const fields = [], params = []
+
+    if (estado !== undefined) {
+      if (!ESTADOS.includes(estado)) return res.status(400).json({ error: 'Estado inválido' })
+      fields.push('estado = ?'); params.push(estado)
+    }
+    if (company_id !== undefined) { fields.push('company_id = ?'); params.push(company_id || null) }
+
+    if (!fields.length) return res.status(400).json({ error: 'Nada que actualizar' })
+
+    params.push(req.params.id)
+    const [r] = await centralDB.execute(`UPDATE leads SET ${fields.join(', ')} WHERE id = ?`, params)
     if (!r.affectedRows) return res.status(404).json({ error: 'Prospecto no encontrado' })
     res.json({ ok: true })
   } catch (e) { next(e) }

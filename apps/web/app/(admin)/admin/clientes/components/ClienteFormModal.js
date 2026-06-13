@@ -29,10 +29,17 @@ function generarSlug(nombre) {
     .replace(/^-|-$/g, '')
 }
 
-export default function ClienteFormModal({ onClose, onCreated }) {
+export default function ClienteFormModal({ onClose, onCreated, initial }) {
+  // `initial` permite pre-llenar el formulario (ej. al convertir un prospecto en cliente).
+  const nombreInicial = initial?.name?.trim() || ''
   const [form, setForm] = useState({
-    name: '', slug: '', plan_id: 1, max_users: 5,
-    billing_email: '', contact_phone: '', theme: THEMES[0],
+    name:          nombreInicial,
+    slug:          nombreInicial ? generarSlug(nombreInicial) : '',
+    plan_id:       1,
+    max_users:     5,
+    billing_email: initial?.billing_email || '',
+    contact_phone: initial?.contact_phone || '',
+    theme:         THEMES[0],
   })
   const [slugEditado, setSlugEditado] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -99,8 +106,8 @@ export default function ClienteFormModal({ onClose, onCreated }) {
         {/* Header */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e2e0d8', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#2C2C2A' }}>Nueva empresa</h2>
-            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888780' }}>Se provisionará la BD operacional automáticamente</p>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#2C2C2A' }}>{initial ? 'Convertir prospecto en cliente' : 'Nueva empresa'}</h2>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888780' }}>{initial ? 'Revisa los datos y crea la empresa — el prospecto se marcará como convertido' : 'Se provisionará la BD operacional automáticamente'}</p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888780', fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
         </div>

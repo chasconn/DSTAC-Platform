@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { api } from '../../../../lib/api'
+import ClienteFormModal from '../clientes/components/ClienteFormModal'
 
 const ESTADOS = [
   { v: 'nuevo',      label: 'Nuevo',      color: '#534AB7', bg: '#EEEDFE' },
@@ -103,6 +104,7 @@ export default function ProspectosPage() {
   const [estado, setEstado] = useState('')
   const [search, setSearch] = useState('')
   const [sel, setSel]       = useState(null)    // lead detalle (completo)
+  const [convirtiendo, setConvirtiendo] = useState(null) // lead que se está convirtiendo en cliente
   const [toast, setToast]   = useState(null)
 
   useEffect(() => { fetchLeads() }, [])
@@ -131,6 +133,23 @@ export default function ProspectosPage() {
       fetchLeads() // refrescar contadores
       notify('Estado actualizado')
     } catch (e) { notify(e.message || 'No se pudo actualizar', false) }
+  }
+
+  // Tras crear la empresa desde el modal: enlazar el prospecto y marcarlo convertido.
+  async function onClienteCreado(empresa) {
+    const lead = convirtiendo
+    try {
+      if (lead) {
+        await api.patch(`/api/admin/leads/${lead.id}`, { estado: 'convertido', company_id: empresa.id })
+      }
+    } catch (e) {
+      // La empresa ya se creó; no bloqueamos por el enlace del prospecto.
+      notify('Empresa creada, pero no se pudo marcar el prospecto: ' + (e.message || ''), false)
+    }
+    setConvirtiendo(null)
+    setSel(null)
+    fetchLeads()
+    notify(`Empresa "${empresa.name}" creada y prospecto convertido`)
   }
 
   async function generarInforme(lead, locked = false) {
@@ -306,10 +325,29 @@ export default function ProspectosPage() {
             </div>
 
             {/* Convertir a cliente */}
-            <button onClick={() => notify('Convertir a cliente: lo conectamos en el siguiente paso')}
-              style={{ width: '100%', marginTop: 14, padding: '11px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Convertir a cliente</button>
+            {sel.estado === 'convertido' && sel.company_id ? (
+              <div style={{ width: '100%', marginTop: 14, padding: '11px', borderRadius: 8, background: '#E4F6EC', color: '#1F7A4D', fontWeight: 600, fontSize: 13.5, textAlign: 'center' }}>
+                ✓ Ya convertido en cliente
+              </div>
+            ) : (
+              <button onClick={() => setConvirtiendo(sel)}
+                style={{ width: '100%', marginTop: 14, padding: '11px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Convertir a cliente</button>
+            )}
           </div>
         </>
+      )}
+
+      {/* Modal para crear la empresa a partir del prospecto */}
+      {convirtiendo && (
+        <ClienteFormModal
+          initial={{
+            name:          convirtiendo.empresa || convirtiendo.dominio || convirtiendo.contacto_nombre || '',
+            billing_email: convirtiendo.email || '',
+            contact_phone: convirtiendo.telefono || '',
+          }}
+          onClose={() => setConvirtiendo(null)}
+          onCreated={onClienteCreado}
+        />
       )}
 
       {toast && (
