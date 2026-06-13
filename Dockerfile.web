@@ -11,6 +11,9 @@ COPY apps/web ./apps/web
 # NEXT_PUBLIC_* se hornea en build. Relativo /api -> mismo origen (Next hace rewrite a la API)
 ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Next hornea el DESTINO del rewrite en build-time -> debe apuntar al servicio interno del API
+ARG INTERNAL_API_URL=http://dstac-portal_api:3001
+ENV INTERNAL_API_URL=$INTERNAL_API_URL
 RUN cd apps/web && npm run build
 
 # ---- runtime ----
