@@ -305,6 +305,44 @@ body[data-modal-open] button:focus {
   font-size: 12px;
 }
 
+/* ── Modo oscuro (tema retro-aplicado) ─────────────────────────────────────────
+   El panel está construido con colores fijos en estilos en línea, así que en vez
+   de re-teñir cientos de archivos se invierte el ÁREA DE CONTENIDO con un filtro.
+   `invert` voltea claro↔oscuro y `hue-rotate(180deg)` devuelve los tonos de marca
+   a su matiz original (el morado sigue morado, el rojo sigue rojo, etc.).
+   El sidebar queda fuera del filtro porque ya es oscuro de por sí.
+   Solo se activa con [data-theme="dark"]; el modo claro queda intacto. */
+[data-theme="dark"] body {
+  background: #14131a;
+}
+[data-theme="dark"] .admin-shell-main {
+  filter: invert(0.92) hue-rotate(180deg);
+  background: #f3f2ef; /* tras invertir queda casi negro cálido */
+}
+/* Re-invertir medios reales (logos, fotos, capturas) para que se vean normales.
+   Cualquier elemento con data-noinvert también se exime del filtro. */
+[data-theme="dark"] .admin-shell-main img,
+[data-theme="dark"] .admin-shell-main video,
+[data-theme="dark"] .admin-shell-main [data-noinvert] {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Interruptor de tema en el sidebar */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 7px 8px;
+  border-radius: 8px;
+  color: #AFA9EC;
+  font-size: 13px;
+}
+.theme-toggle:hover { background: rgba(83,74,183,0.2); }
+
 /* ── Subnavegación del módulo Pendientes ──────────────────────────────────── */
 .pendientes-subnav {
   display: flex;

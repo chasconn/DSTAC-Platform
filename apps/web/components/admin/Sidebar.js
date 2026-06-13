@@ -28,8 +28,22 @@ export default function Sidebar() {
   const [selectorOpen, setSelectorOpen]   = useState(false)
   const [isMobile, setIsMobile]           = useState(false)
   const [mobileOpen, setMobileOpen]       = useState(false)
+  const [theme, setTheme]                 = useState('light')
   const pathname = usePathname()
   const router   = useRouter()
+
+  // Tema (claro/oscuro): se persiste en localStorage y se refleja en <html data-theme>.
+  // El script en el layout raíz ya lo aplicó antes del paint; aquí solo sincronizamos el estado.
+  useEffect(() => {
+    try { setTheme(localStorage.getItem('dstac_theme') === 'dark' ? 'dark' : 'light') } catch {}
+  }, [])
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    try { localStorage.setItem('dstac_theme', next) } catch {}
+    if (next === 'dark') document.documentElement.setAttribute('data-theme', 'dark')
+    else document.documentElement.removeAttribute('data-theme')
+  }
 
   // Leer localStorage solo tras el mount — evita hydration mismatch
   useEffect(() => {
@@ -319,6 +333,17 @@ export default function Sidebar() {
             </div>
           </div>
         )}
+        {/* Interruptor de tema claro/oscuro */}
+        <button
+          onClick={toggleTheme}
+          className="theme-toggle"
+          title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          style={{ marginBottom: 2, justifyContent: collapsed ? 'center' : 'flex-start' }}
+        >
+          {theme === 'dark' ? <IconSun color="#AFA9EC" /> : <IconMoon color="#AFA9EC" />}
+          {!collapsed && <span>{theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}</span>}
+        </button>
+
         <button
           onClick={handleLogout}
           style={{
@@ -490,6 +515,21 @@ function IconMenu({ color }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  )
+}
+function IconMoon({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  )
+}
+function IconSun({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
     </svg>
   )
 }
