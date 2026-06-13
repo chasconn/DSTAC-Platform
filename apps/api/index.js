@@ -8,6 +8,9 @@ const errorHandler = require('./middleware/errorHandler')
 
 const app = express()
 
+// Detrás de Traefik (1 proxy): confiar en X-Forwarded-* para IP real (rate-limit correcto)
+app.set('trust proxy', 1)
+
 // CORS — acepta peticiones del frontend (credentials: true necesario para cookies HttpOnly)
 const ALLOWED_ORIGIN = process.env.FRONTEND_URL || 'http://localhost:3000'
 app.use(cors({
