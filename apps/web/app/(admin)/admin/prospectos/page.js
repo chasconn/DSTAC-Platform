@@ -85,6 +85,15 @@ function dstacReportPreview(html) {
   const onKey = (e) => { if (e.key === 'Escape') close() }
   cl.onclick = close; ov.addEventListener('click', (e) => { if (e.target === ov) close() }); document.addEventListener('keydown', onKey)
 }
+const cardBtn = (primary) => ({
+  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+  padding: '14px 8px', borderRadius: 10, cursor: 'pointer',
+  fontWeight: primary ? 700 : 600, fontSize: 12.5, color: '#3C3489',
+  border: primary ? '1.5px solid #534AB7' : '1px solid #E6E2F0',
+  background: primary ? '#F4F2FE' : '#fff',
+})
+function IconOjo() { return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#534AB7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>) }
+function IconDoc() { return (<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#534AB7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>) }
 
 export default function ProspectosPage() {
   const [leads, setLeads]   = useState([])
@@ -124,7 +133,7 @@ export default function ProspectosPage() {
     } catch (e) { notify(e.message || 'No se pudo actualizar', false) }
   }
 
-  async function generarInforme(lead) {
+  async function generarInforme(lead, locked = false) {
     try {
       notify('Generando informe…')
       await loadReportLibs()
@@ -138,7 +147,7 @@ export default function ProspectosPage() {
           caption: d.caption, ssl: d.ssl || {}, checks: d.allHeaderChecks || [], email: d.email || {},
         }
         if (typeof window.buildReportBody !== 'function') throw new Error('No se cargó el generador del informe')
-        body = window.buildReportBody(S, logo, { locked: false })
+        body = window.buildReportBody(S, logo, { locked })
       } else {
         const d = lead.data || {}
         const clientData = { nombre_empresa: lead.empresa, nombre_responsable: lead.contacto_nombre }
@@ -275,11 +284,30 @@ export default function ProspectosPage() {
               </select>
             </div>
 
-            {/* Acciones (próxima fase) */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-              <button onClick={() => generarInforme(sel)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #E6E2F0', background: '#fff', cursor: 'pointer', fontWeight: 600, color: '#3C3489' }}>Generar informe</button>
-              <button onClick={() => notify('Convertir a cliente: lo conectamos en el siguiente paso')} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Convertir a cliente</button>
+            {/* Informes */}
+            <div style={{ marginTop: 18 }}>
+              <label style={{ fontSize: 12, color: '#6E6884', fontWeight: 600 }}>INFORMES</label>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                {sel.tipo === 'web_scan' ? (
+                  <>
+                    <button onClick={() => generarInforme(sel, true)} title="Como lo ve el prospecto (remediación bloqueada)" style={cardBtn(false)}>
+                      <IconOjo /> Vista del cliente
+                    </button>
+                    <button onClick={() => generarInforme(sel, false)} title="Informe completo con remediación (entregable)" style={cardBtn(true)}>
+                      <IconDoc /> Informe completo
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => generarInforme(sel, false)} title="Informe del autodiagnóstico" style={cardBtn(true)}>
+                    <IconDoc /> Informe del diagnóstico
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Convertir a cliente */}
+            <button onClick={() => notify('Convertir a cliente: lo conectamos en el siguiente paso')}
+              style={{ width: '100%', marginTop: 14, padding: '11px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Convertir a cliente</button>
           </div>
         </>
       )}
