@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../../../lib/api'
 import TareaModal       from '../components/TareaModal'
 import TareaDeleteModal from '../components/TareaDeleteModal'
+import TareaDetalle     from '../components/TareaDetalle'
 import PendientesSubnav from '../components/PendientesSubnav'
 
 const PRIORITY_STYLE = {
@@ -48,6 +49,7 @@ export default function MisTareasPage() {
   const [modalOpen,  setModalOpen]  = useState(false)
   const [editando,   setEditando]   = useState(null)
   const [eliminando, setEliminando] = useState(null)
+  const [viendo,     setViendo]     = useState(null)
   const [toast,      setToast]      = useState(null)
 
   const LIMIT = 40
@@ -246,7 +248,7 @@ export default function MisTareasPage() {
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
 
         {/* Cabecera */}
-        <div style={{ display: 'grid', gridTemplateColumns: '32px 40px 1fr 130px 160px 160px 110px 160px 72px', gap: 0, padding: '9px 16px', background: '#f8f7f4', borderBottom: '1px solid #e2e0d8' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '32px 40px 1fr 130px 160px 160px 110px 160px 96px', gap: 0, padding: '9px 16px', background: '#f8f7f4', borderBottom: '1px solid #e2e0d8' }}>
           {['', 'Pri.', 'Título', 'Estado', 'Empresa', 'Personal', 'Vence', 'Analista', ''].map((h, i) => (
             <div key={i} style={{ fontSize: 11, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, paddingRight: 8 }}>{h}</div>
           ))}
@@ -269,7 +271,7 @@ export default function MisTareasPage() {
           return (
             <div key={t.id} style={{
               display: 'grid',
-              gridTemplateColumns: '32px 40px 1fr 130px 160px 160px 110px 160px 72px',
+              gridTemplateColumns: '32px 40px 1fr 130px 160px 160px 110px 160px 96px',
               gap: 0, padding: '11px 16px',
               borderBottom: i < tasks.length - 1 ? '1px solid #f1efe8' : 'none',
               background: vencida ? '#FFFBF0' : 'transparent',
@@ -288,10 +290,14 @@ export default function MisTareasPage() {
                   style={{ width: 10, height: 10, borderRadius: '50%', background: PRIORITY_DOT[t.priority] ?? '#B4B2A9', flexShrink: 0 }} />
               </div>
 
-              {/* Título + descripción */}
+              {/* Título + descripción (clic en el título → ver detalle) */}
               <div style={{ minWidth: 0, paddingRight: 12 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: t.status === 'done' ? '#888780' : '#2C2C2A', textDecoration: t.status === 'done' ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {t.title}
+                  <span onClick={() => setViendo(t)} title="Ver detalle" style={{ cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
+                    onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}>
+                    {t.title}
+                  </span>
                   {vencida && <span style={{ marginLeft: 6, fontSize: 10, background: '#FCEBEB', color: '#791F1F', fontWeight: 600, padding: '1px 6px', borderRadius: 20 }}>Vencida</span>}
                 </div>
                 {t.description && (
@@ -330,6 +336,7 @@ export default function MisTareasPage() {
 
               {/* Acciones */}
               <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <ActionBtn onClick={() => setViendo(t)} title="Ver detalle">👁</ActionBtn>
                 <ActionBtn onClick={() => { setEditando(t); setModalOpen(true) }} title="Editar">✏️</ActionBtn>
                 <ActionBtn onClick={() => setEliminando(t)} title="Eliminar" danger>🗑</ActionBtn>
               </div>
@@ -367,6 +374,15 @@ export default function MisTareasPage() {
           tarea={eliminando}
           onClose={() => setEliminando(null)}
           onDeleted={handleDeleted}
+        />
+      )}
+
+      {/* Panel de detalle (solo lectura) */}
+      {viendo && (
+        <TareaDetalle
+          tarea={viendo}
+          onClose={() => setViendo(null)}
+          onEdit={(t) => { setViendo(null); setEditando(t); setModalOpen(true) }}
         />
       )}
     </div>
