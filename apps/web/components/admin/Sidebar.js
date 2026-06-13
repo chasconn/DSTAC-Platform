@@ -9,6 +9,7 @@ import EmpresaSelectorModal from './EmpresaSelectorModal'
 const NAV = [
   { href: '/admin/dashboard',  label: 'Dashboard',  icon: IconDashboard  },
   { href: '/admin/clientes',   label: 'Clientes',   icon: IconClientes   },
+  { href: '/admin/prospectos', label: 'Prospectos', icon: IconProspectos },
   { href: '/admin/usuarios',   label: 'Usuarios',   icon: IconUsuarios   },
   { href: '/admin/personal',   label: 'Personal',   icon: IconPersonal   },
   { href: '/admin/activos',    label: 'Activos',    icon: IconActivos    },
@@ -375,6 +376,13 @@ function IconClientes({ color }) {
       <path d="M9 21v-4h6v4"/>
       <path d="M9 11h.01M12 11h.01M15 11h.01"/>
       <path d="M9 15h.01M12 15h.01M15 15h.01"/>
+    </svg>
+  )
+}
+function IconProspectos({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/>
     </svg>
   )
 }
