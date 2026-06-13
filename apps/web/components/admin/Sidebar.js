@@ -32,7 +32,23 @@ export default function Sidebar() {
   useEffect(() => {
     setUser(getUser())
     const raw = localStorage.getItem('empresa_activa')
-    setEmpresaActiva(raw ? JSON.parse(raw) : null)
+    if (raw) { setEmpresaActiva(JSON.parse(raw)); return }
+    // Sin empresa seleccionada → por defecto la interna DSTAC
+    fetch('/api/admin/empresas/selector', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        const internas = data?.internas ?? []
+        const dstac = internas.find(e => /dstac/i.test(e.slug || e.name || '')) || internas[0]
+        if (!dstac) return
+        const obj = {
+          id: dstac.id, name: dstac.name, slug: dstac.slug,
+          plan: dstac.plan_name, interno: dstac.is_internal === 1,
+        }
+        localStorage.setItem('empresa_activa', JSON.stringify(obj))
+        setEmpresaActiva(obj)
+        window.dispatchEvent(new Event('empresa_activa_changed'))
+      })
+      .catch(() => {})
   }, [])
 
   // Sincronizar chip cuando cambia la empresa activa (misma pestaña o cruzada)
