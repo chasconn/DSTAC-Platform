@@ -44,7 +44,7 @@ export default function TareaDetalle({ tarea, onClose, onEdit }) {
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(460px, 94vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(460px, 94vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 24 }}>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -77,8 +77,8 @@ export default function TareaDetalle({ tarea, onClose, onEdit }) {
           ))}
         </div>
 
-        {/* Acciones */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 22 }}>
+        {/* Acciones — barra fija al fondo del panel (siempre visible) */}
+        <div style={{ position: 'sticky', bottom: 0, display: 'flex', gap: 8, marginTop: 24, padding: '16px 0 4px', background: '#fff', borderTop: '1px solid #f1efe8' }}>
           <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', color: '#444441', cursor: 'pointer', fontSize: 13.5 }}>Cerrar</button>
           <button onClick={() => onEdit(t)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 13.5, fontWeight: 600 }}>Editar</button>
         </div>
