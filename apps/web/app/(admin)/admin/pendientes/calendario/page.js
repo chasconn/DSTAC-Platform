@@ -1,8 +1,12 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { apiFetch } from '../../../../../lib/api'
 import PendientesSubnav from '../components/PendientesSubnav'
+
+// Color por prioridad de tarea (capa de solo lectura sobre el calendario).
+const PRIORIDAD_COLOR = { critical: '#E24B4A', high: '#EF9F27', medium: '#C47A1A', low: '#B4B2A9' }
 
 // Tipos de evento y su color asociado (se usa en el chip dentro de cada día).
 const TIPOS = {
@@ -26,12 +30,14 @@ function ymd(d) {
 }
 
 export default function CalendarioPage() {
+  const router = useRouter()
   // Mes/año visibles. `hoy` se fija una vez para marcar el día actual en la grilla.
   const hoy = new Date()
   const [year,  setYear]  = useState(hoy.getFullYear())
   const [month, setMonth] = useState(hoy.getMonth()) // 0-11
 
   const [eventos,  setEventos]  = useState([])
+  const [tareas,   setTareas]   = useState([])
   const [loading,  setLoading]  = useState(true)
   const [empresas, setEmpresas] = useState([])
 
@@ -57,6 +63,7 @@ export default function CalendarioPage() {
       // month+1 porque el backend espera 1-12.
       const data = await apiFetch(`/api/admin/pendientes/eventos?year=${year}&month=${month + 1}`)
       setEventos(data.eventos ?? [])
+      setTareas(data.tareas ?? [])
     } catch (err) {
       showToast(err.message || 'Error al cargar eventos', 'error')
     } finally { setLoading(false) }
@@ -92,6 +99,13 @@ export default function CalendarioPage() {
     // ev.fecha puede venir como 'yyyy-mm-dd' o ISO; nos quedamos con los 10 primeros chars.
     const key = String(ev.fecha).slice(0, 10)
     ;(eventosPorDia[key] ||= []).push(ev)
+  }
+
+  // Agrupar tareas por su fecha de vencimiento (capa de solo lectura).
+  const tareasPorDia = {}
+  for (const t of tareas) {
+    const key = String(t.fecha).slice(0, 10)
+    ;(tareasPorDia[key] ||= []).push(t)
   }
 
   function mesAnterior() {
@@ -149,6 +163,10 @@ export default function CalendarioPage() {
             <span style={{ width: 9, height: 9, borderRadius: '50%', background: t.color }} /> {t.label}
           </span>
         ))}
+        {/* Las tareas con vencimiento aparecen como chip punteado (solo lectura). */}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#888780', marginLeft: 6 }}>
+          <span style={{ width: 11, height: 9, borderRadius: 3, border: '1px dashed #888780' }} /> Tarea (vencimiento)
+        </span>
       </div>
 
       {/* Grilla del calendario */}
@@ -169,8 +187,13 @@ export default function CalendarioPage() {
               return <div key={`v${i}`} style={{ minHeight: 96, borderRight: (i + 1) % 7 ? '1px solid #f1efe8' : 'none', borderBottom: '1px solid #f1efe8', background: '#fcfbf9' }} />
             }
             const key = ymd(dia)
-            const delDia = eventosPorDia[key] ?? []
+            const delDia    = eventosPorDia[key] ?? []
+            const tareasDia = tareasPorDia[key] ?? []
             const esHoy  = key === hoyStr
+            // Reparto de los 3 espacios visibles: primero eventos, luego tareas.
+            const evVisibles = delDia.slice(0, 3)
+            const taVisibles = tareasDia.slice(0, Math.max(0, 3 - evVisibles.length))
+            const ocultos = (delDia.length - evVisibles.length) + (tareasDia.length - taVisibles.length)
             return (
               <div
                 key={key}
@@ -198,13 +221,13 @@ export default function CalendarioPage() {
                   </span>
                 </div>
 
-                {/* Chips de eventos (máx. 3 visibles; el resto se indica con "+N") */}
+                {/* Chips de eventos + tareas (máx. 3 visibles; el resto como "+N") */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {delDia.slice(0, 3).map(ev => {
+                  {evVisibles.map(ev => {
                     const t = TIPOS[ev.tipo] ?? TIPOS.otro
                     return (
                       <div
-                        key={ev.id}
+                        key={`e${ev.id}`}
                         onClick={e => { e.stopPropagation(); abrirEditar(ev) }}
                         title={ev.titulo}
                         style={{
@@ -221,8 +244,31 @@ export default function CalendarioPage() {
                       </div>
                     )
                   })}
-                  {delDia.length > 3 && (
-                    <div style={{ fontSize: 10, color: '#888780', paddingLeft: 4 }}>+{delDia.length - 3} más</div>
+                  {/* Tareas: capa de solo lectura. Clic → ir a Mis tareas. */}
+                  {taVisibles.map(t => {
+                    const col = PRIORIDAD_COLOR[t.priority] ?? '#B4B2A9'
+                    const hecha = t.status === 'done'
+                    return (
+                      <div
+                        key={`t${t.id}`}
+                        onClick={e => { e.stopPropagation(); router.push('/admin/pendientes/mis-tareas') }}
+                        title={`Tarea: ${t.titulo}${t.company_name ? ` · ${t.company_name}` : ''}`}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          background: '#fff', border: `1px dashed ${col}`,
+                          borderRadius: 4, padding: '2px 5px', fontSize: 11,
+                          color: hecha ? '#888780' : '#2C2C2A',
+                          textDecoration: hecha ? 'line-through' : 'none',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        <span style={{ color: col, flexShrink: 0, fontSize: 10 }}>{hecha ? '✓' : '◷'}</span>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.titulo}</span>
+                      </div>
+                    )
+                  })}
+                  {ocultos > 0 && (
+                    <div style={{ fontSize: 10, color: '#888780', paddingLeft: 4 }}>+{ocultos} más</div>
                   )}
                 </div>
               </div>

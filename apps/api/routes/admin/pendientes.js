@@ -18,37 +18,53 @@ const TIPOS = ['reunion', 'tarea', 'recordatorio', 'auditoria', 'vencimiento', '
 
 // ─── CALENDARIO ───────────────────────────────────────────────────────────────
 
-// GET /eventos?year=2026&month=6  → eventos cuya fecha cae en ese mes.
+// GET /eventos?year=2026&month=6  → eventos cuya fecha cae en ese mes + las tareas
+// pendientes cuyo vencimiento (due_date) cae en ese mes (capa de solo lectura).
 // Sin year/month devuelve los próximos 90 días (fallback defensivo).
 router.get('/eventos', async (req, res, next) => {
   try {
     const { year, month } = req.query
-    let where = ''
-    const params = []
 
+    // Rango de fechas [desde, hasta] que cubre la vista pedida.
+    let desde, hasta
     if (year && month) {
-      // Primer y último día del mes pedido (month es 1-12).
       const y = Number(year)
-      const m = Number(month)
-      const desde = `${y}-${String(m).padStart(2, '0')}-01`
-      const hasta = new Date(y, m, 0).toISOString().slice(0, 10) // día 0 del mes siguiente = último del actual
-      where = 'WHERE e.fecha BETWEEN ? AND ?'
-      params.push(desde, hasta)
+      const m = Number(month) // 1-12
+      desde = `${y}-${String(m).padStart(2, '0')}-01`
+      hasta = new Date(y, m, 0).toISOString().slice(0, 10) // último día del mes
     } else {
-      where = 'WHERE e.fecha BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 90 DAY)'
+      // Fallback: próximos 90 días desde hoy.
+      const now = new Date()
+      desde = now.toISOString().slice(0, 10)
+      hasta = new Date(now.getTime() + 90 * 86400000).toISOString().slice(0, 10)
     }
 
-    const [rows] = await centralDB.execute(`
+    // Eventos del calendario (CRUD completo).
+    const [eventos] = await centralDB.execute(`
       SELECT e.id, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin,
              e.todo_el_dia, e.tipo, e.company_id, e.created_at,
              c.name AS company_name
       FROM calendario_eventos e
       LEFT JOIN companies c ON e.company_id = c.id
-      ${where}
+      WHERE e.fecha BETWEEN ? AND ?
       ORDER BY e.fecha ASC, e.hora_inicio ASC
-    `, params)
+    `, [desde, hasta])
 
-    res.json({ eventos: rows })
+    // Tareas con vencimiento dentro del rango — se muestran como capa de solo
+    // lectura en su día. Se excluyen las canceladas. La fecha se normaliza a
+    // 'fecha' (yyyy-mm-dd) para que el frontend las agrupe igual que los eventos.
+    const [tareas] = await centralDB.execute(`
+      SELECT pt.id, pt.title AS titulo, DATE(pt.due_date) AS fecha,
+             pt.priority, pt.status, pt.company_id, c.name AS company_name
+      FROM pending_tasks pt
+      LEFT JOIN companies c ON pt.company_id = c.id
+      WHERE pt.due_date IS NOT NULL
+        AND DATE(pt.due_date) BETWEEN ? AND ?
+        AND pt.status <> 'cancelled'
+      ORDER BY pt.due_date ASC
+    `, [desde, hasta])
+
+    res.json({ eventos, tareas })
   } catch (err) { next(err) }
 })
 
