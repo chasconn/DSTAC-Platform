@@ -18,6 +18,7 @@ app.use(cors({
     if (!origin) return cb(null, true)                          // curl / SSR
     if (origin === ALLOWED_ORIGIN) return cb(null, true)       // producción
     if (/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) return cb(null, true) // dev local
+    if (/^https:\/\/(www\.)?dstac\.cl$/.test(origin)) return cb(null, true)           // sitio público (funnel /api/public)
     cb(new Error(`CORS bloqueado: ${origin}`))
   },
   credentials: true
@@ -30,6 +31,8 @@ app.use('/api', apiLimiter)
 
 // Rutas
 app.use('/api/auth',            require('./routes/auth'))
+app.use('/api/public',          require('./routes/public'))
+app.use('/api/admin/leads',     require('./routes/admin/leads'))
 app.use('/api/companies',       require('./routes/companies'))
 app.use('/api/dashboard',       require('./routes/dashboard'))
 app.use('/api/users',           require('./routes/users'))
