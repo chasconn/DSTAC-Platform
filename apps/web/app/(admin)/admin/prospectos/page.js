@@ -20,6 +20,72 @@ function riskColor(r) {
 }
 const fmtFecha = (s) => { try { return new Date(s).toLocaleString('es-CL', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) } catch { return s || '—' } }
 
+// ── Generación de informe (reusa los HTML del sitio diag, servidos en /reportes) ──
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[data-rep="${src}"]`)) return resolve()
+    const s = document.createElement('script')
+    s.src = src; s.dataset.rep = src
+    s.onload = () => resolve(); s.onerror = () => reject(new Error('No se pudo cargar ' + src))
+    document.head.appendChild(s)
+  })
+}
+let _libs = null
+function loadReportLibs() {
+  if (!_libs) _libs = (async () => {
+    await loadScript('/reportes/risk_texts.js')
+    await loadScript('/reportes/report_gen.js')
+    await loadScript('/reportes/diag_catalog.js')
+    await loadScript('/reportes/diag_gen.js')
+  })()
+  return _libs
+}
+async function fetchTemplate() {
+  const tpl = await (await fetch('/reportes/informe_template.html', { cache: 'force-cache' })).text()
+  const head = (tpl.match(/<head>[\s\S]*?<\/head>/i) || [])[0] || ''
+  const logo = (tpl.match(/src="(data:image\/[a-z+]+;base64,[^"]+)"/i) || [])[1] || ''
+  return { head, logo }
+}
+function composeReportHtml(head, logo, body) {
+  const h = head.replace(/<\/head>/i, '<style>@page{size:A4 portrait;margin:0}html,body{margin:0;padding:0}</style></head>')
+  return '<!DOCTYPE html><html lang="es">' + h + '<body>' + body + '</body></html>'
+}
+// Vista previa in-page con zoom (idéntica a la del panel de leads)
+function dstacReportPreview(html) {
+  const ov = document.createElement('div')
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,5,12,.88);display:flex;flex-direction:column;padding:14px;box-sizing:border-box'
+  const bar = document.createElement('div')
+  bar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap'
+  const left = document.createElement('span'); left.style.cssText = 'color:#fff;font:600 15px system-ui'; left.textContent = 'Vista previa del informe'
+  bar.appendChild(left)
+  const btns = document.createElement('div'); btns.style.cssText = 'display:flex;gap:8px;align-items:center'
+  const zb = (t) => { const b = document.createElement('button'); b.textContent = t; b.style.cssText = 'background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;width:30px;height:30px;font:600 17px system-ui;cursor:pointer;padding:0'; return b }
+  const zout = zb('−'), zin = zb('+')
+  const zlbl = document.createElement('button'); zlbl.title = 'Ajustar al ancho'; zlbl.style.cssText = 'background:transparent;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;height:30px;padding:0 10px;font:600 13px system-ui;cursor:pointer;min-width:54px'
+  const zw = document.createElement('div'); zw.style.cssText = 'display:flex;gap:4px;align-items:center;margin-right:6px'; zw.append(zout, zlbl, zin)
+  const dl = document.createElement('button'); dl.textContent = 'Guardar PDF'; dl.style.cssText = 'background:#7B4DFF;color:#fff;border:none;border-radius:999px;padding:10px 20px;font:600 14px system-ui;cursor:pointer'
+  const cl = document.createElement('button'); cl.textContent = 'Cerrar'; cl.style.cssText = 'background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:10px 16px;font:600 14px system-ui;cursor:pointer'
+  btns.append(zw, dl, cl); bar.appendChild(btns); ov.appendChild(bar)
+  const box = document.createElement('div'); box.style.cssText = 'flex:1;overflow:auto;background:#525659;border-radius:10px;padding:14px'
+  const wrap = document.createElement('div'); wrap.style.cssText = 'margin:0 auto;position:relative'
+  const ifr = document.createElement('iframe'); ifr.style.cssText = 'width:210mm;border:0;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.5);display:block;transform-origin:top left'
+  wrap.appendChild(ifr); box.appendChild(wrap); ov.appendChild(box); document.body.appendChild(ov)
+  const d = ifr.contentWindow.document; d.open(); d.write(html); d.close()
+  let zoom = 1, baseW = 0, baseH = 0
+  const apply = () => { if (!baseW) return; ifr.style.transform = 'scale(' + zoom + ')'; wrap.style.width = (baseW * zoom) + 'px'; wrap.style.height = (baseH * zoom) + 'px'; zlbl.textContent = Math.round(zoom * 100) + '%' }
+  const measure = () => { try { baseH = ifr.contentWindow.document.documentElement.scrollHeight } catch { baseH = 1188 } ; ifr.style.height = baseH + 'px'; baseW = ifr.offsetWidth || 794; apply() }
+  const fit = () => { measure(); zoom = Math.max(0.5, Math.min(2, (box.clientWidth - 28) / (baseW || 794))); apply() }
+  const setZ = (z) => { zoom = Math.max(0.4, Math.min(3, Math.round(z * 100) / 100)); apply() }
+  ifr.onload = () => { measure(); try { ifr.contentWindow.document.fonts?.ready?.then(fit) } catch {} ; setTimeout(fit, 200) }
+  setTimeout(fit, 500)
+  zin.onclick = () => setZ(zoom + 0.1); zout.onclick = () => setZ(zoom - 0.1); zlbl.onclick = fit
+  box.addEventListener('wheel', (e) => { if (e.ctrlKey) { e.preventDefault(); setZ(zoom + (e.deltaY < 0 ? 0.1 : -0.1)) } }, { passive: false })
+  dl.onclick = () => { try { ifr.contentWindow.focus(); ifr.contentWindow.print() } catch (e) { alert('No se pudo abrir el guardado: ' + e) } }
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey) }
+  const onKey = (e) => { if (e.key === 'Escape') close() }
+  cl.onclick = close; ov.addEventListener('click', (e) => { if (e.target === ov) close() }); document.addEventListener('keydown', onKey)
+}
+
 export default function ProspectosPage() {
   const [leads, setLeads]   = useState([])
   const [counts, setCounts] = useState([])
@@ -56,6 +122,32 @@ export default function ProspectosPage() {
       fetchLeads() // refrescar contadores
       notify('Estado actualizado')
     } catch (e) { notify(e.message || 'No se pudo actualizar', false) }
+  }
+
+  async function generarInforme(lead) {
+    try {
+      notify('Generando informe…')
+      await loadReportLibs()
+      const { head, logo } = await fetchTemplate()
+      let body
+      if (lead.tipo === 'web_scan') {
+        const d = lead.data || {}
+        const S = {
+          domain: lead.dominio || '—', fecha: fmtFecha(lead.created_at),
+          grade: d.grade ?? lead.grade, score: d.score ?? lead.score, risk: d.risk ?? lead.risk,
+          caption: d.caption, ssl: d.ssl || {}, checks: d.allHeaderChecks || [], email: d.email || {},
+        }
+        if (typeof window.buildReportBody !== 'function') throw new Error('No se cargó el generador del informe')
+        body = window.buildReportBody(S, logo, { locked: false })
+      } else {
+        const d = lead.data || {}
+        const clientData = { nombre_empresa: lead.empresa, nombre_responsable: lead.contacto_nombre }
+        if (typeof window.buildDiagData !== 'function') throw new Error('No se cargó el generador del diagnóstico')
+        const D = window.buildDiagData(d.respuestas || {}, clientData, window.DIAG_BLOCKS, window.DIAG_RISK_LEVELS, null)
+        body = window.buildDiagBody(D, logo)
+      }
+      dstacReportPreview(composeReportHtml(head, logo, body))
+    } catch (e) { notify(e.message || 'No se pudo generar el informe', false) }
   }
 
   const filtrados = useMemo(() => leads.filter(l => {
@@ -185,7 +277,7 @@ export default function ProspectosPage() {
 
             {/* Acciones (próxima fase) */}
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-              <button onClick={() => notify('Generar informe: lo conectamos en el siguiente paso')} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #E6E2F0', background: '#fff', cursor: 'pointer', fontWeight: 600, color: '#3C3489' }}>Generar informe</button>
+              <button onClick={() => generarInforme(sel)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #E6E2F0', background: '#fff', cursor: 'pointer', fontWeight: 600, color: '#3C3489' }}>Generar informe</button>
               <button onClick={() => notify('Convertir a cliente: lo conectamos en el siguiente paso')} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Convertir a cliente</button>
             </div>
           </div>
