@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const centralDB = require('../db/central')
 const { requireAuth, requireDstacRole } = require('../middleware/auth')
+const { registrarActividad } = require('../utils/activityLogger')
 
 router.use(requireAuth, requireDstacRole)
 
@@ -111,6 +112,12 @@ router.post('/', async (req, res, next) => {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [company_id, title, description ?? null, priority, due_date ?? null, assigned_to ?? null, createdBy])
 
+    await registrarActividad({
+      req, accion: 'crear', modulo: 'pendientes',
+      descripcion: `Creó la tarea "${title}"`,
+      entidad_id: result.insertId, company_id: company_id || null,
+    })
+
     res.status(201).json({ id: result.insertId })
   } catch (err) { next(err) }
 })
@@ -133,6 +140,15 @@ router.put('/:id', async (req, res, next) => {
 
     params.push(req.params.id)
     await centralDB.execute(`UPDATE pending_tasks SET ${fields.join(', ')} WHERE id = ?`, params)
+
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'pendientes',
+      descripcion: status !== undefined
+        ? `Cambió el estado de la tarea #${req.params.id} a "${status}"`
+        : `Editó la tarea${title ? ` "${title}"` : ` #${req.params.id}`}`,
+      entidad_id: Number(req.params.id),
+    })
+
     res.json({ message: 'Tarea actualizada' })
   } catch (err) { next(err) }
 })
@@ -140,7 +156,15 @@ router.put('/:id', async (req, res, next) => {
 // DELETE /api/pending/:id
 router.delete('/:id', async (req, res, next) => {
   try {
+    const [[tarea]] = await centralDB.execute('SELECT title, company_id FROM pending_tasks WHERE id = ?', [req.params.id])
     await centralDB.execute('DELETE FROM pending_tasks WHERE id = ?', [req.params.id])
+
+    await registrarActividad({
+      req, accion: 'eliminar', modulo: 'pendientes',
+      descripcion: `Eliminó la tarea${tarea?.title ? ` "${tarea.title}"` : ` #${req.params.id}`}`,
+      entidad_id: Number(req.params.id), company_id: tarea?.company_id || null,
+    })
+
     res.json({ message: 'Tarea eliminada' })
   } catch (err) { next(err) }
 })

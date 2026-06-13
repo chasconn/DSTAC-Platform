@@ -4,6 +4,7 @@ const { createTenantDB, dropTenantDB, VALID_SLUG, slugToDbName } = require('../d
 const { getTenantDB, releaseTenantDB } = require('../db/tenant')
 const { requireAuth, requireRole } = require('../middleware/auth')
 const { getOrCreateEvaluation } = require('../services/nistService')
+const { registrarActividad } = require('../utils/activityLogger')
 
 const READERS  = ['super_admin', 'admin_dstac', 'analista_dstac']
 const MANAGERS = ['super_admin', 'admin_dstac']
@@ -123,6 +124,12 @@ router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
       console.warn(`NIST auto-init skipped for ${slug}:`, err.message)
     }
 
+    await registrarActividad({
+      req, accion: 'crear', modulo: 'clientes',
+      descripcion: `Creó la empresa "${name}" (${slug})`,
+      entidad_id: result.insertId, company_id: result.insertId, company_nombre: name,
+    })
+
     res.status(201).json({
       id: result.insertId,
       name, slug, db_name: dbName,
@@ -172,6 +179,12 @@ router.put('/:slug', requireAuth, requireRole(...MANAGERS), async (req, res) => 
       return res.status(404).json({ error: 'Empresa no encontrada' })
     }
 
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'clientes',
+      descripcion: `Editó la empresa "${name ?? req.params.slug}"`,
+      company_nombre: name ?? null,
+    })
+
     res.json({ message: 'Empresa actualizada' })
   } catch (err) {
     console.error('Error actualizando empresa:', err)
@@ -202,6 +215,11 @@ router.patch('/:slug/status', requireAuth, requireRole(...MANAGERS), async (req,
     if (status === 'suspended' || status === 'cancelled') {
       releaseTenantDB(req.params.slug)
     }
+
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'clientes',
+      descripcion: `Cambió el estado de "${req.params.slug}" a ${status}`,
+    })
 
     res.json({ message: `Estado actualizado a ${status}` })
   } catch (err) {
@@ -342,6 +360,11 @@ router.delete('/:slug', requireAuth, requireRole('super_admin'), async (req, res
     releaseTenantDB(req.params.slug)
     await dropTenantDB(req.params.slug)
     await centralDB.execute('DELETE FROM companies WHERE slug = ?', [req.params.slug])
+
+    await registrarActividad({
+      req, accion: 'eliminar', modulo: 'clientes',
+      descripcion: `Eliminó la empresa "${req.params.slug}" y su BD`,
+    })
 
     res.json({ message: 'Empresa y BD eliminadas' })
   } catch (err) {

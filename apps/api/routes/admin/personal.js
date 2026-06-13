@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { resolveTenant } = require('../../middleware/tenant')
+const { registrarActividad } = require('../../utils/activityLogger')
 
 // Todas las rutas requieren: sesión válida + rol DSTAC + tenant resuelto
 router.use(requireAuth, requireDstacRole, resolveTenant)
@@ -142,6 +143,12 @@ router.post('/', async (req, res, next) => {
       ]
     )
 
+    await registrarActividad({
+      req, accion: 'crear', modulo: 'personal',
+      descripcion: `Creó a la persona "${nombre}"`,
+      entidad_id: result.insertId, company_id: req.company?.id,
+    })
+
     res.status(201).json({ id: result.insertId, message: 'Persona creada' })
   } catch (err) {
     next(err)
@@ -189,6 +196,12 @@ router.put('/:id', async (req, res, next) => {
       ]
     )
 
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'personal',
+      descripcion: `Editó a la persona "${nombre}"`,
+      entidad_id: Number(id), company_id: req.company?.id,
+    })
+
     res.json({ message: 'Persona actualizada' })
   } catch (err) {
     next(err)
@@ -228,6 +241,12 @@ router.delete('/:id', async (req, res, next) => {
     }
 
     await req.tenantDB.execute('DELETE FROM personal WHERE id = ?', [id])
+
+    await registrarActividad({
+      req, accion: 'eliminar', modulo: 'personal',
+      descripcion: `Eliminó a la persona "${persona.nombre}"`,
+      entidad_id: Number(id), company_id: req.company?.id,
+    })
 
     res.json({
       message: force

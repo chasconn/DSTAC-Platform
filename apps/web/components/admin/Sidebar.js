@@ -98,6 +98,7 @@ export default function Sidebar() {
   const enPersonal     = pathname.startsWith('/admin/personal')
   const enIdentidades  = pathname.startsWith('/admin/identidades')
   const enAccesos      = pathname.startsWith('/admin/accesos')
+  const enPendientes   = pathname.startsWith('/admin/pendientes')
 
   return (
     <>
@@ -283,6 +284,24 @@ export default function Sidebar() {
                   <Link href="/admin/accesos?exportar=1" style={subitemStyle(false)}><IconDownload color="#7F77DD" />Exportar</Link>
                 </div>
               )}
+
+              {/* Subitems de Pendientes */}
+              {href === '/admin/pendientes' && enPendientes && !collapsed && (
+                <div style={{ marginBottom: 4 }}>
+                  <Link href="/admin/pendientes/mis-tareas" style={subitemStyle(pathname.startsWith('/admin/pendientes/mis-tareas'))}>
+                    <IconLista color={pathname.startsWith('/admin/pendientes/mis-tareas') ? '#CECBF6' : '#7F77DD'} />
+                    Mis tareas
+                  </Link>
+                  <Link href="/admin/pendientes/calendario" style={subitemStyle(pathname.startsWith('/admin/pendientes/calendario'))}>
+                    <IconCalendar color={pathname.startsWith('/admin/pendientes/calendario') ? '#CECBF6' : '#7F77DD'} />
+                    Calendario
+                  </Link>
+                  <Link href="/admin/pendientes/actividad" style={subitemStyle(pathname.startsWith('/admin/pendientes/actividad'))}>
+                    <IconHistory color={pathname.startsWith('/admin/pendientes/actividad') ? '#CECBF6' : '#7F77DD'} />
+                    Actividad
+                  </Link>
+                </div>
+              )}
             </div>
           )
         })}
@@ -386,6 +405,21 @@ function IconDownload({ color }) {
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
       <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  )
+}
+function IconCalendar({ color }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  )
+}
+function IconHistory({ color }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>
     </svg>
   )
 }

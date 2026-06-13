@@ -4,6 +4,7 @@ const crypto = require('crypto')
 const centralDB = require('../../db/central')
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { enviarEmailBienvenida, enviarEmailResetPassword } = require('../../utils/email')
+const { registrarActividad } = require('../../utils/activityLogger')
 
 router.use(requireAuth, requireDstacRole)
 
@@ -175,6 +176,12 @@ router.post('/', async (req, res, next) => {
 
     insertId = result.insertId
 
+    await registrarActividad({
+      req, accion: 'crear', modulo: 'usuarios',
+      descripcion: `Creó al usuario ${email} (${role})`,
+      entidad_id: insertId, company_id: company_id ?? null,
+    })
+
     if (process.env.NODE_ENV !== 'production') {
       console.log(`[DEV] Contraseña temporal para ${email}: ${tempPassword}`)
       res.status(201).json({
@@ -228,6 +235,12 @@ router.put('/:id', async (req, res, next) => {
     params.push(userId)
     await centralDB.execute(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, params)
 
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'usuarios',
+      descripcion: `Editó al usuario #${userId}`,
+      entidad_id: userId,
+    })
+
     res.json({ message: 'Usuario actualizado' })
   } catch (err) { next(err) }
 })
@@ -243,7 +256,7 @@ router.delete('/:id', async (req, res, next) => {
       return res.status(403).json({ error: 'No puedes eliminar tu propia cuenta' })
     }
 
-    const [[user]] = await centralDB.execute('SELECT role FROM users WHERE id = ?', [userId])
+    const [[user]] = await centralDB.execute('SELECT role, email FROM users WHERE id = ?', [userId])
     if (!user) return res.status(404).json({ error: 'Usuario no encontrado' })
     if (user.role === 'super_admin') {
       return res.status(403).json({ error: 'No se puede eliminar al super_admin' })
@@ -251,6 +264,12 @@ router.delete('/:id', async (req, res, next) => {
 
     await centralDB.execute('DELETE FROM sessions WHERE user_id = ?', [userId])
     await centralDB.execute('DELETE FROM users WHERE id = ?', [userId])
+
+    await registrarActividad({
+      req, accion: 'eliminar', modulo: 'usuarios',
+      descripcion: `Eliminó al usuario ${user.email}`,
+      entidad_id: userId,
+    })
 
     res.json({ message: 'Usuario eliminado' })
   } catch (err) { next(err) }

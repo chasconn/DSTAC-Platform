@@ -2,6 +2,7 @@ const express = require('express')
 const router  = express.Router()
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { resolveTenant } = require('../../middleware/tenant')
+const { registrarActividad } = require('../../utils/activityLogger')
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
 
@@ -207,6 +208,12 @@ router.post('/', async (req, res, next) => {
       ]
     )
 
+    await registrarActividad({
+      req, accion: 'crear', modulo: 'accesos',
+      descripcion: `Otorgó un acceso (identidad #${identidad_id} → activo #${activo_id})`,
+      entidad_id: result.insertId, company_id: req.company?.id,
+    })
+
     res.status(201).json({ id: result.insertId, message: 'Acceso creado' })
   } catch (err) {
     next(err)
@@ -259,6 +266,12 @@ router.put('/:id', async (req, res, next) => {
       ]
     )
 
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'accesos',
+      descripcion: `Editó el acceso #${id}`,
+      entidad_id: Number(id), company_id: req.company?.id,
+    })
+
     res.json({ message: 'Acceso actualizado' })
   } catch (err) {
     next(err)
@@ -275,6 +288,13 @@ router.delete('/:id', async (req, res, next) => {
     if (!existe) return res.status(404).json({ error: 'Acceso no encontrado' })
 
     await req.tenantDB.execute('DELETE FROM accesos WHERE id = ?', [id])
+
+    await registrarActividad({
+      req, accion: 'eliminar', modulo: 'accesos',
+      descripcion: `Eliminó el acceso #${id}`,
+      entidad_id: Number(id), company_id: req.company?.id,
+    })
+
     res.json({ message: 'Acceso eliminado' })
   } catch (err) {
     next(err)

@@ -305,6 +305,37 @@ body[data-modal-open] button:focus {
   font-size: 12px;
 }
 
+/* ── Subnavegación del módulo Pendientes ──────────────────────────────────── */
+.pendientes-subnav {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+.subnav-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.subnav-tab:hover {
+  color: var(--text-primary);
+}
+.subnav-tab.active {
+  color: var(--dstac-800);
+  border-bottom-color: var(--dstac-600);
+  font-weight: 600;
+}
+
 /* ── Responsive móvil (panel admin) ────────────────────────────────────────── */
 /* Contenido scrollea en horizontal si una tabla es muy ancha (no rompe el layout) */
 .admin-shell-main { overflow-x: auto; }
