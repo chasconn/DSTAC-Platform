@@ -66,13 +66,13 @@
     var summary = S.caption || 'El sitio fue evaluado en transporte (TLS), cabeceras de seguridad HTTP y configuración de correo/DNS. A continuación se detallan los hallazgos por nivel de severidad.';
 
     function critCard(x){
-      var code = x.isEmail ? (x.value?('<div class="code"><span class="k">Detectado</span> '+esc(short(x.value,110))+'</div>'):'') : (locked ? lockNote() : codeBlock(x.rec,false));
+      var code = x.isEmail ? ((x.value?('<div class="code"><span class="k">Detectado</span> '+esc(short(x.value,110))+'</div>'):'')+(locked?lockNote():'')) : (locked ? lockNote() : codeBlock(x.rec,false));
       var action = x.fix ? esc(x.fix) : ('Configurar correctamente '+esc(x.name||x.label)+'.');
       var rk = RISK(x.key, x.status, x.value);
       return '<div class="card crit">'
         +'<div class="card-h"><h3>'+esc(x.name||x.label)+'</h3><span class="det">Detectado: '+esc(short(x.value||'faltante',28))+'</span><span class="pill p-crit">NO CONFORME</span></div>'
         +'<div class="card-b">'
-        +'<div class="action"><b>Acción:</b> '+action+'</div>'
+        +(locked?'':'<div class="action"><b>Acción:</b> '+action+'</div>')
         +code
         +(rk?'<div class="risk"><span class="tag">RIESGO</span><span>'+esc(rk)+'</span></div>':'')
         +'<div class="fixer">QUIÉN CORRIGE · <b>'+fixer(x.isEmail)+'</b></div>'
@@ -83,12 +83,12 @@
 
     function warnCard(x){
       var rk=RISK(x.key, x.status, x.value);
-      var code = x.isEmail ? (x.value?('<div class="code"><span class="k">Detectado</span> '+esc(short(x.value,90))+'</div>'):'') : (locked ? lockNote() : codeBlock(x.rec,true));
+      var code = x.isEmail ? ((x.value?('<div class="code"><span class="k">Detectado</span> '+esc(short(x.value,90))+'</div>'):'')+(locked?lockNote():'')) : (locked ? lockNote() : codeBlock(x.rec,true));
       var action = x.fix ? esc(x.fix) : ('Revisar la configuración de '+esc(x.name||x.label)+'.');
       return '<div class="card warn compact">'
         +'<div class="card-h"><h3>'+esc(x.name||x.label)+'</h3><span class="pill p-warn">OBSERVACIÓN</span></div>'
         +'<div class="card-b">'
-        +'<div class="action">'+action+'</div>'
+        +(locked?'':'<div class="action">'+action+'</div>')
         +code
         +(rk?'<div class="risk"><span class="tag">RIESGO</span><span>'+esc(rk)+'</span></div>':'')
         +'</div></div>';
@@ -107,8 +107,9 @@
       return '<div class="card warn">'
         +'<div class="card-h"><h3>'+esc(e.label)+'</h3><span class="pill p-warn">OBSERVACIÓN</span></div>'
         +'<div class="card-b">'
-        +'<div class="action"><b>Acción:</b> '+(e.fix?esc(e.fix):('Revisar el registro '+esc(e.label)+'.'))+'</div>'
+        +(locked?'':'<div class="action"><b>Acción:</b> '+(e.fix?esc(e.fix):('Revisar el registro '+esc(e.label)+'.'))+'</div>')
         +(e.value?('<div class="code"><span class="k">Detectado</span> '+esc(short(e.value,110))+'</div>'):'')
+        +(locked?lockNote():'')
         +(rk?'<div class="risk"><span class="tag">RIESGO</span><span>'+esc(rk)+'</span></div>':'')
         +'<div class="fixer">QUIÉN CORRIGE · <b>acceso al panel DNS del dominio</b></div>'
         +'</div></div>';
@@ -118,7 +119,7 @@
 
     return ''
     +'<div class="page cover"><div class="grid-bg"></div><div class="glow"></div><div class="cover-inner">'
-    +'<div class="cover-top">'+logoTag+'<div class="doc-tag"><b>INFORME DE SEGURIDAD WEB</b>REPORTE COMPLETO · CONFIDENCIAL</div></div>'
+    +'<div class="cover-top">'+logoTag+'<div class="doc-tag"><b>INFORME DE SEGURIDAD WEB</b>'+(locked?'INFORME PRELIMINAR · GRATUITO':'REPORTE COMPLETO · CONFIDENCIAL')+'</div></div>'
     +'<div class="cover-title"><div class="eyebrow">DIAGNÓSTICO PERIMETRAL</div>'
     +'<h1>Evaluación de seguridad<br>del sitio <span>'+esc(S.domain)+'</span></h1>'
     +'<div class="cover-meta">FECHA DE ANÁLISIS · '+esc(S.fecha)+'</div></div>'
