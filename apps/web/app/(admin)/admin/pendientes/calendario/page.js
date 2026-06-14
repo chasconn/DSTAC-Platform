@@ -31,6 +31,7 @@ function ymd(d) {
 
 export default function CalendarioPage() {
   const router = useRouter()
+  const isMobile = useIsMobile()   // < 820px → celdas con puntos + agenda inferior
   // Mes/año visibles. `hoy` se fija una vez para marcar el día actual en la grilla.
   const hoy = new Date()
   const [year,  setYear]  = useState(hoy.getFullYear())
@@ -108,6 +109,12 @@ export default function CalendarioPage() {
     ;(tareasPorDia[key] ||= []).push(t)
   }
 
+  // Lista cronológica (eventos + tareas) para la agenda móvil.
+  const agendaItems = isMobile ? [
+    ...eventos.map(e => ({ kind: 'ev', id: e.id, fecha: String(e.fecha).slice(0, 10), hora: e.todo_el_dia ? null : (e.hora_inicio ? String(e.hora_inicio).slice(0, 5) : null), titulo: e.titulo, color: (TIPOS[e.tipo] ?? TIPOS.otro).color, sub: e.company_name, raw: e })),
+    ...tareas.map(t => ({ kind: 'ta', id: t.id, fecha: String(t.fecha).slice(0, 10), hora: null, titulo: t.titulo, color: PRIORIDAD_COLOR[t.priority] ?? '#B4B2A9', sub: t.company_name, done: t.status === 'done' })),
+  ].sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0) : []
+
   function mesAnterior() {
     if (month === 0) { setYear(y => y - 1); setMonth(11) } else setMonth(m => m - 1)
   }
@@ -128,7 +135,7 @@ export default function CalendarioPage() {
   }
 
   return (
-    <div style={{ padding: '24px 28px' }}>
+    <div style={{ padding: isMobile ? '14px 12px' : '24px 28px' }}>
 
       <PendientesSubnav />
 
@@ -184,7 +191,7 @@ export default function CalendarioPage() {
           {celdas.map((dia, i) => {
             if (!dia) {
               // Hueco fuera del mes — celda inerte gris muy claro.
-              return <div key={`v${i}`} style={{ minHeight: 96, borderRight: (i + 1) % 7 ? '1px solid #f1efe8' : 'none', borderBottom: '1px solid #f1efe8', background: '#fcfbf9' }} />
+              return <div key={`v${i}`} style={{ minHeight: isMobile ? 52 : 96, borderRight: (i + 1) % 7 ? '1px solid #f1efe8' : 'none', borderBottom: '1px solid #f1efe8', background: '#fcfbf9' }} />
             }
             const key = ymd(dia)
             const delDia    = eventosPorDia[key] ?? []
@@ -199,7 +206,7 @@ export default function CalendarioPage() {
                 key={key}
                 onClick={() => abrirNuevo(dia)}
                 style={{
-                  minHeight: 96, padding: '6px 7px', cursor: 'pointer',
+                  minHeight: isMobile ? 52 : 96, padding: isMobile ? '4px 3px' : '6px 7px', cursor: 'pointer',
                   borderRight: (i + 1) % 7 ? '1px solid #f1efe8' : 'none',
                   borderBottom: '1px solid #f1efe8',
                   background: esHoy ? '#F4F3FE' : 'transparent',
@@ -209,19 +216,30 @@ export default function CalendarioPage() {
                 onMouseLeave={e => { if (!esHoy) e.currentTarget.style.background = 'transparent' }}
               >
                 {/* Número del día (resaltado si es hoy) */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+                <div style={{ display: 'flex', justifyContent: isMobile ? 'center' : 'flex-end', marginBottom: 4 }}>
                   <span style={{
-                    fontSize: 12, fontWeight: esHoy ? 700 : 500,
+                    fontSize: isMobile ? 11 : 12, fontWeight: esHoy ? 700 : 500,
                     color: esHoy ? '#fff' : '#444441',
                     background: esHoy ? '#534AB7' : 'transparent',
-                    borderRadius: '50%', width: 22, height: 22,
+                    borderRadius: '50%', width: isMobile ? 18 : 22, height: isMobile ? 18 : 22,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     {dia.getDate()}
                   </span>
                 </div>
 
-                {/* Chips de eventos + tareas (máx. 3 visibles; el resto como "+N") */}
+                {isMobile ? (
+                  /* Móvil: solo puntos de color (resumen); el detalle está en la agenda inferior */
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center' }}>
+                    {delDia.slice(0, 4).map(ev => (
+                      <span key={`de${ev.id}`} style={{ width: 6, height: 6, borderRadius: '50%', background: (TIPOS[ev.tipo] ?? TIPOS.otro).color }} />
+                    ))}
+                    {tareasDia.slice(0, Math.max(0, 4 - delDia.length)).map(t => (
+                      <span key={`dt${t.id}`} style={{ width: 6, height: 6, borderRadius: '50%', border: `1.5px solid ${PRIORIDAD_COLOR[t.priority] ?? '#B4B2A9'}` }} />
+                    ))}
+                  </div>
+                ) : (
+                /* Chips de eventos + tareas (máx. 3 visibles; el resto como "+N") */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {evVisibles.map(ev => {
                     const t = TIPOS[ev.tipo] ?? TIPOS.otro
@@ -271,11 +289,43 @@ export default function CalendarioPage() {
                     <div style={{ fontSize: 10, color: '#888780', paddingLeft: 4 }}>+{ocultos} más</div>
                   )}
                 </div>
+                )}
               </div>
             )
           })}
         </div>
       </div>
+
+      {/* Agenda del mes (solo móvil) — lista tocable de eventos y vencimientos */}
+      {isMobile && (
+        <div style={{ marginTop: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Agenda del mes</div>
+          <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+            {agendaItems.length === 0 ? (
+              <div style={{ fontSize: 13, color: '#B4B2A9', padding: '16px', textAlign: 'center' }}>Sin eventos ni vencimientos este mes.</div>
+            ) : agendaItems.map((it, idx) => {
+              const d = new Date(it.fecha + 'T00:00:00')
+              return (
+                <div key={it.kind + it.id}
+                  onClick={() => it.kind === 'ev' ? abrirEditar(it.raw) : router.push('/admin/pendientes/mis-tareas')}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderBottom: idx < agendaItems.length - 1 ? '1px solid #f1efe8' : 'none', cursor: 'pointer' }}>
+                  <div style={{ textAlign: 'center', minWidth: 34, flexShrink: 0 }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: '#2C2C2A', lineHeight: 1 }}>{d.getDate()}</div>
+                    <div style={{ fontSize: 9, color: '#888780', textTransform: 'uppercase', marginTop: 1 }}>{DIAS[(d.getDay() + 6) % 7]}</div>
+                  </div>
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', flexShrink: 0, background: it.kind === 'ev' ? it.color : '#fff', border: it.kind === 'ta' ? `1.5px solid ${it.color}` : 'none' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: it.done ? '#888780' : '#2C2C2A', textDecoration: it.done ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.titulo}</div>
+                    <div style={{ fontSize: 11, color: '#888780', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {it.kind === 'ta' ? 'Vence' : (it.hora || 'Todo el día')}{it.sub ? ` · ${it.sub}` : ''}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {loading && <div style={{ padding: '12px', textAlign: 'center', color: '#888780', fontSize: 12 }}>Cargando…</div>}
 
@@ -436,3 +486,16 @@ function Field({ label, children }) {
 }
 
 const inp = { width: '100%', padding: '8px 11px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, color: '#2C2C2A', background: '#fff', outline: 'none', boxSizing: 'border-box' }
+
+// Hook de viewport: true cuando el ancho es <= bp (móvil/tablet angosto).
+function useIsMobile(bp = 820) {
+  const [m, setM] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${bp}px)`)
+    const upd = () => setM(mq.matches)
+    upd()
+    mq.addEventListener('change', upd)
+    return () => mq.removeEventListener('change', upd)
+  }, [bp])
+  return m
+}

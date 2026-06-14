@@ -53,6 +53,7 @@ export default function MisTareasPage() {
   const [toast,      setToast]      = useState(null)
 
   const LIMIT = 40
+  const isMobile = useIsMobile()   // < 820px → layout de tarjetas
 
   // Debounce search — evita un fetch por cada tecla
   useEffect(() => {
@@ -149,7 +150,7 @@ export default function MisTareasPage() {
   const hayFiltros   = filterStatus || filterPriority || search
 
   return (
-    <div style={{ padding: '24px 28px' }}>
+    <div style={{ padding: isMobile ? '14px 12px' : '24px 28px' }}>
 
       <PendientesSubnav />
 
@@ -195,8 +196,8 @@ export default function MisTareasPage() {
         </div>
       )}
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
+      {/* Stats — 5 columnas en PC, 2 en móvil */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(5, 1fr)', gap: isMobile ? 8 : 10, marginBottom: 20 }}>
         {[
           { label: 'Total',       value: stats?.total,       color: '#534AB7' },
           { label: 'Pendientes',  value: stats?.pendientes,  color: '#EF9F27' },
@@ -204,9 +205,9 @@ export default function MisTareasPage() {
           { label: 'Completadas', value: stats?.completadas, color: '#1D9E75' },
           { label: 'Vencidas',    value: stats?.vencidas,    color: '#E24B4A' },
         ].map(s => (
-          <div key={s.label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', borderTop: `3px solid ${s.color}`, padding: '14px 18px' }}>
-            <div style={{ fontSize: 26, fontWeight: 700, color: '#2C2C2A' }}>{s.value ?? '—'}</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#888780', marginTop: 2 }}>{s.label}</div>
+          <div key={s.label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', borderTop: `3px solid ${s.color}`, padding: isMobile ? '10px 12px' : '14px 18px' }}>
+            <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 700, color: '#2C2C2A' }}>{s.value ?? '—'}</div>
+            <div style={{ fontSize: isMobile ? 11 : 12, fontWeight: 600, color: '#888780', marginTop: 2 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -247,12 +248,14 @@ export default function MisTareasPage() {
       {/* Tabla */}
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
 
-        {/* Cabecera */}
-        <div style={{ display: 'grid', gridTemplateColumns: '32px 40px 1fr 130px 160px 160px 110px 160px 96px', gap: 0, padding: '9px 16px', background: '#f8f7f4', borderBottom: '1px solid #e2e0d8' }}>
-          {['', 'Pri.', 'Título', 'Estado', 'Empresa', 'Personal', 'Vence', 'Analista', ''].map((h, i) => (
-            <div key={i} style={{ fontSize: 11, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, paddingRight: 8 }}>{h}</div>
-          ))}
-        </div>
+        {/* Cabecera (solo en PC/tablet ancho; en móvil se usan tarjetas) */}
+        {!isMobile && (
+          <div style={{ display: 'grid', gridTemplateColumns: '32px 40px 1fr 130px 160px 160px 110px 160px 96px', gap: 0, padding: '9px 16px', background: '#f8f7f4', borderBottom: '1px solid #e2e0d8' }}>
+            {['', 'Pri.', 'Título', 'Estado', 'Empresa', 'Personal', 'Vence', 'Analista', ''].map((h, i) => (
+              <div key={i} style={{ fontSize: 11, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, paddingRight: 8 }}>{h}</div>
+            ))}
+          </div>
+        )}
 
         {loading && (
           <div style={{ padding: '40px 24px', textAlign: 'center', color: '#888780', fontSize: 13 }}>Cargando…</div>
@@ -268,6 +271,54 @@ export default function MisTareasPage() {
 
         {!loading && tasks.map((t, i) => {
           const vencida = t.due_date && new Date(t.due_date) < new Date() && t.status !== 'done' && t.status !== 'cancelled'
+
+          // ── Layout de tarjeta para móvil ──────────────────────────────────
+          if (isMobile) {
+            return (
+              <div key={t.id} style={{
+                padding: '12px 14px',
+                borderBottom: i < tasks.length - 1 ? '1px solid #f1efe8' : 'none',
+                background: vencida ? '#FFFBF0' : 'transparent',
+                display: 'flex', flexDirection: 'column', gap: 8,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  {/* Checkbox */}
+                  <button onClick={() => toggleStatus(t)} title="Cambiar estado"
+                    style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${t.status === 'done' ? '#639922' : '#e2e0d8'}`, background: t.status === 'done' ? '#EAF3DE' : '#fff', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#639922', padding: 0, marginTop: 1 }}>
+                    {t.status === 'done' ? '✓' : ''}
+                  </button>
+                  {/* Título + descripción */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div onClick={() => setViendo(t)} style={{ fontSize: 14, fontWeight: 600, color: t.status === 'done' ? '#888780' : '#2C2C2A', textDecoration: t.status === 'done' ? 'line-through' : 'none', cursor: 'pointer', wordBreak: 'break-word' }}>
+                      <span style={{ display: 'inline-block', width: 9, height: 9, borderRadius: '50%', background: PRIORITY_DOT[t.priority] ?? '#B4B2A9', marginRight: 7, verticalAlign: 'middle' }} />
+                      {t.title}
+                      {vencida && <span style={{ marginLeft: 6, fontSize: 10, background: '#FCEBEB', color: '#791F1F', fontWeight: 600, padding: '1px 6px', borderRadius: 20 }}>Vencida</span>}
+                    </div>
+                    {t.description && (
+                      <div style={{ fontSize: 12, color: '#888780', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                        {t.description}
+                      </div>
+                    )}
+                  </div>
+                  {/* Acciones */}
+                  <div style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
+                    <ActionBtn onClick={() => setViendo(t)} title="Ver detalle">👁</ActionBtn>
+                    <ActionBtn onClick={() => { setEditando(t); setModalOpen(true) }} title="Editar">✏️</ActionBtn>
+                    <ActionBtn onClick={() => setEliminando(t)} title="Eliminar" danger>🗑</ActionBtn>
+                  </div>
+                </div>
+                {/* Meta: estado, empresa, vence, analista */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', paddingLeft: 32 }}>
+                  <Badge value={t.status} map={STATUS_STYLE} />
+                  {t.company_name && <span style={{ fontSize: 11.5, color: '#888780' }}>🏢 {t.company_name}</span>}
+                  {t.due_date && <span style={{ fontSize: 11.5, color: vencida ? '#E24B4A' : '#888780' }}>📅 {new Date(t.due_date).toLocaleDateString('es-CL')}</span>}
+                  {t.assigned_name?.trim() && <span style={{ fontSize: 11.5, color: '#888780' }}>👤 {t.assigned_name}</span>}
+                </div>
+              </div>
+            )
+          }
+
+          // ── Layout de tabla para PC/tablet ────────────────────────────────
           return (
             <div key={t.id} style={{
               display: 'grid',
@@ -387,6 +438,19 @@ export default function MisTareasPage() {
       )}
     </div>
   )
+}
+
+// Hook de viewport: true cuando el ancho es <= bp (móvil/tablet angosto).
+function useIsMobile(bp = 820) {
+  const [m, setM] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${bp}px)`)
+    const upd = () => setM(mq.matches)
+    upd()
+    mq.addEventListener('change', upd)
+    return () => mq.removeEventListener('change', upd)
+  }, [bp])
+  return m
 }
 
 function ActionBtn({ onClick, title, danger, children }) {

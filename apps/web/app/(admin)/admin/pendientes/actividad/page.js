@@ -121,9 +121,10 @@ export default function ActividadPage() {
   }
 
   const hayFiltros = fModulo || fAccion || search
+  const isMobile = useIsMobile()
 
   return (
-    <div style={{ padding: '24px 28px' }}>
+    <div style={{ padding: isMobile ? '14px 12px' : '24px 28px' }}>
 
       <PendientesSubnav />
 
@@ -145,7 +146,7 @@ export default function ActividadPage() {
 
       {/* Filtros */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar en la actividad…" style={{ ...SEL, minWidth: 240, flex: '0 1 auto' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar en la actividad…" style={{ ...SEL, minWidth: isMobile ? 0 : 240, flex: isMobile ? '1 1 100%' : '0 1 auto' }} />
         <select value={fModulo} onChange={e => setFModulo(e.target.value)} style={SEL}>
           <option value="">Todos los módulos</option>
           {modulos.map(m => <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>)}
@@ -221,4 +222,17 @@ export default function ActividadPage() {
       )}
     </div>
   )
+}
+
+// Hook de viewport: true cuando el ancho es <= bp (móvil/tablet angosto).
+function useIsMobile(bp = 820) {
+  const [m, setM] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${bp}px)`)
+    const upd = () => setM(mq.matches)
+    upd()
+    mq.addEventListener('change', upd)
+    return () => mq.removeEventListener('change', upd)
+  }, [bp])
+  return m
 }
