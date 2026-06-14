@@ -24,7 +24,7 @@ app.use(cors({
   credentials: true
 }))
 
-app.use(express.json())
+app.use(express.json({ limit: '3mb' }))   // 3mb para permitir subir logos (base64) al trust bar
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 app.use('/api', apiLimiter)
@@ -65,6 +65,7 @@ app.use('/api/admin/accesos',      require('./routes/admin/accesos'))
 app.use('/api/admin/empresas',     require('./routes/admin/empresas'))
 app.use('/api/admin/importacion',  require('./routes/admin/importacion'))
 app.use('/api/admin/pendientes',   require('./routes/admin/pendientes'))
+app.use('/api/admin/trustbar',     require('./routes/admin/trustbar'))
 
 // Health check
 app.get('/api/health', (req, res) => {
