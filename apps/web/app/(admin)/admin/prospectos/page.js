@@ -21,6 +21,15 @@ const TIPO_LABEL = {
 }
 const tipoLabel = (t) => TIPO_LABEL[t] || t || '—'
 
+// Dominios de correo genéricos: no sirven como sitio de la empresa.
+const EMAIL_GENERICOS = ['gmail.com','outlook.com','outlook.es','hotmail.com','hotmail.es','yahoo.com','yahoo.es','icloud.com','live.com','live.cl','proton.me','protonmail.com','aol.com','me.com','msn.com']
+// Deriva un dominio escaneable desde el correo (vacío si es genérico o no válido).
+function dominioDesdeEmail(email) {
+  const m = String(email || '').toLowerCase().trim().match(/@([a-z0-9.-]+\.[a-z]{2,})$/)
+  if (!m) return ''
+  return EMAIL_GENERICOS.includes(m[1]) ? '' : m[1]
+}
+
 function riskColor(r) {
   r = (r || '').toUpperCase()
   if (r.includes('ALTO') || r.includes('CRÍT') || r.includes('CRIT')) return '#D7263D'
@@ -114,6 +123,8 @@ export default function ProspectosPage() {
   const [search, setSearch] = useState('')
   const [sel, setSel]       = useState(null)    // lead detalle (completo)
   const [convirtiendo, setConvirtiendo] = useState(null) // lead que se está convirtiendo en cliente
+  const [diagPrompt, setDiagPrompt] = useState(null)     // { lead, domain } — confirmar dominio antes del informe de diagnóstico
+  const [escaneando, setEscaneando] = useState(false)
   const [toast, setToast]   = useState(null)
 
   useEffect(() => { fetchLeads() }, [])
@@ -161,7 +172,27 @@ export default function ProspectosPage() {
     notify(`Empresa "${empresa.name}" creada y prospecto convertido`)
   }
 
-  async function generarInforme(lead, locked = false) {
+  // Informe de diagnóstico con escáner web opcional: confirma/edita el dominio,
+  // lo escanea (scan.php, mismo motor del sitio) y lo incluye en el informe.
+  async function generarDiagConEscaner(lead, domain) {
+    setEscaneando(true)
+    try {
+      let scan = null
+      const d = (domain || '').trim()
+      if (d) {
+        try {
+          const r = await fetch('https://dstac.cl/diagnostico/scan.php?domain=' + encodeURIComponent(d))
+          const j = await r.json()
+          if (j && j.ok) scan = j
+          else notify('El escaneo no devolvió resultados; genero sin escáner', false)
+        } catch { notify('No se pudo escanear el dominio; genero sin escáner', false) }
+      }
+      setDiagPrompt(null)
+      await generarInforme(lead, false, scan)
+    } finally { setEscaneando(false) }
+  }
+
+  async function generarInforme(lead, locked = false, scan = null) {
     try {
       notify('Generando informe…')
       await loadReportLibs()
@@ -180,7 +211,7 @@ export default function ProspectosPage() {
         const d = lead.data || {}
         const clientData = { nombre_empresa: lead.empresa, nombre_responsable: lead.contacto_nombre }
         if (typeof window.buildDiagData !== 'function') throw new Error('No se cargó el generador del diagnóstico')
-        const D = window.buildDiagData(d.respuestas || {}, clientData, window.DIAG_BLOCKS, window.DIAG_RISK_LEVELS, null)
+        const D = window.buildDiagData(d.respuestas || {}, clientData, window.DIAG_BLOCKS, window.DIAG_RISK_LEVELS, scan)
         body = window.buildDiagBody(D, logo)
       }
       dstacReportPreview(composeReportHtml(head, logo, body))
@@ -343,7 +374,7 @@ export default function ProspectosPage() {
                       </button>
                     </>
                   ) : (
-                    <button onClick={() => generarInforme(sel, false)} title="Informe del autodiagnóstico" style={cardBtn(true)}>
+                    <button onClick={() => setDiagPrompt({ lead: sel, domain: dominioDesdeEmail(sel.email) })} title="Informe del autodiagnóstico (con escáner web opcional)" style={cardBtn(true)}>
                       <IconDoc /> Informe del diagnóstico
                     </button>
                   )}
@@ -362,6 +393,39 @@ export default function ProspectosPage() {
             )}
           </div>
         </>
+      )}
+
+      {/* Modal: confirmar dominio para el escáner web del informe de diagnóstico */}
+      {diagPrompt && (
+        <div onClick={() => !escaneando && setDiagPrompt(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 440, boxShadow: '0 10px 50px rgba(0,0,0,.25)', padding: 22 }}>
+            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#1A1A2E' }}>Informe del diagnóstico</h3>
+            <p style={{ margin: '6px 0 16px', fontSize: 13, color: '#6E6884', lineHeight: 1.5 }}>
+              Opcional: agrega un <b>escáner web básico</b> (cabeceras + SSL) del dominio del prospecto al informe.
+            </p>
+            <label style={{ fontSize: 12, fontWeight: 600, color: '#6E6884' }}>Dominio a escanear</label>
+            <input
+              value={diagPrompt.domain}
+              onChange={e => setDiagPrompt(p => ({ ...p, domain: e.target.value }))}
+              placeholder="ej. empresa.cl (déjalo vacío para omitir)"
+              autoFocus
+              style={{ width: '100%', boxSizing: 'border-box', marginTop: 6, padding: '10px 12px', border: '1px solid #E6E2F0', borderRadius: 8, fontSize: 14, color: '#1A1A2E', outline: 'none' }}
+            />
+            {!dominioDesdeEmail(diagPrompt.lead.email) && (
+              <div style={{ fontSize: 11.5, color: '#9A6700', marginTop: 6 }}>El correo es genérico; escribe el dominio real de la empresa si quieres incluir el escáner.</div>
+            )}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 18, flexWrap: 'wrap' }}>
+              <button onClick={() => setDiagPrompt(null)} disabled={escaneando}
+                style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #E6E2F0', background: '#fff', color: '#444441', cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+              <button onClick={() => { const l = diagPrompt.lead; setDiagPrompt(null); generarInforme(l, false, null) }} disabled={escaneando}
+                style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #E6E2F0', background: '#fff', color: '#3C3489', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>Sin escáner</button>
+              <button onClick={() => generarDiagConEscaner(diagPrompt.lead, diagPrompt.domain)} disabled={escaneando || !diagPrompt.domain.trim()}
+                style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: (escaneando || !diagPrompt.domain.trim()) ? '#AFA9EC' : '#534AB7', color: '#fff', cursor: (escaneando || !diagPrompt.domain.trim()) ? 'default' : 'pointer', fontSize: 13, fontWeight: 600 }}>
+                {escaneando ? 'Escaneando…' : 'Con escáner web'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal para crear la empresa a partir del prospecto */}
