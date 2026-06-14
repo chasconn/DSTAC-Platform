@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const { requireAuth, requireDstacRole } = require('../middleware/auth')
 const { resolveTenant } = require('../middleware/tenant')
+const { registrarActividad } = require('../utils/activityLogger')
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
 
@@ -120,6 +121,45 @@ router.post('/', async (req, res, next) => {
       tiempo_resolucion != null ? Number(tiempo_resolucion) : null,
       requiere_notificacion_legal ? 1 : 0,
     ])
+
+    // Incidente crítico o alto → generar automáticamente un riesgo asociado.
+    // Va en su propio try/catch para que un fallo aquí NUNCA rompa la creación del incidente.
+    if (['critica', 'alta'].includes(severidad)) {
+      try {
+        const uidv = req.user.user_id || req.user.id
+        let activoNombre = null
+        if (activo_id) {
+          const [[act]] = await req.tenantDB.execute('SELECT nombre FROM activos WHERE id = ?', [Number(activo_id)])
+          activoNombre = act?.nombre ?? null
+        }
+        const [rr] = await req.tenantDB.execute(`
+          INSERT INTO riesgos
+            (nombre, descripcion, categoria, activo_id, activo_nombre, amenaza,
+             probabilidad, impacto, incidente_id, incidente_nombre, estado, creado_por)
+          VALUES (?, ?, 'tecnico', ?, ?, ?, ?, ?, ?, ?, 'identificado', ?)
+        `, [
+          `Riesgo derivado: ${tipo}`,
+          `Generado automáticamente desde incidente: ${descripcion ?? tipo}`,
+          activo_id ? Number(activo_id) : null, activoNombre,
+          tipo,                              // amenaza
+          severidad === 'critica' ? 4 : 3,   // probabilidad estimada
+          severidad === 'critica' ? 5 : 4,   // impacto estimado
+          result.insertId, tipo, uidv,
+        ])
+        await req.tenantDB.execute(
+          `INSERT INTO riesgos_historial (riesgo_id, user_id, campo_cambiado, valor_nuevo, comentario)
+           VALUES (?, ?, 'estado', 'identificado', 'Riesgo generado automáticamente desde incidente')`,
+          [rr.insertId, uidv]
+        )
+        await registrarActividad({
+          req, accion: 'crear', modulo: 'riesgos',
+          descripcion: `Generó automáticamente el riesgo "${tipo}" desde un incidente ${severidad}`,
+          entidad_id: rr.insertId, company_id: req.company.id,
+        })
+      } catch (e) {
+        console.error('[incidents] no se pudo generar riesgo automático:', e.message)
+      }
+    }
 
     res.status(201).json({ id: result.insertId, message: 'Incidente creado' })
   } catch (err) { next(err) }

@@ -16,6 +16,7 @@ const NAV = [
   { href: '/admin/identidades', label: 'Identidades', icon: IconIdentidades },
   { href: '/admin/accesos',     label: 'Accesos',     icon: IconAccesos     },
   { href: '/admin/incidentes',  label: 'Incidentes',  icon: IconIncidentes  },
+  { href: '/admin/riesgos',     label: 'Riesgos',     icon: IconRiesgos     },
   { href: '/admin/nist',        label: 'NIST',        icon: IconNist        },
   { href: '/admin/iso',         label: 'ISO 27001',   icon: IconIso         },
   { href: '/admin/pendientes',  label: 'Pendientes',  icon: IconPendientes  },
@@ -487,6 +488,14 @@ function IconPendientes({ color }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+  )
+}
+function IconRiesgos({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.5" fill={color}/>
+      <line x1="12" y1="12" x2="19" y2="7"/>
     </svg>
   )
 }

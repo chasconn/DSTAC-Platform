@@ -66,6 +66,7 @@ app.use('/api/admin/empresas',     require('./routes/admin/empresas'))
 app.use('/api/admin/importacion',  require('./routes/admin/importacion'))
 app.use('/api/admin/pendientes',   require('./routes/admin/pendientes'))
 app.use('/api/admin/trustbar',     require('./routes/admin/trustbar'))
+app.use('/api/admin/riesgos',      require('./routes/admin/riesgos'))
 
 // Health check
 app.get('/api/health', (req, res) => {

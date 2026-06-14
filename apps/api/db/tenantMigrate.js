@@ -123,30 +123,65 @@ async function createTenantDB(slug) {
     )
   `)
 
+  // Riesgos — modelo cuantitativo (probabilidad × impacto, escala 1-5).
+  // nivel_riesgo / nivel_categoria / residual_nivel son columnas GENERADAS: no se insertan.
   await conn.query(`
     CREATE TABLE IF NOT EXISTS riesgos (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      tipo VARCHAR(100) NOT NULL,
-      categoria VARCHAR(100),
-      descripcion TEXT NOT NULL,
-      activo_id INT,
-      probabilidad ENUM('alta','media','baja') NOT NULL,
-      impacto ENUM('critico','alto','medio','bajo') NOT NULL,
-      nivel_riesgo ENUM('critico','alto','medio','bajo','aceptable'),
-      clasificacion_controles TEXT,
-      controles_tratamientos TEXT,
+      nombre VARCHAR(200) NOT NULL,
+      descripcion TEXT,
+      categoria ENUM('tecnico','operacional','humano','externo','legal') NOT NULL,
+      activo_id INT NULL,
+      activo_nombre VARCHAR(200) NULL,
+      amenaza VARCHAR(300) NOT NULL,
+      vulnerabilidad VARCHAR(300),
+      probabilidad INT NOT NULL,
+      impacto INT NOT NULL,
+      nivel_riesgo INT GENERATED ALWAYS AS (probabilidad * impacto) STORED,
+      nivel_categoria VARCHAR(10) GENERATED ALWAYS AS (
+        CASE
+          WHEN (probabilidad * impacto) >= 20 THEN 'critico'
+          WHEN (probabilidad * impacto) >= 15 THEN 'alto'
+          WHEN (probabilidad * impacto) >= 6  THEN 'medio'
+          ELSE 'bajo'
+        END
+      ) STORED,
+      tipo_tratamiento ENUM('mitigar','aceptar','transferir','evitar') NULL,
+      plan_tratamiento TEXT,
       responsable VARCHAR(200),
-      fecha_identificacion DATE,
-      fecha_revision DATE,
-      fecha_termino DATE,
-      probabilidad_residual ENUM('alta','media','baja'),
-      impacto_residual ENUM('critico','alto','medio','bajo'),
-      nivel_residual ENUM('critico','alto','medio','bajo','aceptable'),
-      clasificacion_residual TEXT,
-      estado ENUM('abierto','en_tratamiento','aceptado','cerrado') DEFAULT 'abierto',
+      fecha_limite DATE NULL,
+      residual_probabilidad INT NULL,
+      residual_impacto INT NULL,
+      residual_nivel INT GENERATED ALWAYS AS (
+        COALESCE(residual_probabilidad, probabilidad) * COALESCE(residual_impacto, impacto)
+      ) STORED,
+      estado ENUM('identificado','en_tratamiento','mitigado','aceptado','cerrado') DEFAULT 'identificado',
+      incidente_id INT NULL,
+      incidente_nombre VARCHAR(200) NULL,
+      iso_control_ids JSON NULL,
+      iso_evidencia_id INT NULL,
+      notas_dstac TEXT,
+      creado_por INT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (activo_id) REFERENCES activos(id) ON DELETE SET NULL
+      INDEX idx_estado (estado),
+      INDEX idx_nivel (nivel_categoria),
+      FOREIGN KEY (activo_id)    REFERENCES activos(id)    ON DELETE SET NULL,
+      FOREIGN KEY (incidente_id) REFERENCES incidentes(id) ON DELETE SET NULL
+    )
+  `)
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS riesgos_historial (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      riesgo_id INT NOT NULL,
+      user_id INT NOT NULL,
+      campo_cambiado VARCHAR(100),
+      valor_anterior TEXT,
+      valor_nuevo TEXT,
+      comentario TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (riesgo_id) REFERENCES riesgos(id) ON DELETE CASCADE
     )
   `)
 
