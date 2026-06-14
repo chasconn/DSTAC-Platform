@@ -26,8 +26,8 @@ function buildQuoteHtml(c) {
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;font-size:12px}
 .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #3C3489;padding-bottom:14px;margin-bottom:18px}
-.brand{background:#26215C;color:#fff;font-weight:700;letter-spacing:.18em;font-size:18px;padding:10px 16px;border-radius:8px}
-.brand small{display:block;font-size:9px;letter-spacing:.14em;color:#AFA9EC;font-weight:500;margin-top:2px}
+.brand{background:#26215C;padding:12px 18px;border-radius:8px;display:flex;align-items:center}
+.brand img{height:32px;display:block}
 .doc{text-align:right}
 .doc .t{font-size:20px;font-weight:700;color:#3C3489;letter-spacing:.05em}
 .doc .n{font-size:13px;font-weight:600;color:#2C2C2A;margin-top:2px}
@@ -53,7 +53,7 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
 .foot{margin-top:26px;border-top:1px solid #e2e0d8;padding-top:10px;font-size:10px;color:#888780;display:flex;justify-content:space-between}
 </style></head><body>
   <div class="top">
-    <div class="brand">DSTAC<small>CIBERSEGURIDAD</small></div>
+    <div class="brand"><img src="/logo-dstac.png" alt="DSTAC"></div>
     <div class="doc"><div class="t">COTIZACIÓN</div><div class="n">${esc(c.numero || '')}</div><div class="f">${fecha(c.fecha)}</div></div>
   </div>
 
@@ -68,7 +68,7 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
     </div>
     <div class="card">
       <h3>Proveedor</h3>
-      <div class="row"><b>DSTAC · DS Tactical Security</b></div>
+      <div class="row"><b>DSTAC — DS Tactical Security</b></div>
       <div class="row">contacto@dstac.cl</div>
       <div class="row">www.dstac.cl</div>
       <div class="row">Validez de la oferta: ${validezTxt}</div>
@@ -92,7 +92,7 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
     ${c.notas ? `<div class="b"><h4>Notas</h4>${esc(c.notas)}</div>` : ''}
   </div>
 
-  <div class="foot"><span>DSTAC CIBERSEGURIDAD · contacto@dstac.cl · www.dstac.cl</span><span>Valores en pesos chilenos (CLP)</span></div>
+  <div class="foot"><span>DSTAC — DS Tactical Security · contacto@dstac.cl · www.dstac.cl</span><span>Valores en pesos chilenos (CLP)</span></div>
 </body></html>`
 }
 
