@@ -30,8 +30,10 @@ router.post('/leads', async (req, res) => {
     const risk     = s(b.risk, 30)
     const payload  = b.data ?? b.report ?? null
     const data     = payload ? JSON.stringify(payload) : null
-    const ip = s((req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim(), 64)
-    const ua = s(req.headers['user-agent'], 255)
+    // Si el reenvío server-side del sitio manda la IP/UA del visitante, se priorizan
+    // (de lo contrario veríamos siempre la IP del servidor del sitio).
+    const ip = s((b.ip || req.headers['x-forwarded-for'] || req.ip || '').toString().split(',')[0].trim(), 64)
+    const ua = s(b.user_agent || req.headers['user-agent'], 255)
 
     const [r] = await centralDB.execute(
       `INSERT INTO leads (tipo, empresa, contacto_nombre, email, telefono, dominio, score, grade, risk, data, ip, user_agent)
