@@ -10,6 +10,7 @@ const NAV = [
   { href: '/admin/dashboard',  label: 'Dashboard',  icon: IconDashboard  },
   { href: '/admin/clientes',   label: 'Clientes',   icon: IconClientes   },
   { href: '/admin/prospectos', label: 'Prospectos', icon: IconProspectos },
+  { href: '/admin/cotizaciones', label: 'Cotizaciones', icon: IconCotizaciones },
   { href: '/admin/usuarios',   label: 'Usuarios',   icon: IconUsuarios   },
   { href: '/admin/personal',   label: 'Personal',   icon: IconPersonal   },
   { href: '/admin/activos',    label: 'Activos',    icon: IconActivos    },
@@ -488,6 +489,14 @@ function IconPendientes({ color }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+    </svg>
+  )
+}
+function IconCotizaciones({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/>
     </svg>
   )
 }
