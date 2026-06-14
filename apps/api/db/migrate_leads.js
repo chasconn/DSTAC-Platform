@@ -15,7 +15,7 @@ async function migrate() {
   await conn.query(`
     CREATE TABLE IF NOT EXISTS leads (
       id              INT AUTO_INCREMENT PRIMARY KEY,
-      tipo            ENUM('web_scan','cuestionario') NOT NULL,
+      tipo            ENUM('web_scan','cuestionario','formulario_web','iso') NOT NULL,
       empresa         VARCHAR(255) NULL,
       contacto_nombre VARCHAR(255) NULL,
       email           VARCHAR(255) NULL,

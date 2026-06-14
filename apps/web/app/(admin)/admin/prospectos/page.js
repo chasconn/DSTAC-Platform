@@ -12,6 +12,15 @@ const ESTADOS = [
 ]
 const estadoMeta = (v) => ESTADOS.find(e => e.v === v) || ESTADOS[0]
 
+// Etiqueta legible por tipo de prospecto.
+const TIPO_LABEL = {
+  web_scan:       'Escáner web',
+  cuestionario:   'Autodiagnóstico',
+  formulario_web: 'Formulario web',
+  iso:            'Autoevaluación ISO',
+}
+const tipoLabel = (t) => TIPO_LABEL[t] || t || '—'
+
 function riskColor(r) {
   r = (r || '').toUpperCase()
   if (r.includes('ALTO') || r.includes('CRÍT') || r.includes('CRIT')) return '#D7263D'
@@ -217,6 +226,8 @@ export default function ProspectosPage() {
           <option value="">Todos los tipos</option>
           <option value="web_scan">Escáner web</option>
           <option value="cuestionario">Autodiagnóstico</option>
+          <option value="formulario_web">Formulario web</option>
+          <option value="iso">Autoevaluación ISO</option>
         </select>
         {(tipo || estado || search) && (
           <button onClick={() => { setTipo(''); setEstado(''); setSearch('') }}
@@ -252,7 +263,7 @@ export default function ProspectosPage() {
                   </td>
                   <td style={{ padding: '11px 14px' }}>
                     <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, background: '#EEF0F4', color: '#3C3489' }}>
-                      {l.tipo === 'web_scan' ? 'Escáner web' : 'Autodiagnóstico'}
+                      {tipoLabel(l.tipo)}
                     </span>
                   </td>
                   <td style={{ padding: '11px 14px' }}>
@@ -278,7 +289,7 @@ export default function ProspectosPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 19, color: '#1A1A2E' }}>{sel.empresa || sel.dominio || sel.contacto_nombre || 'Prospecto'}</h2>
-                <div style={{ color: '#6E6884', fontSize: 13, marginTop: 2 }}>{sel.tipo === 'web_scan' ? 'Escáner web' : 'Autodiagnóstico'} · {fmtFecha(sel.created_at)}</div>
+                <div style={{ color: '#6E6884', fontSize: 13, marginTop: 2 }}>{tipoLabel(sel.tipo)} · {fmtFecha(sel.created_at)}</div>
               </div>
               <button onClick={() => setSel(null)} style={{ border: 'none', background: 'transparent', fontSize: 22, cursor: 'pointer', color: '#6E6884' }}>×</button>
             </div>
@@ -294,6 +305,20 @@ export default function ProspectosPage() {
                 ))}
             </div>
 
+            {/* Mensaje (formularios web) */}
+            {sel.tipo === 'formulario_web' && (sel.data?.asunto || sel.data?.mensaje) && (
+              <div style={{ marginTop: 16 }}>
+                {sel.data.asunto && (
+                  <>
+                    <div style={{ fontSize: 12, color: '#6E6884', fontWeight: 600, marginBottom: 4 }}>ASUNTO</div>
+                    <div style={{ fontSize: 13.5, color: '#1A1A2E', marginBottom: 10 }}>{sel.data.asunto}</div>
+                  </>
+                )}
+                <div style={{ fontSize: 12, color: '#6E6884', fontWeight: 600, marginBottom: 4 }}>MENSAJE</div>
+                <div style={{ fontSize: 13.5, color: '#1A1A2E', whiteSpace: 'pre-wrap', background: '#FAFAFD', border: '1px solid #F1EFF7', borderRadius: 8, padding: '10px 12px' }}>{sel.data.mensaje || '—'}</div>
+              </div>
+            )}
+
             {/* Estado */}
             <div style={{ marginTop: 18 }}>
               <label style={{ fontSize: 12, color: '#6E6884', fontWeight: 600 }}>ESTADO</label>
@@ -303,26 +328,28 @@ export default function ProspectosPage() {
               </select>
             </div>
 
-            {/* Informes */}
-            <div style={{ marginTop: 18 }}>
-              <label style={{ fontSize: 12, color: '#6E6884', fontWeight: 600 }}>INFORMES</label>
-              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                {sel.tipo === 'web_scan' ? (
-                  <>
-                    <button onClick={() => generarInforme(sel, true)} title="Como lo ve el prospecto (remediación bloqueada)" style={cardBtn(false)}>
-                      <IconOjo /> Vista del cliente
+            {/* Informes — solo para escáner web y autodiagnóstico */}
+            {(sel.tipo === 'web_scan' || sel.tipo === 'cuestionario') && (
+              <div style={{ marginTop: 18 }}>
+                <label style={{ fontSize: 12, color: '#6E6884', fontWeight: 600 }}>INFORMES</label>
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                  {sel.tipo === 'web_scan' ? (
+                    <>
+                      <button onClick={() => generarInforme(sel, true)} title="Como lo ve el prospecto (remediación bloqueada)" style={cardBtn(false)}>
+                        <IconOjo /> Vista del cliente
+                      </button>
+                      <button onClick={() => generarInforme(sel, false)} title="Informe completo con remediación (entregable)" style={cardBtn(true)}>
+                        <IconDoc /> Informe completo
+                      </button>
+                    </>
+                  ) : (
+                    <button onClick={() => generarInforme(sel, false)} title="Informe del autodiagnóstico" style={cardBtn(true)}>
+                      <IconDoc /> Informe del diagnóstico
                     </button>
-                    <button onClick={() => generarInforme(sel, false)} title="Informe completo con remediación (entregable)" style={cardBtn(true)}>
-                      <IconDoc /> Informe completo
-                    </button>
-                  </>
-                ) : (
-                  <button onClick={() => generarInforme(sel, false)} title="Informe del autodiagnóstico" style={cardBtn(true)}>
-                    <IconDoc /> Informe del diagnóstico
-                  </button>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Convertir a cliente */}
             {sel.estado === 'convertido' && sel.company_id ? (

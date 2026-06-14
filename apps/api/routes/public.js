@@ -1,14 +1,25 @@
-// Endpoints PÚBLICOS (sin auth) — captación del funnel (scanner web + autodiagnóstico).
+// Endpoints PÚBLICOS (sin auth de sesión) — captación del funnel del sitio dstac.cl
+// (escáner web, autodiagnóstico, formularios de contacto y autoevaluaciones ISO).
 const router = require('express').Router()
 const centralDB = require('../db/central')
 
 function s(v, n) { return v == null ? null : (String(v).slice(0, n) || null) }
 
+// Tipos de prospecto que acepta la plataforma.
+const TIPOS_LEAD = ['web_scan', 'cuestionario', 'formulario_web', 'iso']
+
 // POST /api/public/leads — guarda un prospecto desde el sitio público.
+// Si PUBLIC_LEADS_SECRET está configurado, exige el header x-dstac-key (lo envía
+// el reenvío server-side del sitio). Así randoms no pueden inyectar prospectos.
 router.post('/leads', async (req, res) => {
   try {
+    const secret = process.env.PUBLIC_LEADS_SECRET
+    if (secret && req.headers['x-dstac-key'] !== secret) {
+      return res.status(401).json({ ok: false, error: 'No autorizado' })
+    }
+
     const b = req.body || {}
-    const tipo = b.tipo === 'cuestionario' ? 'cuestionario' : 'web_scan'
+    const tipo = TIPOS_LEAD.includes(b.tipo) ? b.tipo : 'web_scan'
     const empresa  = s(b.empresa ?? b.nombre_empresa, 255)
     const contacto = s(b.contacto_nombre ?? b.nombre ?? b.name, 255)
     const email    = s(b.email, 255)
