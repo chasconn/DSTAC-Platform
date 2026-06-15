@@ -174,13 +174,11 @@ set_response_config() {
     <disabled>no</disabled>
     <command>firewall-drop</command>
     <location>local</location>
-    <timeout>600</timeout>
   </active-response>
   <active-response>
     <disabled>no</disabled>
     <command>disable-account</command>
     <location>local</location>
-    <timeout>600</timeout>
   </active-response>
   <active-response>
     <disabled>no</disabled>

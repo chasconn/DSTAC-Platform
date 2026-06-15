@@ -115,7 +115,15 @@ router.get('/alerts', async (req, res, next) => {
       LIMIT ${limit}
     `, params)
 
-    res.json({ alerts: rows })
+    // IPs ya bloqueadas (alerta 651 "Host Blocked"): para ocultar el botón.
+    const [blk] = await centralDB.execute(
+      `SELECT DISTINCT wazuh_id, src_ip FROM edr_alerts
+       WHERE company_id = ? AND rule_id = 651 AND src_ip IS NOT NULL`, [req.company.id]
+    )
+    const bloqueadas = new Set(blk.map(b => `${b.wazuh_id}|${b.src_ip}`))
+    const alerts = rows.map(r => ({ ...r, bloqueada: r.src_ip ? bloqueadas.has(`${r.wazuh_id}|${r.src_ip}`) : false }))
+
+    res.json({ alerts })
   } catch (err) { next(err) }
 })
 

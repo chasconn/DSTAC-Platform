@@ -247,6 +247,12 @@ export default function EdrPage() {
             {protegida ? 'Protección activa' : 'Protección inactiva'}
             <span style={{ fontSize: 10, opacity: 0.65, fontWeight: 600 }}>{protegida ? '· desactivar' : '· activar'}</span>
           </button>
+          {protegida && (
+            <span title="Bloqueo automático de IPs ante ataques de fuerza bruta (sin intervención)"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 20, background: '#EEEDFE', color: '#3C3489', fontSize: 11.5, fontWeight: 700 }}>
+              ⚡ Auto-bloqueo
+            </span>
+          )}
           <button onClick={cargar} disabled={loading} title="Actualizar"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 10, border: '1px solid #e2e0d8', background: '#fff', color: '#444441', cursor: loading ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 600 }}>
             <IconRefresh color="#534AB7" /> {loading ? 'Cargando…' : 'Actualizar'}
@@ -498,11 +504,18 @@ export default function EdrPage() {
                       <td style={td}>
                         {al.src_ip || '—'}
                         {al.src_ip && al.wazuh_id && (
-                          <button onClick={() => responder(al.wazuh_id, 'bloquear_ip', al.src_ip, `Bloquear IP ${al.src_ip}`)}
-                            title="Bloquear esta IP en el endpoint (respuesta activa)"
-                            style={{ marginLeft: 6, padding: '2px 9px', borderRadius: 6, border: '1px solid #f0c4c4', background: '#FDF4F4', color: '#791F1F', cursor: 'pointer', fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                            ⨯ Bloquear
-                          </button>
+                          al.bloqueada ? (
+                            <span title="IP ya bloqueada en el endpoint"
+                              style={{ marginLeft: 6, background: '#EAF6F1', color: '#0F6E56', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                              ✓ Bloqueada
+                            </span>
+                          ) : (
+                            <button onClick={() => responder(al.wazuh_id, 'bloquear_ip', al.src_ip, `Bloquear IP ${al.src_ip}`)}
+                              title="Bloquear esta IP en el endpoint (respuesta activa)"
+                              style={{ marginLeft: 6, padding: '2px 9px', borderRadius: 6, border: '1px solid #f0c4c4', background: '#FDF4F4', color: '#791F1F', cursor: 'pointer', fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              ⨯ Bloquear
+                            </button>
+                          )
                         )}
                       </td>
                     </tr>

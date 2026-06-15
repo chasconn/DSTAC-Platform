@@ -153,6 +153,22 @@ router.post('/alerts', async (req, res) => {
       }
     }
 
+    // Registrar bloqueos AUTOMÁTICOS (Active Response del manager): alerta 651
+    // "Host Blocked" con command=add. Dedup contra una respuesta manual reciente
+    // (la misma IP) para no contar dos veces.
+    if (companyId && intOrNull(rule.id) === 651 && data.command === 'add' && srcIp) {
+      const [prev] = await centralDB.execute(
+        `SELECT id FROM edr_responses WHERE company_id = ? AND target = ? AND created_at >= (NOW() - INTERVAL 2 MINUTE) LIMIT 1`,
+        [companyId, srcIp]
+      )
+      if (!prev.length) {
+        await centralDB.execute(
+          `INSERT INTO edr_responses (company_id, wazuh_id, action, target) VALUES (?, ?, 'bloqueo_auto', ?)`,
+          [companyId, wazuhId, srcIp]
+        ).catch(() => {})
+      }
+    }
+
     res.json({ ok: true })
   } catch (e) {
     console.error('edr/alerts error:', e.message)
