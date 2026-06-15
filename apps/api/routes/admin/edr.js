@@ -191,11 +191,19 @@ router.post('/bloquear-todo', async (req, res) => {
     if (!(await proteccionActiva(companyId))) {
       return res.status(403).json({ error: 'Protección EDR desactivada para esta empresa' })
     }
+    // IPs de origen únicas a bloquear, EXCLUYENDO las ya bloqueadas en los últimos
+    // 10 min (evita re-bloquear lo mismo en clics repetidos).
     const [rows] = await centralDB.execute(`
-      SELECT DISTINCT wazuh_id, src_ip
-      FROM edr_alerts
-      WHERE company_id = ? AND src_ip IS NOT NULL AND src_ip <> ''
-        AND src_ip NOT LIKE '127.%' AND src_ip <> '::1' AND src_ip <> '2.25.183.242'
+      SELECT DISTINCT a.wazuh_id, a.src_ip
+      FROM edr_alerts a
+      WHERE a.company_id = ? AND a.src_ip IS NOT NULL AND a.src_ip <> ''
+        AND a.src_ip NOT LIKE '127.%' AND a.src_ip <> '::1' AND a.src_ip <> '2.25.183.242'
+        AND NOT EXISTS (
+          SELECT 1 FROM edr_responses r
+          WHERE r.company_id = a.company_id AND r.action = 'bloquear_ip'
+            AND r.target = a.src_ip AND r.wazuh_id = a.wazuh_id
+            AND r.created_at >= (NOW() - INTERVAL 10 MINUTE)
+        )
       LIMIT 100
     `, [companyId])
 
@@ -218,7 +226,9 @@ router.post('/bloquear-todo', async (req, res) => {
 
     res.json({
       success: true, total: rows.length, bloqueadas: ok, fallidas: fail,
-      message: rows.length === 0 ? 'No hay IPs para bloquear' : `${ok} IP(s) bloqueada(s)${fail ? `, ${fail} fallida(s) (agentes desconectados)` : ''}`,
+      message: rows.length === 0
+        ? 'No hay IPs nuevas para bloquear (ya están bloqueadas o no hay alertas con IP de origen)'
+        : `${ok} IP(s) nueva(s) bloqueada(s)${fail ? `, ${fail} fallida(s) (agentes desconectados)` : ''}`,
     })
   } catch (err) {
     res.status(502).json({ error: err.message || 'No se pudo ejecutar el bloqueo masivo' })
