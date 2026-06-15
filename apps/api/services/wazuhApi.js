@@ -86,4 +86,10 @@ async function activeResponse(agentId, command, args = []) {
   return res
 }
 
-module.exports = { listAgents, activeResponse, getToken }
+// Elimina (da de baja) un agente del manager.
+async function deleteAgent(agentId) {
+  const token = await getToken()
+  return req('DELETE', `/agents?agents_list=${encodeURIComponent(agentId)}&older_than=0s`, { token })
+}
+
+module.exports = { listAgents, activeResponse, deleteAgent, getToken }

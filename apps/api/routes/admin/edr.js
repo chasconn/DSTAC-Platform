@@ -336,4 +336,60 @@ router.post('/agents/:wazuhId/responder', async (req, res) => {
   }
 })
 
+// POST /agents/:wazuhId/desactivar — da de baja un equipo (robado, quemado,
+// reemplazado…): lo elimina del manager Wazuh y del portal.
+router.post('/agents/:wazuhId/desactivar', async (req, res) => {
+  try {
+    const { wazuhId } = req.params
+    const [ag] = await centralDB.execute(
+      `SELECT name FROM edr_agents WHERE wazuh_id = ? AND company_id = ? LIMIT 1`,
+      [wazuhId, req.company.id]
+    )
+    if (!ag.length) return res.status(404).json({ error: 'Equipo no encontrado en esta empresa' })
+
+    try { await wazuhApi.deleteAgent(wazuhId) } catch (e) { /* puede que ya no exista en Wazuh */ }
+    await centralDB.execute(`DELETE FROM edr_agents WHERE wazuh_id = ? AND company_id = ?`, [wazuhId, req.company.id])
+
+    await registrarActividad({
+      req, accion: 'eliminar', modulo: 'edr', company_id: req.company.id,
+      descripcion: `Equipo dado de baja: ${ag[0].name || wazuhId}`,
+    })
+    res.json({ success: true, message: `Equipo ${ag[0].name || wazuhId} dado de baja` })
+  } catch (err) {
+    res.status(502).json({ error: err.message || 'No se pudo dar de baja el equipo' })
+  }
+})
+
+// GET /agents/:wazuhId/ubicacion — geolocaliza el equipo por su IP (nivel de red).
+function ipPrivada(ip) {
+  return !ip || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|169\.254\.|::1|fe80:|any$)/.test(ip)
+}
+function geoip(ip) {
+  return new Promise(resolve => {
+    require('http').get(
+      `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,regionName,city,lat,lon,isp,query`,
+      r => { let b = ''; r.on('data', c => (b += c)); r.on('end', () => { try { resolve(JSON.parse(b)) } catch { resolve(null) } }) }
+    ).on('error', () => resolve(null))
+  })
+}
+router.get('/agents/:wazuhId/ubicacion', async (req, res) => {
+  try {
+    const [ag] = await centralDB.execute(
+      `SELECT name, ip FROM edr_agents WHERE wazuh_id = ? AND company_id = ? LIMIT 1`,
+      [req.params.wazuhId, req.company.id]
+    )
+    if (!ag.length) return res.status(404).json({ error: 'Equipo no encontrado' })
+    const ip = ag[0].ip
+    if (ipPrivada(ip)) {
+      return res.json({ privada: true, ip, mensaje: 'El equipo reporta una IP de red privada (NAT); no es geolocalizable por IP pública.' })
+    }
+    const g = await geoip(ip)
+    if (!g || g.status !== 'success') return res.json({ ip, error: 'No se pudo geolocalizar la IP' })
+    res.json({
+      ip, ciudad: g.city, region: g.regionName, pais: g.country, isp: g.isp,
+      lat: g.lat, lon: g.lon, maps: `https://www.google.com/maps?q=${g.lat},${g.lon}`,
+    })
+  } catch (err) { res.status(502).json({ error: err.message }) }
+})
+
 module.exports = router

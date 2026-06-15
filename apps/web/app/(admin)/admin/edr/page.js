@@ -163,6 +163,25 @@ export default function EdrPage() {
     }
   }
 
+  async function ubicar(wazuhId, name) {
+    try {
+      const d = await api.get(`/api/admin/edr/agents/${wazuhId}/ubicacion`, headers)
+      if (d.privada) { showToast(`📍 ${name}: ${d.mensaje}`, 'error'); return }
+      if (d.error)   { showToast(`📍 ${name}: ${d.error}`, 'error'); return }
+      showToast(`📍 ${name}: ${[d.ciudad, d.region, d.pais].filter(Boolean).join(', ')}${d.isp ? ' · ' + d.isp : ''}`)
+      if (d.maps) window.open(d.maps, '_blank')
+    } catch (err) { showToast(err.message || 'Error al ubicar', 'error') }
+  }
+
+  async function darDeBaja(wazuhId, name) {
+    if (!confirm(`¿Dar de baja el equipo "${name}"?\n\nSe eliminará del EDR (Wazuh + portal). Úsalo si el equipo fue robado, reemplazado o retirado. Si vuelve, hay que reinstalar el agente.`)) return
+    try {
+      const d = await api.post(`/api/admin/edr/agents/${wazuhId}/desactivar`, {}, headers)
+      showToast(d.message || 'Equipo dado de baja')
+      await cargar()
+    } catch (err) { showToast(err.message || 'Error al dar de baja', 'error') }
+  }
+
   async function asignar(wazuhId) {
     try {
       await api.post(`/api/admin/edr/agents/${wazuhId}/asignar`, {}, headers)
@@ -402,6 +421,16 @@ export default function EdrPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1EFE8', fontSize: 11.5, color: '#888780' }}>
                       <span><strong style={{ color: '#534AB7', fontSize: 14 }}>{a.total_alertas ?? 0}</strong> alertas</span>
                       <span>visto {fechaHora(a.last_keepalive)}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button onClick={() => ubicar(a.wazuh_id, a.name || a.wazuh_id)} title="Ubicar el equipo por su IP (nivel de red)"
+                        style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #c8c4f0', background: '#EEEDFE', color: '#3C3489', cursor: 'pointer', fontSize: 11.5, fontWeight: 600 }}>
+                        📍 Ubicar
+                      </button>
+                      <button onClick={() => darDeBaja(a.wazuh_id, a.name || a.wazuh_id)} title="Dar de baja el equipo (robado, reemplazado, retirado)"
+                        style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #f0c4c4', background: '#FDF4F4', color: '#791F1F', cursor: 'pointer', fontSize: 11.5, fontWeight: 600 }}>
+                        Dar de baja
+                      </button>
                     </div>
                   </div>
                 )
