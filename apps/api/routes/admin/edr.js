@@ -124,4 +124,45 @@ router.get('/stats', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// GET /sca — cumplimiento CIS/SCA por agente. Se arma desde el último resumen
+// SCA (regla 19004) ingestado por cada (agente, política), extrayendo el score
+// y los conteos del JSON `raw`. No requiere la API de Wazuh (55000).
+router.get('/sca', async (req, res, next) => {
+  try {
+    const [rows] = await centralDB.execute(`
+      SELECT a.wazuh_id, a.agent_name, a.event_time,
+             JSON_UNQUOTE(JSON_EXTRACT(a.raw, '$.data.sca.policy'))       AS policy,
+             JSON_UNQUOTE(JSON_EXTRACT(a.raw, '$.data.sca.policy_id'))    AS policy_id,
+             JSON_UNQUOTE(JSON_EXTRACT(a.raw, '$.data.sca.score'))        AS score,
+             JSON_UNQUOTE(JSON_EXTRACT(a.raw, '$.data.sca.passed'))       AS passed,
+             JSON_UNQUOTE(JSON_EXTRACT(a.raw, '$.data.sca.failed'))       AS failed,
+             JSON_UNQUOTE(JSON_EXTRACT(a.raw, '$.data.sca.total_checks')) AS total_checks
+      FROM edr_alerts a
+      JOIN (
+        SELECT wazuh_id,
+               JSON_UNQUOTE(JSON_EXTRACT(raw, '$.data.sca.policy_id')) AS pid,
+               MAX(id) AS max_id
+        FROM edr_alerts
+        WHERE rule_id = 19004 AND company_id = ?
+        GROUP BY wazuh_id, pid
+      ) latest ON latest.max_id = a.id
+      ORDER BY a.wazuh_id, policy
+    `, [req.company.id])
+
+    const sca = rows.map(r => ({
+      wazuh_id:     r.wazuh_id,
+      agent_name:   r.agent_name,
+      policy:       r.policy,
+      policy_id:    r.policy_id,
+      score:        Number(r.score) || 0,
+      passed:       Number(r.passed) || 0,
+      failed:       Number(r.failed) || 0,
+      total_checks: Number(r.total_checks) || 0,
+      scanned_at:   r.event_time,
+    }))
+
+    res.json({ sca })
+  } catch (err) { next(err) }
+})
+
 module.exports = router

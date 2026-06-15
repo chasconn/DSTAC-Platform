@@ -11,6 +11,13 @@ function nivelStyle(lvl) {
   return { label: 'Bajo', color: '#27500A', bg: '#EAF3DE' }
 }
 
+// Color del score de cumplimiento CIS/SCA.
+function scoreStyle(score) {
+  if (score >= 80) return { color: '#27500A', bg: '#EAF3DE', track: '#CDE5B5' }
+  if (score >= 50) return { color: '#7A5C00', bg: '#FFFBF0', track: '#F0E2B0' }
+  return { color: '#791F1F', bg: '#FCEBEB', track: '#F2C9C9' }
+}
+
 function parseJsonArr(v) {
   if (!v) return []
   if (Array.isArray(v)) return v
@@ -33,6 +40,7 @@ export default function EdrPage() {
   const [stats,   setStats]   = useState(null)
   const [agents,  setAgents]  = useState([])
   const [sinAsig, setSinAsig] = useState([])
+  const [sca,     setSca]     = useState([])
   const [alerts,  setAlerts]  = useState([])
   const [loading, setLoading] = useState(true)
   const [nivelMin, setNivelMin] = useState('')
@@ -54,14 +62,16 @@ export default function EdrPage() {
       const params = new URLSearchParams()
       if (nivelMin) params.set('nivel_min', nivelMin)
       if (busca)    params.set('q', busca)
-      const [st, ag, al] = await Promise.all([
+      const [st, ag, al, sc] = await Promise.all([
         api.get('/api/admin/edr/stats', headers),
         api.get('/api/admin/edr/agents', headers),
         api.get(`/api/admin/edr/alerts?${params}`, headers),
+        api.get('/api/admin/edr/sca', headers),
       ])
       setStats(st)
       setAgents(ag.agents ?? [])
       setAlerts(al.alerts ?? [])
+      setSca(sc.sca ?? [])
       if ((st?.sin_asignar ?? 0) > 0) {
         const sa = await api.get('/api/admin/edr/agents/sin-asignar', headers)
         setSinAsig(sa.agents ?? [])
@@ -191,6 +201,43 @@ export default function EdrPage() {
           </table>
         )}
       </div>
+
+      {/* Cumplimiento CIS / SCA */}
+      {sca.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', margin: '0 0 4px' }}>Cumplimiento (CIS / SCA)</h2>
+          <p style={{ fontSize: 12, color: '#888780', margin: '0 0 12px' }}>
+            Evaluación de configuración segura por endpoint (benchmark CIS de Wazuh).
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+            {sca.map((s, i) => {
+              const ss  = scoreStyle(s.score)
+              const pct = Math.max(0, Math.min(100, s.score))
+              return (
+                <div key={`${s.wazuh_id}-${s.policy_id}-${i}`} style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', padding: '16px 18px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A' }}>{s.agent_name || s.wazuh_id}</div>
+                      <div style={{ fontSize: 11.5, color: '#888780', marginTop: 2, lineHeight: 1.4 }}>{s.policy || s.policy_id}</div>
+                    </div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: ss.color, lineHeight: 1, flexShrink: 0 }}>{s.score}%</div>
+                  </div>
+                  {/* Barra de score */}
+                  <div style={{ height: 8, borderRadius: 6, background: ss.track, marginTop: 12, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: ss.color, borderRadius: 6 }} />
+                  </div>
+                  {/* Conteos */}
+                  <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 12 }}>
+                    <span style={{ color: '#27500A', fontWeight: 600 }}>✓ {s.passed} aprobados</span>
+                    <span style={{ color: '#791F1F', fontWeight: 600 }}>✗ {s.failed} fallidos</span>
+                    <span style={{ color: '#888780' }}>de {s.total_checks}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Alertas */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 10 }}>
