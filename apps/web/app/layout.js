@@ -13,7 +13,7 @@ export default function RootLayout({ children }) {
         {/* Aplica el tema guardado ANTES del primer paint para evitar parpadeo claro→oscuro */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('dstac_theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('dstac_theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');var z=localStorage.getItem('dstac_ui_zoom');if(z)document.documentElement.style.setProperty('--ui-zoom',z);}catch(e){}`,
           }}
         />
       </head>

@@ -48,6 +48,19 @@ export default function Sidebar() {
     else document.documentElement.removeAttribute('data-theme')
   }
 
+  // Tamaño del texto/UI (zoom del panel): persiste en localStorage y se aplica como
+  // variable CSS --ui-zoom (el layout la lee antes del paint para evitar saltos).
+  const [uiZoom, setUiZoom] = useState(1)
+  useEffect(() => {
+    try { const z = parseFloat(localStorage.getItem('dstac_ui_zoom')); if (z) setUiZoom(z) } catch {}
+  }, [])
+  function cambiarZoom(z) {
+    const v = Math.round(z * 100) / 100
+    setUiZoom(v)
+    try { localStorage.setItem('dstac_ui_zoom', String(v)) } catch {}
+    document.documentElement.style.setProperty('--ui-zoom', String(v))
+  }
+
   // Leer localStorage solo tras el mount — evita hydration mismatch
   useEffect(() => {
     setUser(getUser())
@@ -336,6 +349,28 @@ export default function Sidebar() {
             </div>
           </div>
         )}
+        {/* Tamaño del texto (zoom del panel) */}
+        {!collapsed && (
+          <div style={{ padding: '4px 8px 10px' }}>
+            <div style={{ fontSize: 11, color: '#7F77DD', fontWeight: 600, marginBottom: 5 }}>Tamaño del texto</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#AFA9EC', fontSize: 11, lineHeight: 1 }}>A</span>
+              <input
+                type="range" min="0.8" max="1.5" step="0.05" value={uiZoom}
+                onChange={e => cambiarZoom(parseFloat(e.target.value))}
+                title={`${Math.round(uiZoom * 100)}%`}
+                style={{ flex: 1, accentColor: '#7F77DD', cursor: 'pointer' }}
+              />
+              <span style={{ color: '#AFA9EC', fontSize: 17, lineHeight: 1 }}>A</span>
+            </div>
+            {uiZoom !== 1 && (
+              <button onClick={() => cambiarZoom(1)} style={{ background: 'none', border: 'none', color: '#7F77DD', fontSize: 10.5, cursor: 'pointer', padding: '4px 0 0', marginLeft: 'auto', display: 'block' }}>
+                Restablecer ({Math.round(uiZoom * 100)}%)
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Interruptor de tema claro/oscuro */}
         <button
           onClick={toggleTheme}

@@ -376,7 +376,8 @@ body[data-modal-open] button:focus {
 
 /* ── Responsive móvil (panel admin) ────────────────────────────────────────── */
 /* Contenido scrollea en horizontal si una tabla es muy ancha (no rompe el layout) */
-.admin-shell-main { overflow-x: auto; }
+/* --ui-zoom: control de tamaño del texto/UI (barra en el sidebar), escala todo el panel */
+.admin-shell-main { overflow-x: auto; zoom: var(--ui-zoom, 1); }
 @media (max-width: 820px) {
   /* Reservar espacio para el botón hamburguesa flotante del Sidebar */
   .admin-shell-main { padding-top: 50px; }
