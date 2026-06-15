@@ -107,6 +107,53 @@ set_company_label() {
   c_inf "   etiqueta de empresa: dstac_company=${AGENT_COMPANY}"
 }
 
+# Habilita en la ossec.conf LOCAL del agente las definiciones de comando +
+# active-response, necesarias para que la API de Wazuh pueda dispararlas
+# (respuesta manual desde el portal). El agent.conf compartido NO basta:
+# la API valida el comando contra la config local del agente. Idempotente.
+set_response_config() {
+  local conf=/var/ossec/etc/ossec.conf
+  [ -f "$conf" ] || return 0
+  grep -q "DSTAC-EDR-AR" "$conf" && return 0
+  cat > /tmp/dstac-ar.xml <<'ARBLOCK'
+  <!-- DSTAC-EDR-AR: respuestas activas para disparo manual desde el portal -->
+  <command>
+    <name>firewall-drop</name>
+    <executable>firewall-drop</executable>
+    <timeout_allowed>yes</timeout_allowed>
+  </command>
+  <command>
+    <name>disable-account</name>
+    <executable>disable-account</executable>
+    <timeout_allowed>yes</timeout_allowed>
+  </command>
+  <command>
+    <name>restart-wazuh</name>
+    <executable>restart-wazuh</executable>
+  </command>
+  <active-response>
+    <disabled>no</disabled>
+    <command>firewall-drop</command>
+    <location>local</location>
+    <timeout>600</timeout>
+  </active-response>
+  <active-response>
+    <disabled>no</disabled>
+    <command>disable-account</command>
+    <location>local</location>
+    <timeout>600</timeout>
+  </active-response>
+  <active-response>
+    <disabled>no</disabled>
+    <command>restart-wazuh</command>
+    <location>local</location>
+  </active-response>
+ARBLOCK
+  awk '/<\/ossec_config>/ && !d {while((getline line < "/tmp/dstac-ar.xml")>0) print line; d=1} {print}' "$conf" > "${conf}.dstac" && mv "${conf}.dstac" "$conf"
+  rm -f /tmp/dstac-ar.xml
+  c_inf "   respuestas activas habilitadas en el agente"
+}
+
 # ── ¿Ya está instalado? → solo (re)enrolar y reiniciar ────────────────
 if [ -d /var/ossec ] && command -v /var/ossec/bin/wazuh-control >/dev/null 2>&1; then
   c_inf "wazuh-agent ya está instalado → reconfigurando…"
@@ -119,6 +166,7 @@ if [ -d /var/ossec ] && command -v /var/ossec/bin/wazuh-control >/dev/null 2>&1;
   # shellcheck disable=SC2086
   /var/ossec/bin/agent-auth -m "$WAZUH_MANAGER_IP" -P "$WAZUH_ENROLL_PASSWORD" -A "$AGENT_NAME" $GROUP_ARG
   set_company_label
+  set_response_config
   /var/ossec/bin/wazuh-control start >/dev/null 2>&1 || true
   systemctl restart wazuh-agent >/dev/null 2>&1 || true
   c_ok "✓ Reconfigurado como '$AGENT_NAME' y reiniciado."
@@ -178,8 +226,9 @@ else
   exit 1
 fi
 
-# ── Etiqueta de empresa antes de arrancar ─────────────────────────────
+# ── Etiqueta de empresa + respuestas activas antes de arrancar ────────
 set_company_label
+set_response_config
 
 # ── Arrancar y verificar ──────────────────────────────────────────────
 systemctl daemon-reload >/dev/null 2>&1 || true
