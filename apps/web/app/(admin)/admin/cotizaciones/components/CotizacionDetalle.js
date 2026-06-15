@@ -4,7 +4,7 @@
 import { clp, ESTADO, TIPO_LINEA } from './format'
 import { previewCotizacion } from './quotePreview'
 
-const fmt = (d) => { try { return new Date(d + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
+const fmt = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
 
 export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, onCambiarEstado }) {
   const items = cot.items || []
