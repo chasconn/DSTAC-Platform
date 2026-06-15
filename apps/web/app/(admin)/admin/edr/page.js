@@ -75,6 +75,7 @@ export default function EdrPage() {
   const [agents,  setAgents]  = useState([])
   const [sinAsig, setSinAsig] = useState([])
   const [sca,     setSca]     = useState([])
+  const [empresas, setEmpresas] = useState([])
   const [alerts,  setAlerts]  = useState([])
   const [loading, setLoading] = useState(true)
   const [nivelMin, setNivelMin] = useState('')
@@ -108,6 +109,7 @@ export default function EdrPage() {
       setAgents(ag.agents ?? [])
       setAlerts(al.alerts ?? [])
       setSca(sc.sca ?? [])
+      try { const e = await api.get('/api/admin/edr/empresas', headers); setEmpresas(e.empresas ?? []) } catch {}
       if ((st?.sin_asignar ?? 0) > 0) {
         const sa = await api.get('/api/admin/edr/agents/sin-asignar', headers)
         setSinAsig(sa.agents ?? [])
@@ -161,6 +163,16 @@ export default function EdrPage() {
     } catch (err) {
       showToast(err.message || 'Error en el bloqueo masivo', 'error')
     }
+  }
+
+  async function mover(wazuhId, name, companyId) {
+    const dest = empresas.find(e => String(e.id) === String(companyId))
+    if (!dest || !confirm(`¿Mover "${name}" a ${dest.name}?`)) return
+    try {
+      const d = await api.post(`/api/admin/edr/agents/${wazuhId}/mover`, { company_id: companyId }, headers)
+      showToast(d.message || 'Equipo movido')
+      await cargar()
+    } catch (err) { showToast(err.message || 'Error al mover', 'error') }
   }
 
   async function ubicar(wazuhId, name) {
@@ -432,6 +444,16 @@ export default function EdrPage() {
                         Dar de baja
                       </button>
                     </div>
+                    {empresas.length > 1 && (
+                      <select defaultValue="" onChange={e => { mover(a.wazuh_id, a.name || a.wazuh_id, e.target.value); e.target.value = '' }}
+                        title="Mover este equipo a otra empresa"
+                        style={{ width: '100%', marginTop: 8, padding: '6px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 11.5, background: '#fff', color: '#444441' }}>
+                        <option value="">↪ Mover a otra empresa…</option>
+                        {empresas.filter(e => String(e.id) !== String(empresaActiva.id)).map(e => (
+                          <option key={e.id} value={e.id}>{e.name}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 )
               })}

@@ -407,4 +407,36 @@ router.get('/agents/:wazuhId/ubicacion', async (req, res) => {
   } catch (err) { res.status(502).json({ error: err.message }) }
 })
 
+// GET /empresas — lista para el selector de "mover equipo".
+router.get('/empresas', async (req, res, next) => {
+  try {
+    const [rows] = await centralDB.execute(
+      `SELECT id, name, slug FROM companies WHERE status = 'active' ORDER BY name`
+    )
+    res.json({ empresas: rows })
+  } catch (err) { next(err) }
+})
+
+// POST /agents/:wazuhId/mover — reasigna un equipo a otra empresa (corrige errores).
+router.post('/agents/:wazuhId/mover', async (req, res) => {
+  try {
+    const { wazuhId } = req.params
+    const companyId = parseInt(req.body?.company_id, 10)
+    if (!companyId) return res.status(400).json({ error: 'Empresa destino requerida' })
+
+    const [dest] = await centralDB.execute(`SELECT id, name FROM companies WHERE id = ? AND status = 'active' LIMIT 1`, [companyId])
+    if (!dest.length) return res.status(404).json({ error: 'Empresa destino no encontrada' })
+
+    const [ag] = await centralDB.execute(`SELECT name FROM edr_agents WHERE wazuh_id = ? AND company_id = ? LIMIT 1`, [wazuhId, req.company.id])
+    if (!ag.length) return res.status(404).json({ error: 'Equipo no encontrado en esta empresa' })
+
+    await centralDB.execute(`UPDATE edr_agents SET company_id = ? WHERE wazuh_id = ?`, [companyId, wazuhId])
+    await centralDB.execute(`UPDATE edr_alerts SET company_id = ? WHERE wazuh_id = ?`, [companyId, wazuhId])
+
+    await registrarActividad({ req, accion: 'editar', modulo: 'edr', company_id: req.company.id,
+      descripcion: `Equipo ${ag[0].name || wazuhId} movido a ${dest[0].name}` })
+    res.json({ success: true, message: `Equipo movido a ${dest[0].name}` })
+  } catch (err) { res.status(502).json({ error: err.message || 'No se pudo mover el equipo' }) }
+})
+
 module.exports = router
