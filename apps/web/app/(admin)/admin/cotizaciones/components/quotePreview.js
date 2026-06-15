@@ -68,7 +68,7 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
     </div>
     <div class="card">
       <h3>Proveedor</h3>
-      <div class="row"><b>DSTAC — DS Tactical Security</b></div>
+      <div class="row"><b>DSTAC CIBERSEGURIDAD</b></div>
       <div class="row">contacto@dstac.cl</div>
       <div class="row">www.dstac.cl</div>
       <div class="row">Validez de la oferta: ${validezTxt}</div>
@@ -92,7 +92,7 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
     ${c.notas ? `<div class="b"><h4>Notas</h4>${esc(c.notas)}</div>` : ''}
   </div>
 
-  <div class="foot"><span>DSTAC — DS Tactical Security · contacto@dstac.cl · www.dstac.cl</span><span>Valores en pesos chilenos (CLP)</span></div>
+  <div class="foot"><span>DSTAC CIBERSEGURIDAD · contacto@dstac.cl · www.dstac.cl</span><span>Valores en pesos chilenos (CLP)</span></div>
 </body></html>`
 }
 
