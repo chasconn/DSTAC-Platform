@@ -17,6 +17,8 @@ const ACCIONES_AR = {
 router.use(requireAuth, requireDstacRole, resolveTenant)
 
 // GET /agents — agentes asignados a la empresa activa.
+// El estado se toma EN VIVO de la API de Wazuh (active/disconnected/never_connected);
+// si la API no responde, se usa el estado almacenado como respaldo.
 router.get('/agents', async (req, res, next) => {
   try {
     const [rows] = await centralDB.execute(`
@@ -26,7 +28,15 @@ router.get('/agents', async (req, res, next) => {
       WHERE a.company_id = ?
       ORDER BY a.last_keepalive DESC
     `, [req.company.id])
-    res.json({ agents: rows })
+
+    let liveById = {}
+    try {
+      const live = await wazuhApi.listAgents()
+      live.forEach(a => { liveById[a.id] = a.status })
+    } catch { /* API Wazuh no disponible → usamos el estado almacenado */ }
+
+    const agents = rows.map(r => ({ ...r, status: liveById[r.wazuh_id] || r.status }))
+    res.json({ agents })
   } catch (err) { next(err) }
 })
 
