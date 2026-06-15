@@ -68,12 +68,44 @@ c_inf "════════════════════════�
 c_inf "   DSTAC EDR · Instalador de agente Wazuh"
 c_inf "════════════════════════════════════════════"
 
-# ── Nombre del agente (interactivo si no se pasó por -n) ───────────────
-if [ -z "$AGENT_NAME" ]; then
-  DEFAULT_NAME="$(hostname)"
-  read -rp "Nombre para este agente [$DEFAULT_NAME]: " AGENT_NAME </dev/tty || true
-  AGENT_NAME="${AGENT_NAME:-$DEFAULT_NAME}"
-fi
+# ── Diálogo amigable para nombrar el equipo ───────────────────────────
+# Prioridad: zenity (ventana gráfica) → whiptail (caja en terminal) → texto.
+GUI_DISPLAY=""
+detectar_display() {
+  GUI_DISPLAY="${DISPLAY:-}"
+  if [ -z "$GUI_DISPLAY" ] && [ -n "${SUDO_USER:-}" ]; then
+    GUI_DISPLAY=$(who 2>/dev/null | awk -v u="$SUDO_USER" '$1==u && $0 ~ /\(:[0-9]/ {n=$NF; gsub(/[()]/,"",n); print n; exit}')
+    [ -z "$GUI_DISPLAY" ] && GUI_DISPLAY=":0"
+  fi
+}
+zenity_user() {
+  # zenity corre como el usuario de escritorio (root no accede a su sesión X)
+  if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+    sudo -u "$SUDO_USER" DISPLAY="$GUI_DISPLAY" XAUTHORITY="/home/$SUDO_USER/.Xauthority" zenity "$@" 2>/dev/null
+  else
+    DISPLAY="$GUI_DISPLAY" zenity "$@" 2>/dev/null
+  fi
+}
+pedir_nombre() {
+  local def n=""
+  def="$(hostname)"
+  detectar_display
+  if command -v zenity >/dev/null 2>&1 && [ -n "$GUI_DISPLAY" ]; then
+    n=$(zenity_user --entry --width=440 --title="DSTAC EDR · Protección de endpoint" \
+        --text="Escribe un nombre para identificar este equipo:" --entry-text="$def" || true)
+    echo "${n:-$def}"; return
+  fi
+  if command -v whiptail >/dev/null 2>&1; then
+    n=$(whiptail --title "DSTAC EDR · Proteccion de endpoint" \
+        --inputbox "\nEscribe un nombre para identificar este equipo:" 11 64 "$def" 3>&1 1>&2 2>&3 || true)
+    echo "${n:-$def}"; return
+  fi
+  read -rp "Nombre para este equipo [$def]: " n </dev/tty || true
+  echo "${n:-$def}"
+}
+
+# Nombre del agente: por -n, o si no, se pregunta con la ventana.
+[ -z "$AGENT_NAME" ] && AGENT_NAME="$(pedir_nombre)"
 # Sanitizar: Wazuh no admite espacios; dejar solo [A-Za-z0-9_.-]
 AGENT_NAME="$(echo "$AGENT_NAME" | tr ' ' '_' | tr -cd 'A-Za-z0-9_.-')"
 [ -z "$AGENT_NAME" ] && AGENT_NAME="$(hostname)"
