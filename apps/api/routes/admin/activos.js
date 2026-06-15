@@ -81,14 +81,21 @@ router.get('/', async (req, res, next) => {
       LIMIT ${Number(limit)} OFFSET ${Number(offset)}
     `, [...params])
 
-    // Extraer campos técnicos del JSON metadata para exponerlos como campos planos
-    const activos = rows.map(row => ({
-      ...row,
-      metadata:          row.metadata ? JSON.parse(row.metadata) : null,
-      ip:                row.metadata ? (JSON.parse(row.metadata)?.ip ?? null) : null,
-      sistema_operativo: row.metadata ? (JSON.parse(row.metadata)?.sistema_operativo ?? null) : null,
-      version:           row.metadata ? (JSON.parse(row.metadata)?.version ?? null) : null,
-    }))
+    // Extraer campos técnicos del JSON metadata para exponerlos como campos planos.
+    // La columna es de tipo JSON: mysql2 ya la devuelve parseada como objeto, así que
+    // solo parseamos si excepcionalmente llega como string (columna TEXT en algún tenant).
+    const activos = rows.map(row => {
+      const metadata = typeof row.metadata === 'string'
+        ? JSON.parse(row.metadata)
+        : (row.metadata ?? null)
+      return {
+        ...row,
+        metadata,
+        ip:                metadata?.ip                ?? null,
+        sistema_operativo: metadata?.sistema_operativo ?? null,
+        version:           metadata?.version           ?? null,
+      }
+    })
 
     const [[{ total }]] = await db.execute(`
       SELECT COUNT(*) AS total
