@@ -26,6 +26,12 @@ router.get('/:reporteId', requireAuth, requireDstacRole, resolveTenant, async (r
     const m    = mod()
     const data = await m.getData(req.tenantDB, centralDB, req.company.id, req.company)
     const html = m.buildHTML(data)
+
+    // Vista previa en el navegador (overlay tipo Prospectos): devuelve el HTML.
+    if (req.query.format === 'html') {
+      return res.set('Content-Type', 'text/html; charset=utf-8').send(html)
+    }
+
     const pdf  = await htmlToPDF(html)
 
     const fecha = new Date().toISOString().split('T')[0]
