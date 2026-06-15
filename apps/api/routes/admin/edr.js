@@ -16,6 +16,25 @@ const ACCIONES_AR = {
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
 
+// ¿La empresa tiene la protección EDR activa? (servicio por pago)
+async function proteccionActiva(companyId) {
+  const [r] = await centralDB.execute(`SELECT edr_enabled FROM companies WHERE id = ? LIMIT 1`, [companyId])
+  return !r.length || Number(r[0].edr_enabled) === 1
+}
+
+// PUT /proteccion — activa/desactiva la protección EDR de la empresa activa.
+router.put('/proteccion', async (req, res, next) => {
+  try {
+    const enabled = !!(req.body && req.body.enabled)
+    await centralDB.execute(`UPDATE companies SET edr_enabled = ? WHERE id = ?`, [enabled ? 1 : 0, req.company.id])
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'edr', company_id: req.company.id,
+      descripcion: `Protección EDR ${enabled ? 'ACTIVADA' : 'DESACTIVADA'}`,
+    })
+    res.json({ success: true, proteccion_activa: enabled })
+  } catch (err) { next(err) }
+})
+
 // GET /agents — agentes asignados a la empresa activa.
 // El estado se toma EN VIVO de la API de Wazuh (active/disconnected/never_connected);
 // si la API no responde, se usa el estado almacenado como respaldo.
@@ -158,6 +177,7 @@ router.get('/stats', async (req, res, next) => {
       },
       correcciones: { total: Number(corr.total || 0), serie },
       sin_asignar: Number(sinAsignar[0].n || 0),
+      proteccion_activa: await proteccionActiva(companyId),
     })
   } catch (err) { next(err) }
 })
@@ -168,6 +188,9 @@ router.get('/stats', async (req, res, next) => {
 router.post('/bloquear-todo', async (req, res) => {
   try {
     const companyId = req.company.id
+    if (!(await proteccionActiva(companyId))) {
+      return res.status(403).json({ error: 'Protección EDR desactivada para esta empresa' })
+    }
     const [rows] = await centralDB.execute(`
       SELECT DISTINCT wazuh_id, src_ip
       FROM edr_alerts
@@ -249,6 +272,10 @@ router.post('/agents/:wazuhId/responder', async (req, res) => {
   try {
     const { wazuhId } = req.params
     const { action, target } = req.body || {}
+    if (!(await proteccionActiva(req.company.id))) {
+      return res.status(403).json({ error: 'Protección EDR desactivada para esta empresa' })
+    }
+
     const cfg = ACCIONES_AR[action]
     if (!cfg) return res.status(400).json({ error: 'Acción no válida' })
     if (cfg.needsTarget && !target) return res.status(400).json({ error: 'Falta el objetivo (IP o usuario)' })

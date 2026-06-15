@@ -134,6 +134,22 @@ export default function EdrPage() {
     }
   }
 
+  const protegida = stats?.proteccion_activa !== false
+
+  async function toggleProteccion() {
+    const next = !protegida
+    if (!confirm(next
+      ? '¿Activar la protección EDR de esta empresa?'
+      : '¿Desactivar la protección EDR?\n\nSe dejarán de ingestar alertas de sus agentes y no se podrá ejecutar respuesta activa hasta reactivarla.')) return
+    try {
+      await api.put('/api/admin/edr/proteccion', { enabled: next }, headers)
+      showToast(next ? 'Protección ACTIVADA' : 'Protección DESACTIVADA')
+      await cargar()
+    } catch (err) {
+      showToast(err.message || 'Error al cambiar la protección', 'error')
+    }
+  }
+
   async function bloquearTodo() {
     if (!confirm('¿Bloquear TODAS las IPs de origen detectadas en las alertas de esta empresa?\n\nSe ejecuta firewall-drop en los endpoints correspondientes (solo agentes activos).')) return
     try {
@@ -223,10 +239,12 @@ export default function EdrPage() {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 13px', borderRadius: 20, background: '#EAF6F1', color: '#0F6E56', fontSize: 12, fontWeight: 700 }}>
-            <span className="edr-dot-live" style={{ width: 8, height: 8, borderRadius: '50%', background: '#1D9E75' }} />
-            Protección activa
-          </span>
+          <button onClick={toggleProteccion} title="Activar / desactivar la protección de esta empresa"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 13px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: protegida ? '#EAF6F1' : '#FCEBEB', color: protegida ? '#0F6E56' : '#791F1F' }}>
+            <span className={protegida ? 'edr-dot-live' : ''} style={{ width: 8, height: 8, borderRadius: '50%', background: protegida ? '#1D9E75' : '#C0392B' }} />
+            {protegida ? 'Protección activa' : 'Protección inactiva'}
+            <span style={{ fontSize: 10, opacity: 0.65, fontWeight: 600 }}>{protegida ? '· desactivar' : '· activar'}</span>
+          </button>
           <button onClick={cargar} disabled={loading} title="Actualizar"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 10, border: '1px solid #e2e0d8', background: '#fff', color: '#444441', cursor: loading ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 600 }}>
             <IconRefresh color="#534AB7" /> {loading ? 'Cargando…' : 'Actualizar'}
@@ -237,6 +255,13 @@ export default function EdrPage() {
       {toast && (
         <div style={{ marginBottom: 16, background: toast.type === 'error' ? '#FCEBEB' : '#EAF6F1', borderRadius: 10, padding: '10px 15px', fontSize: 13, color: toast.type === 'error' ? '#791F1F' : '#0F6E56', fontWeight: 600, animation: 'edrFade .3s ease' }}>
           {toast.msg}
+        </div>
+      )}
+
+      {!protegida && stats && (
+        <div style={{ marginBottom: 16, background: '#FCEBEB', border: '1px solid #F0C4C4', borderRadius: 10, padding: '11px 15px', fontSize: 12.5, color: '#791F1F', display: 'flex', alignItems: 'center', gap: 9 }}>
+          <span style={{ fontSize: 15 }}>⛔</span>
+          <span>Protección EDR <strong>desactivada</strong> para {empresaActiva.name}: no se ingestan alertas nuevas ni se puede ejecutar respuesta activa. Reactívala con el botón <strong>"Protección inactiva → activar"</strong> de arriba.</span>
         </div>
       )}
 

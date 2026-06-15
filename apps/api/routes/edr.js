@@ -114,6 +114,15 @@ router.post('/alerts', async (req, res) => {
     )
     const companyId = agRows[0]?.company_id ?? null
 
+    // Servicio por pago: si la empresa tiene la protección EDR desactivada,
+    // el agente queda registrado (keepalive) pero NO se ingestan sus alertas.
+    if (companyId) {
+      const [ce] = await centralDB.execute(`SELECT edr_enabled FROM companies WHERE id = ? LIMIT 1`, [companyId])
+      if (ce[0] && Number(ce[0].edr_enabled) === 0) {
+        return res.json({ ok: true, skipped: 'edr_disabled' })
+      }
+    }
+
     // 3) Guardar la alerta.
     const srcIp = s(data.srcip || data.src_ip, 64)
     const [ins] = await centralDB.execute(`
