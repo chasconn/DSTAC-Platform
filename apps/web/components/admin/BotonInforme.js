@@ -20,13 +20,15 @@ export default function BotonInforme({ tipo, slug, label = 'Generar informe' }) 
       }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `DSTAC_${tipo}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      // Abre el visor del navegador → vista previa con opciones de imprimir/guardar.
+      const win = window.open(url, '_blank')
+      if (!win) {
+        // Si el navegador bloquea el popup, cae a descarga directa.
+        const a = document.createElement('a')
+        a.href = url; a.download = `DSTAC_${tipo}.pdf`
+        document.body.appendChild(a); a.click(); a.remove()
+      }
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
     } catch {
       alert('Error generando el informe')
     } finally {

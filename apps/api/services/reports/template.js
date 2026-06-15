@@ -4,16 +4,19 @@ const NAVY   = '#1a1740'
 const PURPLE = '#534AB7'
 const LOGO_PURPLE = '#7C4FDA'
 
-// ── Logo (CSS recreation from brand image) ────────────────────────────────────
-const LOGO_HTML = `
+// ── Logo: PNG real embebido (data URI). Fallback a recreación CSS si falta. ─────
+let LOGO_DATA = ''
+try {
+  const fs = require('fs'); const path = require('path')
+  LOGO_DATA = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, '../../assets/logo-dstac.png')).toString('base64')
+} catch { /* sin archivo → fallback */ }
+
+const LOGO_HTML = LOGO_DATA
+  ? `<img src="${LOGO_DATA}" alt="DSTAC" style="height:44px;width:auto;display:block;" />`
+  : `
 <div style="display:flex;flex-direction:column;line-height:1;">
   <div style="line-height:0.9;">
     <span style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:28px;color:white;letter-spacing:-0.5px;">DS</span><span style="font-family:'Arial Black',Arial,sans-serif;font-weight:900;font-size:28px;color:${LOGO_PURPLE};letter-spacing:-0.5px;">TAC</span>
-  </div>
-  <div style="display:flex;align-items:center;gap:3px;margin:3px 0 4px;">
-    <div style="height:1px;width:26px;background:${LOGO_PURPLE};"></div>
-    <div style="width:3px;height:3px;background:${LOGO_PURPLE};border-radius:50%;"></div>
-    <div style="height:1px;width:26px;background:rgba(255,255,255,0.3);"></div>
   </div>
   <div style="font-size:7px;color:rgba(255,255,255,0.55);letter-spacing:2.5px;font-weight:400;font-family:Arial,sans-serif;">TACTICAL SECURITY</div>
 </div>
