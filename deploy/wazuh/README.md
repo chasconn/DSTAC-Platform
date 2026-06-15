@@ -21,6 +21,35 @@ systemctl restart wazuh-manager
 
 El valor de `<api_key>` debe coincidir con la env `EDR_WEBHOOK_SECRET` del servicio API.
 
+## Instalador de agente (clientes Linux) — `install-agent.sh`
+
+Instalador autónomo para enrolar un endpoint Linux en un solo paso: detecta la
+distro (Debian/Ubuntu/Parrot/Kali o RHEL/CentOS/Rocky/Alma/Fedora), agrega el
+repo, instala el `wazuh-agent`, lo enrola contra el Manager y arranca el servicio.
+**Pregunta el nombre del agente** (o se pasa con `-n`).
+
+Antes de distribuir, reemplazar `__REEMPLAZAR_POR_CLAVE_DE_ENROLAMIENTO__` por la
+clave real (`/var/ossec/etc/authd.pass` del Manager), **o** inyectarla por entorno:
+
+```sh
+# Interactivo (pregunta el nombre):
+sudo WAZUH_ENROLL_PASSWORD="<clave>" ./install-agent.sh
+
+# Con nombre y grupo explícitos:
+sudo WAZUH_ENROLL_PASSWORD="<clave>" ./install-agent.sh -n "CLIENTE-PC01" -g "acme"
+
+# One-liner remoto (si se hospeda el script con la clave ya embebida):
+curl -sSL https://<host>/install-agent.sh | sudo bash -s -- -n "CLIENTE-PC01"
+```
+
+Tras instalar, el agente aparece en el portal → **EDR** como *sin asignar*; un
+admin DSTAC lo vincula a la empresa del cliente. Es idempotente: si ya está
+instalado, sólo lo re-enrola con el nombre indicado y reinicia.
+
+> ⚠️ La clave de enrolamiento sólo permite **registrar** un agente; la telemetría
+> de un agente no asignado queda en "sin asignar" (no la ve ningún cliente). Aun
+> así, no publicar el script con la clave embebida en un repo/URL público.
+
 ## Notas
 
 - El python embebido de Wazuh no trae CA bundle propio; `custom-dstac.py` usa el
