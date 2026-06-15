@@ -68,8 +68,12 @@ async function listAgents() {
 // command: firewall-drop | route-null | host-deny | disable-account | restart-wazuh
 async function activeResponse(agentId, command, args = []) {
   const token = await getToken()
+  // El prefijo '!' indica a Wazuh que es un nombre de SCRIPT (active-response/bin),
+  // lo que evita la validación get_commands() de la API (que devuelve 1652 aunque
+  // el comando esté configurado). Es la forma fiable de disparar AR manual por API.
+  const cmd = command.startsWith('!') ? command : `!${command}`
   const body = {
-    command,
+    command: cmd,
     arguments: args,
     alert: { data: { srcip: args[0] || '' } },
   }
