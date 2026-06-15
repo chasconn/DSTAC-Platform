@@ -4,6 +4,15 @@ const router = require('express').Router()
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { resolveTenant }                 = require('../../middleware/tenant')
 const centralDB                         = require('../../db/central')
+const wazuhApi                          = require('../../services/wazuhApi')
+const { registrarActividad }            = require('../../utils/activityLogger')
+
+// Acciones de respuesta activa expuestas al portal → comando de Wazuh.
+const ACCIONES_AR = {
+  bloquear_ip:         { command: 'firewall-drop',   needsTarget: true,  label: 'bloquear IP' },
+  desconectar_usuario: { command: 'disable-account', needsTarget: true,  label: 'desconectar usuario' },
+  reiniciar_agente:    { command: 'restart-wazuh',   needsTarget: false, label: 'reiniciar agente' },
+}
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
 
@@ -163,6 +172,39 @@ router.get('/sca', async (req, res, next) => {
 
     res.json({ sca })
   } catch (err) { next(err) }
+})
+
+// POST /agents/:wazuhId/responder — respuesta activa sobre un agente del tenant.
+// Body: { action: 'bloquear_ip'|'desconectar_usuario'|'reiniciar_agente', target }
+router.post('/agents/:wazuhId/responder', async (req, res) => {
+  try {
+    const { wazuhId } = req.params
+    const { action, target } = req.body || {}
+    const cfg = ACCIONES_AR[action]
+    if (!cfg) return res.status(400).json({ error: 'Acción no válida' })
+    if (cfg.needsTarget && !target) return res.status(400).json({ error: 'Falta el objetivo (IP o usuario)' })
+
+    // Seguridad multi-tenant: el agente DEBE pertenecer a la empresa activa.
+    const [ag] = await centralDB.execute(
+      `SELECT wazuh_id, name FROM edr_agents WHERE wazuh_id = ? AND company_id = ? LIMIT 1`,
+      [wazuhId, req.company.id]
+    )
+    if (!ag.length) return res.status(404).json({ error: 'Agente no encontrado en esta empresa' })
+
+    const args = cfg.needsTarget ? [String(target)] : []
+    await wazuhApi.activeResponse(wazuhId, cfg.command, args)
+
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'edr',
+      descripcion: `Respuesta activa: ${cfg.label}${target ? ' ' + target : ''} en agente ${ag[0].name || wazuhId}`,
+      company_id: req.company.id,
+      metadata: { wazuh_id: wazuhId, action, target: target ?? null },
+    })
+
+    res.json({ success: true, message: `Acción "${cfg.label}" enviada al agente ${ag[0].name || wazuhId}` })
+  } catch (err) {
+    res.status(502).json({ error: err.message || 'No se pudo ejecutar la respuesta activa' })
+  }
 })
 
 module.exports = router

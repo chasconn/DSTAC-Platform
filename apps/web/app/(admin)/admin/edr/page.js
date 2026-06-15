@@ -90,6 +90,16 @@ export default function EdrPage() {
     setTimeout(() => setToast(null), 3200)
   }
 
+  async function responder(wazuhId, action, target, label) {
+    if (!confirm(`¿${label}${target ? ' ' + target : ''}?\nEsta acción se ejecuta en el endpoint (${wazuhId}).`)) return
+    try {
+      const data = await api.post(`/api/admin/edr/agents/${wazuhId}/responder`, { action, target }, headers)
+      showToast(data.message || 'Acción enviada')
+    } catch (err) {
+      showToast(err.message || 'Error en la respuesta activa', 'error')
+    }
+  }
+
   async function asignar(wazuhId) {
     try {
       await api.post(`/api/admin/edr/agents/${wazuhId}/asignar`, {}, headers)
@@ -297,7 +307,16 @@ export default function EdrPage() {
                       ) : null}
                     </td>
                     <td style={td}>{tactics.length ? tactics.join(', ') : '—'}</td>
-                    <td style={td}>{al.src_ip || '—'}</td>
+                    <td style={td}>
+                      {al.src_ip || '—'}
+                      {al.src_ip && al.wazuh_id && (
+                        <button onClick={() => responder(al.wazuh_id, 'bloquear_ip', al.src_ip, `Bloquear IP ${al.src_ip}`)}
+                          title="Bloquear esta IP en el endpoint (respuesta activa)"
+                          style={{ marginLeft: 6, padding: '2px 8px', borderRadius: 6, border: '1px solid #f0c4c4', background: '#FDF4F4', color: '#791F1F', cursor: 'pointer', fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                          Bloquear
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 )
               })}
