@@ -19,11 +19,13 @@ function parseJsonArr(v) {
 
 function fechaHora(d) {
   if (!d) return '—'
-  try {
-    return new Date(String(d).replace(' ', 'T') + 'Z').toLocaleString('es-CL', {
-      day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit',
-    })
-  } catch { return String(d) }
+  const opts = { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }
+  // mysql2 serializa los DATETIME como ISO con Z; new Date() los parsea directo.
+  let date = new Date(d)
+  // Fallback por si llega "YYYY-MM-DD HH:MM:SS" sin zona (se asume UTC).
+  if (isNaN(date.getTime())) date = new Date(String(d).replace(' ', 'T') + 'Z')
+  if (isNaN(date.getTime())) return '—'
+  return date.toLocaleString('es-CL', opts)
 }
 
 export default function EdrPage() {
