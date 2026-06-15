@@ -1,0 +1,10 @@
+<!-- Pegar este bloque dentro de <ossec_config> en /var/ossec/etc/ossec.conf del Wazuh Manager.
+     Reemplazar __EDR_WEBHOOK_SECRET__ por el valor real (el mismo que la env EDR_WEBHOOK_SECRET del API).
+     level=3 → solo reenvía alertas de nivel >= 3. -->
+  <integration>
+    <name>custom-dstac</name>
+    <hook_url>https://portal.dstac.cl/api/edr/alerts</hook_url>
+    <api_key>__EDR_WEBHOOK_SECRET__</api_key>
+    <alert_format>json</alert_format>
+    <level>3</level>
+  </integration>
