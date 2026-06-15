@@ -37,7 +37,7 @@ router.get('/', requireAuth, requireRole(...READERS), async (req, res) => {
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const [rows] = await centralDB.execute(
-      `SELECT c.id, c.name, c.slug, c.status,
+      `SELECT c.id, c.name, c.slug, c.status, c.rut, c.contacto_nombre,
               c.theme_color, c.theme_light, c.theme_mid,
               c.billing_email, c.contact_phone, c.max_users,
               c.created_at, c.updated_at,
@@ -79,7 +79,7 @@ router.get('/:slug', requireAuth, requireRole(...READERS), async (req, res) => {
 router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
   try {
     const { name, slug, plan_id, billing_email, contact_phone, max_users,
-            theme_color, theme_light, theme_mid } = req.body
+            theme_color, theme_light, theme_mid, rut, contacto_nombre } = req.body
 
     if (!name || !slug || !plan_id) {
       return res.status(400).json({ error: 'name, slug y plan_id son requeridos' })
@@ -103,8 +103,8 @@ router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
     const [result] = await centralDB.execute(
       `INSERT INTO companies
          (name, slug, plan_id, db_name, status, billing_email, contact_phone,
-          max_users, theme_color, theme_light, theme_mid)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?)`,
+          max_users, theme_color, theme_light, theme_mid, rut, contacto_nombre)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name, slug, parseInt(plan_id, 10), dbName,
         billing_email  || null,
@@ -112,7 +112,9 @@ router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
         max_users ? parseInt(max_users, 10) : 5,
         theme_color || '#3C3489',
         theme_light || '#EEEDFE',
-        theme_mid   || '#534AB7'
+        theme_mid   || '#534AB7',
+        rut || null,
+        contacto_nombre || null
       ]
     )
 
@@ -146,7 +148,7 @@ router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
 router.put('/:slug', requireAuth, requireRole(...MANAGERS), async (req, res) => {
   try {
     const { name, plan_id, billing_email, contact_phone, max_users,
-            theme_color, theme_light, theme_mid } = req.body
+            theme_color, theme_light, theme_mid, rut, contacto_nombre } = req.body
 
     if (plan_id && !VALID_PLANS.includes(parseInt(plan_id, 10))) {
       return res.status(400).json({ error: 'Plan inválido' })
@@ -157,6 +159,8 @@ router.put('/:slug', requireAuth, requireRole(...MANAGERS), async (req, res) => 
     const values = []
 
     if (name          !== undefined) { fields.push('name = ?');          values.push(name) }
+    if (rut           !== undefined) { fields.push('rut = ?');           values.push(rut || null) }
+    if (contacto_nombre !== undefined){ fields.push('contacto_nombre = ?'); values.push(contacto_nombre || null) }
     if (plan_id       !== undefined) { fields.push('plan_id = ?');       values.push(parseInt(plan_id, 10)) }
     if (billing_email !== undefined) { fields.push('billing_email = ?'); values.push(billing_email) }
     if (contact_phone !== undefined) { fields.push('contact_phone = ?'); values.push(contact_phone) }

@@ -42,7 +42,7 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
     const [kind, id] = valor.split(':')
     if (kind === 'company') {
       const c = companies.find(x => String(x.id) === id)
-      if (c) setF(p => ({ ...p, company_id: c.id, lead_id: '', cliente_empresa: c.name, cliente_email: c.billing_email || p.cliente_email }))
+      if (c) setF(p => ({ ...p, company_id: c.id, lead_id: '', cliente_empresa: c.name, cliente_rut: c.rut || p.cliente_rut, cliente_contacto: c.contacto_nombre || p.cliente_contacto, cliente_email: c.billing_email || p.cliente_email, cliente_telefono: c.contact_phone || p.cliente_telefono }))
     } else {
       const l = leads.find(x => String(x.id) === id)
       if (l) setF(p => ({ ...p, lead_id: l.id, company_id: '', cliente_empresa: l.empresa || l.dominio || p.cliente_empresa, cliente_contacto: l.contacto_nombre || p.cliente_contacto, cliente_email: l.email || p.cliente_email, cliente_telefono: l.telefono || p.cliente_telefono }))

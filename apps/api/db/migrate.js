@@ -30,6 +30,7 @@ async function migrate() {
     CREATE TABLE IF NOT EXISTS companies (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(200) NOT NULL,
+      rut VARCHAR(30),
       slug VARCHAR(100) NOT NULL UNIQUE,
       plan_id INT NOT NULL,
       db_name VARCHAR(100) NOT NULL,
@@ -39,6 +40,7 @@ async function migrate() {
       theme_light VARCHAR(7) DEFAULT '#EEEDFE',
       theme_mid VARCHAR(7) DEFAULT '#534AB7',
       billing_email VARCHAR(200),
+      contacto_nombre VARCHAR(255),
       contact_phone VARCHAR(50),
       max_users INT DEFAULT 5,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

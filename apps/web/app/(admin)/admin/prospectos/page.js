@@ -433,6 +433,7 @@ export default function ProspectosPage() {
         <ClienteFormModal
           initial={{
             name:          convirtiendo.empresa || convirtiendo.dominio || convirtiendo.contacto_nombre || '',
+            contacto_nombre: convirtiendo.contacto_nombre || '',
             billing_email: convirtiendo.email || '',
             contact_phone: convirtiendo.telefono || '',
           }}

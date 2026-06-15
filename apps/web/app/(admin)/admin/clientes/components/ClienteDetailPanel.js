@@ -72,6 +72,8 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
   function initEditForm() {
     setEditForm({
       name:          empresa.name          || '',
+      rut:             empresa.rut             || '',
+      contacto_nombre: empresa.contacto_nombre || '',
       billing_email: empresa.billing_email || '',
       contact_phone: empresa.contact_phone || '',
       plan_id:       empresa.plan_id       || 1,
@@ -93,6 +95,8 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
     try {
       await api.put(`/api/companies/${empresa.slug}`, {
         name:          editForm.name,
+        rut:             editForm.rut || undefined,
+        contacto_nombre: editForm.contacto_nombre || undefined,
         billing_email: editForm.billing_email || undefined,
         contact_phone: editForm.contact_phone || undefined,
         plan_id:       editForm.plan_id,
@@ -187,6 +191,8 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
               <InfoRow label="Plan"    value={<PlanBadge plan={empresa.plan_name} />} />
               <InfoRow label="Estado"  value={<StatusBadge status={empresa.status} />} />
               <InfoRow label="Creado"  value={fecha} />
+              <InfoRow label="RUT"      value={empresa.rut || '—'} />
+              <InfoRow label="Contacto" value={empresa.contacto_nombre || '—'} />
               <InfoRow label="Email"   value={empresa.billing_email || '—'} />
               <InfoRow label="Teléfono" value={empresa.contact_phone || '—'} />
               <InfoRow label="Máx. usuarios" value={empresa.max_users} />
@@ -222,6 +228,12 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
           <form onSubmit={handleSaveEdit}>
             <EditField label="Nombre">
               <input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} style={inputSm} required />
+            </EditField>
+            <EditField label="RUT">
+              <input value={editForm.rut} onChange={e => setEditForm(f => ({ ...f, rut: e.target.value }))} placeholder="76.543.210-9" style={inputSm} />
+            </EditField>
+            <EditField label="Persona de contacto">
+              <input value={editForm.contacto_nombre} onChange={e => setEditForm(f => ({ ...f, contacto_nombre: e.target.value }))} placeholder="Nombre y cargo" style={inputSm} />
             </EditField>
             <EditField label="Email de facturación">
               <input type="email" value={editForm.billing_email} onChange={e => setEditForm(f => ({ ...f, billing_email: e.target.value }))} style={inputSm} />

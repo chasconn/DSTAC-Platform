@@ -37,6 +37,8 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
     slug:          nombreInicial ? generarSlug(nombreInicial) : '',
     plan_id:       1,
     max_users:     5,
+    rut:             initial?.rut || '',
+    contacto_nombre: initial?.contacto_nombre || '',
     billing_email: initial?.billing_email || '',
     contact_phone: initial?.contact_phone || '',
     theme:         THEMES[0],
@@ -75,6 +77,8 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
         slug:          form.slug.trim(),
         plan_id:       form.plan_id,
         max_users:     form.max_users,
+        rut:             form.rut || undefined,
+        contacto_nombre: form.contacto_nombre || undefined,
         billing_email: form.billing_email || undefined,
         contact_phone: form.contact_phone || undefined,
         theme_color:   form.theme.color,
@@ -183,6 +187,26 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
               value={form.contact_phone}
               onChange={e => setForm(f => ({ ...f, contact_phone: e.target.value }))}
               placeholder="+56 9 1234 5678"
+              style={inputStyle}
+            />
+          </Field>
+
+          {/* RUT */}
+          <Field label="RUT de la empresa">
+            <input
+              value={form.rut}
+              onChange={e => setForm(f => ({ ...f, rut: e.target.value }))}
+              placeholder="76.543.210-9"
+              style={inputStyle}
+            />
+          </Field>
+
+          {/* Contacto */}
+          <Field label="Persona de contacto">
+            <input
+              value={form.contacto_nombre}
+              onChange={e => setForm(f => ({ ...f, contacto_nombre: e.target.value }))}
+              placeholder="Nombre y cargo"
               style={inputStyle}
             />
           </Field>
