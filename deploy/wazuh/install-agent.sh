@@ -56,6 +56,13 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# Guardia: sin clave de enrolamiento, authd rechaza al agente ("Invalid password").
+if [ "$WAZUH_ENROLL_PASSWORD" = "__REEMPLAZAR_POR_CLAVE_DE_ENROLAMIENTO__" ] || [ -z "$WAZUH_ENROLL_PASSWORD" ]; then
+  c_err "Falta la clave de enrolamiento."
+  c_err "Ejecuta:  sudo WAZUH_ENROLL_PASSWORD=\"<clave>\" $0 -n \"NOMBRE\" -c \"slug-empresa\""
+  exit 1
+fi
+
 echo
 c_inf "════════════════════════════════════════════"
 c_inf "   DSTAC EDR · Instalador de agente Wazuh"
