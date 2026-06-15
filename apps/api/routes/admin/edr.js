@@ -184,6 +184,15 @@ router.post('/agents/:wazuhId/responder', async (req, res) => {
     if (!cfg) return res.status(400).json({ error: 'Acción no válida' })
     if (cfg.needsTarget && !target) return res.status(400).json({ error: 'Falta el objetivo (IP o usuario)' })
 
+    // Salvaguarda: nunca bloquear loopback ni la IP del manager (rompería el endpoint).
+    if (action === 'bloquear_ip') {
+      const ip = String(target).trim()
+      const PROHIBIDAS = ['127.0.0.1', '::1', '0.0.0.0', '2.25.183.242']
+      if (PROHIBIDAS.includes(ip) || ip.startsWith('127.')) {
+        return res.status(400).json({ error: `No se permite bloquear ${ip} (loopback/manager)` })
+      }
+    }
+
     // Seguridad multi-tenant: el agente DEBE pertenecer a la empresa activa.
     const [ag] = await centralDB.execute(
       `SELECT wazuh_id, name FROM edr_agents WHERE wazuh_id = ? AND company_id = ? LIMIT 1`,
