@@ -8,6 +8,7 @@ import MatrizRiesgos from './components/MatrizRiesgos'
 import RiesgosTabla  from './components/RiesgosTabla'
 import RiesgoDetalle from './components/RiesgoDetalle'
 import RiesgoModal   from './components/RiesgoModal'
+import ImportarExcelModal from '../../../../components/admin/ImportarExcelModal'
 
 const SEL = { padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, color: '#2C2C2A', background: '#fff', outline: 'none' }
 
@@ -32,6 +33,7 @@ export default function RiesgosPage() {
   const [isoControls, setIsoControls] = useState([])
 
   const [modalOpen, setModalOpen] = useState(false)
+  const [importarOpen, setImportarOpen] = useState(false)
   const [editando, setEditando]   = useState(null)
   const [viendo, setViendo]       = useState(null)   // riesgo completo (detalle)
   const [toast, setToast]         = useState(null)
@@ -157,6 +159,10 @@ export default function RiesgosPage() {
             {empresas.internas.length > 0 && <optgroup label="DSTAC (interno)">{empresas.internas.map(e => <option key={e.slug} value={e.slug}>{e.name}</option>)}</optgroup>}
             {empresas.clientes.length > 0 && <optgroup label="Clientes">{empresas.clientes.map(e => <option key={e.slug} value={e.slug}>{e.name}</option>)}</optgroup>}
           </select>
+          <button onClick={() => setImportarOpen(true)} disabled={!slug}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', color: slug ? '#444441' : '#B4B2A9', cursor: slug ? 'pointer' : 'default', fontSize: 13, fontWeight: 600 }}>
+            <i className="ti ti-file-spreadsheet" /> Importar Excel
+          </button>
           <button onClick={() => { setEditando(null); setModalOpen(true) }} disabled={!slug}
             style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: slug ? '#3C3489' : '#cfcdc4', color: '#fff', cursor: slug ? 'pointer' : 'default', fontSize: 13, fontWeight: 600 }}>+ Nuevo riesgo</button>
         </div>
@@ -195,6 +201,10 @@ export default function RiesgosPage() {
       {modalOpen && (
         <RiesgoModal riesgo={editando} slug={slug} activos={activos} isoControls={isoControls}
           onClose={() => { setModalOpen(false); setEditando(null) }} onSaved={handleSaved} />
+      )}
+      {importarOpen && (
+        <ImportarExcelModal modulo="riesgos" empresaSlug={slug}
+          onClose={() => setImportarOpen(false)} onImportado={cargar} />
       )}
       {viendo && (
         <RiesgoDetalle riesgo={viendo} isoControls={isoControls}

@@ -1,11 +1,48 @@
 // Cotizaciones — documentos comerciales de DSTAC (BD central, cross-tenant).
 // Solo personal DSTAC. Cabecera + líneas + catálogo de servicios reutilizable.
 const router = require('express').Router()
+const multer = require('multer')
 const centralDB = require('../../db/central')
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { registrarActividad } = require('../../utils/activityLogger')
+const { leerExcel } = require('../../utils/importador')
+const { generarPlantillaCotizacionLineas } = require('../../utils/plantillas')
 
 router.use(requireAuth, requireDstacRole)
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = file.originalname.split('.').pop().toLowerCase()
+    if (['xlsx', 'xls'].includes(ext)) return cb(null, true)
+    cb(new Error('Solo se aceptan archivos Excel (.xlsx o .xls)'))
+  },
+})
+
+// Plantilla de líneas para importar a una cotización
+router.get('/plantilla-lineas', (req, res) => {
+  res.set({ 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': 'attachment; filename="plantilla_lineas_cotizacion.xlsx"' })
+  res.send(generarPlantillaCotizacionLineas())
+})
+
+// Parsea un Excel de líneas y las devuelve (NO inserta; el modal las agrega a la cotización)
+router.post('/importar-lineas', upload.single('archivo'), (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' })
+    const filas = leerExcel(req.file.buffer)
+    const lineas = [], errores = []
+    filas.forEach((f, i) => {
+      const servicio = String(f.servicio ?? '').trim()
+      if (!servicio) { errores.push({ fila: i + 2, error: 'La columna "servicio" está vacía' }); return }
+      const tipo = String(f.tipo ?? '').toLowerCase().trim() === 'mensual' ? 'mensual' : 'unico'
+      const cantidad = parseInt(String(f.cantidad ?? '1').replace(/[^0-9]/g, ''), 10) || 1
+      const precio = parseInt(String(f.precio_unitario ?? '0').replace(/[^0-9]/g, ''), 10) || 0
+      lineas.push({ servicio: servicio.slice(0, 255), detalle: String(f.detalle ?? '').trim() || '', tipo, cantidad, precio_unitario: precio })
+    })
+    res.json({ lineas, errores, total: filas.length })
+  } catch (err) { next(err) }
+})
 
 const uid = (req) => req.user.id || req.user.user_id
 const ESTADOS = ['borrador', 'enviada', 'aceptada', 'rechazada', 'vencida']

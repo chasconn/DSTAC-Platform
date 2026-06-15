@@ -2,7 +2,7 @@
 
 // Crear/editar cotización: cliente (cliente/prospecto/manual) + líneas (catálogo o libres)
 // + cálculo Neto/IVA/Total en vivo. Guarda contra /api/admin/cotizaciones.
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { apiFetch } from '../../../../../lib/api'
 import { clp, totales, TIPO_LINEA } from './format'
 
@@ -52,6 +52,26 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
   function setItem(i, k, v) { setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [k]: v } : it)) }
   function quitar(i) { setItems(prev => prev.filter((_, idx) => idx !== i)) }
   function lineaLibre() { setItems(prev => [...prev, { servicio: '', detalle: '', tipo: 'unico', cantidad: 1, precio_unitario: 0 }]) }
+  const fileRef = useRef(null)
+  // Importar líneas desde Excel: el backend parsea y las devuelve; aquí se agregan.
+  async function importarLineas(file) {
+    if (!file) return
+    const fd = new FormData(); fd.append('archivo', file)
+    try {
+      const r = await fetch('/api/admin/cotizaciones/importar-lineas', { method: 'POST', credentials: 'include', body: fd })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'Error al importar')
+      setItems(prev => [...prev, ...(d.lineas || [])])
+      setError(d.errores?.length ? `${d.lineas.length} líneas importadas · ${d.errores.length} fila(s) sin servicio omitidas` : '')
+    } catch (e) { setError(e.message || 'No se pudo importar el Excel') }
+    finally { if (fileRef.current) fileRef.current.value = '' }
+  }
+  function descargarPlantilla() {
+    fetch('/api/admin/cotizaciones/plantilla-lineas', { credentials: 'include' })
+      .then(r => r.blob()).then(b => { const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = 'plantilla_lineas_cotizacion.xlsx'; a.click(); URL.revokeObjectURL(u) })
+      .catch(() => {})
+  }
+
   function agregarCatalogo(id) {
     const c = catalogo.find(x => String(x.id) === id); if (!c) return
     setItems(prev => [...prev, { servicio: c.nombre, detalle: c.detalle || '', tipo: c.tipo, cantidad: 1, precio_unitario: c.precio_sugerido || 0 }])
@@ -124,10 +144,12 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
                   {catalogo.map(c => <option key={c.id} value={c.id}>{c.nivel ? `[${c.nivel}] ` : ''}{c.nombre}</option>)}
                 </select>
                 <button onClick={lineaLibre} style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#3C3489' }}>+ Línea libre</button>
+                <button onClick={() => fileRef.current?.click()} title="Importar líneas desde Excel" style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#444441', display: 'flex', alignItems: 'center', gap: 5 }}><i className="ti ti-file-spreadsheet" /> Excel</button>
+                <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={e => importarLineas(e.target.files?.[0])} />
               </div>
             </div>
 
-            {items.length === 0 && <div style={{ fontSize: 12.5, color: '#B4B2A9', padding: '12px 0' }}>Agrega servicios desde el catálogo o como línea libre.</div>}
+            {items.length === 0 && <div style={{ fontSize: 12.5, color: '#B4B2A9', padding: '12px 0' }}>Agrega servicios desde el catálogo, como línea libre, o <span onClick={descargarPlantilla} style={{ color: '#534AB7', cursor: 'pointer', fontWeight: 600 }}>importa desde Excel</span> (descarga la plantilla).</div>}
 
             {items.map((it, i) => {
               const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)

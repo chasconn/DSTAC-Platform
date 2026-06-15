@@ -9,6 +9,9 @@ const MODULO_CONFIG = {
   personal:    { label: 'Personal',    endpoint: '/api/admin/importacion/personal',    icon: 'ti-users' },
   activos:     { label: 'Activos',     endpoint: '/api/admin/importacion/activos',     icon: 'ti-server' },
   identidades: { label: 'Identidades', endpoint: '/api/admin/importacion/identidades', icon: 'ti-id' },
+  accesos:     { label: 'Accesos',     endpoint: '/api/admin/importacion/accesos',     icon: 'ti-key' },
+  riesgos:     { label: 'Riesgos',     endpoint: '/api/admin/importacion/riesgos',     icon: 'ti-alert-triangle' },
+  incidentes:  { label: 'Incidentes',  endpoint: '/api/admin/importacion/incidentes',  icon: 'ti-urgent' },
 }
 
 export default function ImportarExcelModal({ modulo, empresaSlug, onClose, onImportado }) {

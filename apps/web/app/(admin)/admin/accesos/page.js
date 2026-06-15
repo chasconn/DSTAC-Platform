@@ -9,6 +9,7 @@ import AccesosTabla      from './components/AccesosTabla'
 import AccesoDetalle     from './components/AccesoDetalle'
 import AccesoModal       from './components/AccesoModal'
 import AccesoDeleteModal from './components/AccesoDeleteModal'
+import ImportarExcelModal from '../../../../components/admin/ImportarExcelModal'
 
 function SearchParamsHandler({ onNuevo }) {
   const searchParams = useSearchParams()
@@ -29,6 +30,7 @@ export default function AccesosPage() {
   const [loading, setLoading]           = useState(true)
   const [selected, setSelected]         = useState(null)
   const [modalOpen, setModalOpen]       = useState(false)
+  const [importarOpen, setImportarOpen] = useState(false)
   const [editando, setEditando]         = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [toast, setToast]               = useState(null)
@@ -146,11 +148,19 @@ export default function AccesosPage() {
         <div style={{ maxWidth: selected ? '100%' : 1200, margin: '0 auto' }}>
 
           {/* Encabezado */}
-          <div style={{ marginBottom: 20 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Accesos</h1>
-            <p style={{ fontSize: 13, color: '#888780', margin: '4px 0 0' }}>
-              {empresaActiva ? `Permisos y accesos de ${empresaActiva.name}` : 'Selecciona una empresa para continuar'}
-            </p>
+          <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Accesos</h1>
+              <p style={{ fontSize: 13, color: '#888780', margin: '4px 0 0' }}>
+                {empresaActiva ? `Permisos y accesos de ${empresaActiva.name}` : 'Selecciona una empresa para continuar'}
+              </p>
+            </div>
+            {empresaActiva && (
+              <button onClick={() => setImportarOpen(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', color: '#444441', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                <i className="ti ti-file-spreadsheet" /> Importar Excel
+              </button>
+            )}
           </div>
 
           {/* Banners de alerta */}
@@ -237,6 +247,14 @@ export default function AccesosPage() {
           empresaSlug={slug}
           onClose={() => setDeleteTarget(null)}
           onDeleted={handleDeleted}
+        />
+      )}
+      {importarOpen && (
+        <ImportarExcelModal
+          modulo="accesos"
+          empresaSlug={slug}
+          onClose={() => setImportarOpen(false)}
+          onImportado={cargarDatos}
         />
       )}
 

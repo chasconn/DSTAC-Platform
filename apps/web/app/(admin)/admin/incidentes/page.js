@@ -5,6 +5,7 @@ import { api } from '../../../../lib/api'
 import IncidenteDetalle     from './components/IncidenteDetalle'
 import IncidenteModal       from './components/IncidenteModal'
 import IncidenteDeleteModal from './components/IncidenteDeleteModal'
+import ImportarExcelModal   from '../../../../components/admin/ImportarExcelModal'
 
 const SEV_STYLE = {
   critica: { bg: '#FCEBEB', color: '#791F1F', label: 'Crítica' },
@@ -55,6 +56,7 @@ export default function IncidentesPage() {
   const [search, setSearch]               = useState('')
 
   const [modalOpen,  setModalOpen]  = useState(false)
+  const [importarOpen, setImportarOpen] = useState(false)
   const [editando,   setEditando]   = useState(null)
   const [eliminando, setEliminando] = useState(null)
   const [toast,      setToast]      = useState(null)
@@ -139,10 +141,16 @@ export default function IncidentesPage() {
               {empresaActiva.name}
             </p>
           </div>
-          <button onClick={() => { setEditando(null); setModalOpen(true) }}
-            style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-            + Nuevo incidente
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => setImportarOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', color: '#444441', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+              <i className="ti ti-file-spreadsheet" /> Importar Excel
+            </button>
+            <button onClick={() => { setEditando(null); setModalOpen(true) }}
+              style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+              + Nuevo incidente
+            </button>
+          </div>
         </div>
 
         {/* Toast */}
@@ -281,6 +289,14 @@ export default function IncidentesPage() {
           empresaSlug={slug}
           onClose={() => setEliminando(null)}
           onDeleted={handleDeleted}
+        />
+      )}
+      {importarOpen && (
+        <ImportarExcelModal
+          modulo="incidentes"
+          empresaSlug={slug}
+          onClose={() => setImportarOpen(false)}
+          onImportado={() => { cargarStats(); cargarIncidentes(1) }}
         />
       )}
     </div>
