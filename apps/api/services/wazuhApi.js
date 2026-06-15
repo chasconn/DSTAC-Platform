@@ -89,7 +89,8 @@ async function activeResponse(agentId, command, args = []) {
 // Elimina (da de baja) un agente del manager.
 async function deleteAgent(agentId) {
   const token = await getToken()
-  return req('DELETE', `/agents?agents_list=${encodeURIComponent(agentId)}&older_than=0s`, { token })
+  // Wazuh 4.x exige 'status' y 'older_than' en el DELETE.
+  return req('DELETE', `/agents?agents_list=${encodeURIComponent(agentId)}&older_than=0s&status=active,pending,never_connected,disconnected`, { token })
 }
 
 module.exports = { listAgents, activeResponse, deleteAgent, getToken }
