@@ -22,6 +22,23 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } })
 
+// ── Multer para documentos de política (.docx/.doc) ───────────────────────────
+// Usamos memoryStorage para controlar el nombre con la versión antes de escribir.
+const ALLOWED_POLICY_EXT = ['.docx', '.doc']
+const policyUpload = multer({
+  storage: multer.memoryStorage(),
+  limits:  { fileSize: 20 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase()
+    if (ALLOWED_POLICY_EXT.includes(ext)) return cb(null, true)
+    cb(new Error('Solo se aceptan archivos Word (.docx / .doc)'))
+  }
+})
+
+// Rutas base de los uploads de políticas (mismo esquema que evidencias).
+const PLANTILLAS_DIR = path.join(__dirname, '../../uploads/iso/plantillas')
+const politicasDir   = slug => path.join(__dirname, '../../uploads/iso/politicas', slug)
+
 router.use(requireAuth, requireDstacRole, resolveTenant)
 
 // ── EVALUACIONES ─────────────────────────────────────────────────────────────
@@ -454,30 +471,201 @@ router.delete('/riesgos/:id', async (req, res, next) => {
 
 // ── POLÍTICAS ─────────────────────────────────────────────────────────────────
 
+// GET /politicas — los ~23 controles con requires_policy=1 + estado del documento
 router.get('/politicas', async (req, res, next) => {
   try {
+    const { domain_id, status } = req.query
+    const companyId = req.company.id
+    const userId    = req.user.user_id || req.user.id
+    const evalId    = await getOrCreateEvaluation(companyId, userId)
+
+    let where = 'WHERE ic.requires_policy = 1'
+    const params = [evalId, companyId]
+    if (domain_id) { where += ' AND ic.domain_id = ?'; params.push(domain_id) }
+
+    const [rows] = await centralDB.execute(`
+      SELECT ic.id, ic.name, ic.domain_id, d.name AS domain_name, d.color AS domain_color,
+             ic.policy_filename,
+             COALESCE(pd.status, 'sin_documento') AS politica_status,
+             pd.docx_original, pd.docx_size, pd.version,
+             pd.docx_uploaded_at, pd.notas,
+             u.first_name AS uploaded_by_name, u.last_name AS uploaded_by_last
+      FROM iso_controls ic
+      JOIN iso_domains d ON ic.domain_id = d.id
+      LEFT JOIN iso_policy_documents pd
+             ON pd.control_id = ic.id AND pd.evaluation_id = ? AND pd.company_id = ?
+      LEFT JOIN users u ON pd.docx_uploaded_by = u.id
+      ${where}
+      ORDER BY d.order_num, ic.order_num
+    `, params)
+
+    // Filtro por estado (post-query, porque COALESCE no se puede filtrar en WHERE con alias)
+    const politicas = status ? rows.filter(r => r.politica_status === status) : rows
+
+    const stats = {
+      total:        rows.length,
+      vigentes:     rows.filter(r => r.politica_status === 'vigente').length,
+      borradores:   rows.filter(r => r.politica_status === 'borrador').length,
+      sin_documento: rows.filter(r => r.politica_status === 'sin_documento').length,
+    }
+
+    res.json({ politicas, stats, evaluation_id: evalId })
+  } catch (err) { next(err) }
+})
+
+// GET /politicas/:controlId/plantilla — descarga el .dotx base del control
+router.get('/politicas/:controlId/plantilla', async (req, res, next) => {
+  try {
+    const { controlId } = req.params
+    const [ctrl] = await centralDB.execute(
+      `SELECT policy_filename FROM iso_controls WHERE id = ? AND requires_policy = 1`,
+      [controlId]
+    )
+    if (!ctrl.length || !ctrl[0].policy_filename) {
+      return res.status(404).json({ error: 'Este control no tiene plantilla asociada' })
+    }
+    const filePath = path.join(PLANTILLAS_DIR, ctrl[0].policy_filename)
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'Plantilla no disponible aún' })
+    }
+    res.download(filePath, ctrl[0].policy_filename)
+  } catch (err) { next(err) }
+})
+
+// POST /politicas/:controlId/documento — sube el .docx editado como política vigente (UPSERT)
+router.post('/politicas/:controlId/documento', policyUpload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Archivo requerido' })
+
+    const { controlId } = req.params
+    const companyId = req.company.id
+    const slug      = req.company.slug
+    const userId    = req.user.user_id || req.user.id
+
+    // Verificar que el control requiere política documentada
+    const [ctrl] = await centralDB.execute(
+      `SELECT requires_policy FROM iso_controls WHERE id = ?`, [controlId]
+    )
+    if (!ctrl.length || !ctrl[0].requires_policy) {
+      return res.status(400).json({ error: 'Este control no requiere política documentada' })
+    }
+
+    const evalId = await getOrCreateEvaluation(companyId, userId)
+
+    // ¿Existe documento previo? → para incrementar versión y borrar el archivo viejo
+    const [existing] = await centralDB.execute(`
+      SELECT id, docx_path, version FROM iso_policy_documents
+      WHERE evaluation_id = ? AND control_id = ? AND company_id = ? LIMIT 1
+    `, [evalId, controlId, companyId])
+
+    const newVersion = (existing[0]?.version ?? 0) + 1
+    const ext        = path.extname(req.file.originalname).toLowerCase()
+    const safeId     = controlId.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const fileName   = `${safeId}_v${newVersion}_${Date.now()}${ext}`
+    const dirPath    = politicasDir(slug)
+    const filePath   = path.join(dirPath, fileName)
+
+    fs.mkdirSync(dirPath, { recursive: true })
+    fs.writeFileSync(filePath, req.file.buffer)
+
+    // Borrar el archivo anterior del disco (si existía)
+    if (existing.length && existing[0].docx_path && fs.existsSync(existing[0].docx_path)) {
+      try { fs.unlinkSync(existing[0].docx_path) } catch { /* no-op */ }
+    }
+
+    // UPSERT — nunca duplicar la política de un control
+    await centralDB.execute(`
+      INSERT INTO iso_policy_documents
+        (evaluation_id, control_id, company_id, docx_filename, docx_original,
+         docx_path, docx_size, docx_uploaded_by, docx_uploaded_at, status, version)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'vigente', ?)
+      ON DUPLICATE KEY UPDATE
+        docx_filename    = VALUES(docx_filename),
+        docx_original    = VALUES(docx_original),
+        docx_path        = VALUES(docx_path),
+        docx_size        = VALUES(docx_size),
+        docx_uploaded_by = VALUES(docx_uploaded_by),
+        docx_uploaded_at = NOW(),
+        status           = 'vigente',
+        version          = VALUES(version),
+        updated_at       = NOW()
+    `, [evalId, controlId, companyId, fileName, req.file.originalname,
+        filePath, req.file.size, userId, newVersion])
+
+    await centralDB.execute(`
+      INSERT INTO iso_history
+        (evaluation_id, control_id, company_id, event_type, user_id, new_data, comment)
+      VALUES (?, ?, ?, 'politica_guardada', ?, ?, ?)
+    `, [evalId, controlId, companyId, userId,
+        JSON.stringify({ filename: req.file.originalname, version: newVersion }),
+        `Política v${newVersion} subida`])
+
+    const { registrarActividad } = require('../../utils/activityLogger')
+    await registrarActividad({
+      req,
+      accion:      'editar',
+      modulo:      'iso27001',
+      descripcion: `Subió política "${req.file.originalname}" (v${newVersion}) para control ${controlId}`,
+      company_id:  companyId,
+      metadata:    { control_id: controlId, version: newVersion },
+    })
+
+    res.json({ success: true, message: `Política subida correctamente (versión ${newVersion})`, version: newVersion })
+  } catch (err) { next(err) }
+})
+
+// GET /politicas/:controlId/documento — descarga el .docx vigente de la empresa
+router.get('/politicas/:controlId/documento', async (req, res, next) => {
+  try {
+    const { controlId } = req.params
     const companyId = req.company.id
     const userId    = req.user.user_id || req.user.id
     const evalId    = await getOrCreateEvaluation(companyId, userId)
 
     const [rows] = await centralDB.execute(`
-      SELECT ic.id, ic.name, ic.domain_id, d.name AS domain_name,
-             ic.policy_template,
-             ica.policy_content,
-             CASE
-               WHEN ica.policy_content IS NOT NULL AND LENGTH(TRIM(ica.policy_content)) > 0 THEN 'lista'
-               WHEN ic.policy_template IS NOT NULL THEN 'borrador'
-               ELSE 'sin_politica'
-             END AS politica_status
-      FROM iso_controls ic
-      JOIN iso_domains d ON ic.domain_id = d.id
-      LEFT JOIN iso_control_assessments ica
-             ON ica.control_id = ic.id AND ica.evaluation_id = ?
-      WHERE ic.policy_template IS NOT NULL
-      ORDER BY d.order_num, ic.order_num
-    `, [evalId])
+      SELECT docx_path, docx_original FROM iso_policy_documents
+      WHERE evaluation_id = ? AND control_id = ? AND company_id = ? LIMIT 1
+    `, [evalId, controlId, companyId])
 
-    res.json({ politicas: rows, evaluation_id: evalId })
+    if (!rows.length || !rows[0].docx_path || !fs.existsSync(rows[0].docx_path)) {
+      return res.status(404).json({ error: 'No hay documento vigente para este control' })
+    }
+    res.download(rows[0].docx_path, rows[0].docx_original || 'politica.docx')
+  } catch (err) { next(err) }
+})
+
+// DELETE /politicas/:controlId/documento — elimina el archivo y vuelve a 'sin_documento'
+router.delete('/politicas/:controlId/documento', async (req, res, next) => {
+  try {
+    const { controlId } = req.params
+    const companyId = req.company.id
+    const userId    = req.user.user_id || req.user.id
+    const evalId    = await getOrCreateEvaluation(companyId, userId)
+
+    const [rows] = await centralDB.execute(`
+      SELECT id, docx_path FROM iso_policy_documents
+      WHERE evaluation_id = ? AND control_id = ? AND company_id = ? LIMIT 1
+    `, [evalId, controlId, companyId])
+    if (!rows.length) return res.status(404).json({ error: 'No hay documento para este control' })
+
+    if (rows[0].docx_path && fs.existsSync(rows[0].docx_path)) {
+      try { fs.unlinkSync(rows[0].docx_path) } catch { /* no-op */ }
+    }
+
+    await centralDB.execute(`
+      UPDATE iso_policy_documents
+      SET status='sin_documento', docx_filename=NULL, docx_original=NULL,
+          docx_path=NULL, docx_size=NULL, updated_at=NOW()
+      WHERE id = ?
+    `, [rows[0].id])
+
+    await centralDB.execute(`
+      INSERT INTO iso_history
+        (evaluation_id, control_id, company_id, event_type, user_id, comment)
+      VALUES (?, ?, ?, 'politica_guardada', ?, ?)
+    `, [evalId, controlId, companyId, userId, 'Documento de política eliminado'])
+
+    res.json({ success: true })
   } catch (err) { next(err) }
 })
 
