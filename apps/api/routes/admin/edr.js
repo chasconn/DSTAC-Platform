@@ -215,10 +215,19 @@ router.post('/bloquear-todo', async (req, res) => {
       LIMIT 100
     `, [companyId])
 
+    const osCache = {}
+    async function cmdFor(agentId) {
+      if (!(agentId in osCache)) {
+        const os = await wazuhApi.getAgentOs(agentId).catch(() => '')
+        osCache[agentId] = /windows|microsoft/.test(os) ? 'netsh' : 'firewall-drop'
+      }
+      return osCache[agentId]
+    }
+
     let ok = 0, fail = 0
     for (const r of rows) {
       try {
-        await wazuhApi.activeResponse(r.wazuh_id, 'firewall-drop', [r.src_ip])
+        await wazuhApi.activeResponse(r.wazuh_id, await cmdFor(r.wazuh_id), [r.src_ip])
         await centralDB.execute(
           `INSERT INTO edr_responses (company_id, wazuh_id, action, target) VALUES (?, ?, 'bloquear_ip', ?)`,
           [companyId, r.wazuh_id, r.src_ip]
@@ -315,7 +324,13 @@ router.post('/agents/:wazuhId/responder', async (req, res) => {
     if (!ag.length) return res.status(404).json({ error: 'Agente no encontrado en esta empresa' })
 
     const args = cfg.needsTarget ? [String(target)] : []
-    await wazuhApi.activeResponse(wazuhId, cfg.command, args)
+    // Bloqueo de IP: comando según el SO del agente (Linux=firewall-drop, Windows=netsh).
+    let command = cfg.command
+    if (action === 'bloquear_ip') {
+      const os = await wazuhApi.getAgentOs(wazuhId).catch(() => '')
+      command = /windows|microsoft/.test(os) ? 'netsh' : 'firewall-drop'
+    }
+    await wazuhApi.activeResponse(wazuhId, command, args)
 
     // Registrar la corrección (para el contador/gráfico del panel)
     await centralDB.execute(

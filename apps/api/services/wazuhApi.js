@@ -93,4 +93,12 @@ async function deleteAgent(agentId) {
   return req('DELETE', `/agents?agents_list=${encodeURIComponent(agentId)}&older_than=0s&status=active,pending,never_connected,disconnected`, { token })
 }
 
-module.exports = { listAgents, activeResponse, deleteAgent, getToken }
+// Devuelve la plataforma del agente en minúsculas (p.ej. 'windows', 'ubuntu').
+async function getAgentOs(agentId) {
+  const token = await getToken()
+  const res = await req('GET', `/agents?agents_list=${encodeURIComponent(agentId)}&select=os.platform,os.name,os.uname`, { token })
+  const a = res?.data?.affected_items?.[0]?.os || {}
+  return `${a.platform || ''} ${a.name || ''} ${a.uname || ''}`.toLowerCase()
+}
+
+module.exports = { listAgents, activeResponse, deleteAgent, getAgentOs, getToken }
