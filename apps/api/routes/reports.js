@@ -1,2 +1,38 @@
+// Informes PDF para el panel admin (DSTAC). Reutiliza los generadores HTML de
+// services/reports/* y los convierte a PDF. La empresa sale del header
+// X-Company-Slug (resolveTenant). Sin restricción de plan (DSTAC ve todo).
 const router = require('express').Router()
+const { requireAuth, requireDstacRole } = require('../middleware/auth')
+const { resolveTenant }                 = require('../middleware/tenant')
+const centralDB                         = require('../db/central')
+const { htmlToPDF }                     = require('../services/reportService')
+
+const REPORT_MODULES = {
+  executive:   () => require('../services/reports/ejecutivo'),
+  activos:     () => require('../services/reports/activos'),
+  identidades: () => require('../services/reports/identidades'),
+  incidentes:  () => require('../services/reports/incidentes'),
+  riesgos:     () => require('../services/reports/riesgos'),
+}
+
+router.get('/:reporteId', requireAuth, requireDstacRole, resolveTenant, async (req, res, next) => {
+  try {
+    const mod = REPORT_MODULES[req.params.reporteId]
+    if (!mod) return res.status(404).json({ error: 'Reporte no encontrado' })
+
+    const m    = mod()
+    const data = await m.getData(req.tenantDB, centralDB, req.company.id, req.company)
+    const html = m.buildHTML(data)
+    const pdf  = await htmlToPDF(html)
+
+    const fecha = new Date().toISOString().split('T')[0]
+    res.set({
+      'Content-Type':        'application/pdf',
+      'Content-Disposition': `attachment; filename="DSTAC_${req.params.reporteId}_${fecha}.pdf"`,
+      'Content-Length':       pdf.length,
+    })
+    res.send(pdf)
+  } catch (err) { next(err) }
+})
+
 module.exports = router
