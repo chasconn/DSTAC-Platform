@@ -373,13 +373,17 @@ router.post('/:id/generar-pdf', async (req, res, next) => {
       entidad_id: Number(id), company_id: req.company.id,
     })
 
+    // Devolver el PDF en base64 para que el frontend lo abra/descargue.
+    const pdfBase64 = fs.readFileSync(filePath).toString('base64')
+
     res.json({
       success: true,
       message: adjuntados > 0
-        ? 'PDF generado y adjuntado como evidencia en ISO 27001'
+        ? `PDF generado y adjuntado a ${adjuntados} control(es) ISO 27001`
         : 'PDF generado (el riesgo no tiene controles ISO relacionados)',
       filename: fileName,
       controles_actualizados: adjuntados,
+      pdf_base64: pdfBase64,
     })
   } catch (err) { next(err) }
 })

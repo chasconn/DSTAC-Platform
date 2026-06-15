@@ -23,7 +23,9 @@ export default function RiesgoDetalle({ riesgo, isoControls = [], onClose, onEdi
   const nombreControl = (id) => { const c = isoControls.find(x => x.id === id); return c ? `${c.id} · ${c.name}` : id }
 
   const tieneResidual = riesgo.residual_probabilidad && riesgo.residual_impacto
-  const puedePDF = controlIds.length > 0 && riesgo.estado !== 'identificado'
+  // El informe se puede generar desde que el riesgo deja de estar solo "identificado".
+  // Si tiene controles ISO, además se adjunta como evidencia.
+  const puedePDF = riesgo.estado !== 'identificado'
   const siguienteEstado = ['identificado', 'en_tratamiento'].includes(riesgo.estado)
     ? { v: 'mitigado', label: 'Marcar como mitigado' }
     : (['mitigado', 'aceptado'].includes(riesgo.estado) ? { v: 'cerrado', label: 'Cerrar riesgo' } : null)
@@ -126,11 +128,15 @@ export default function RiesgoDetalle({ riesgo, isoControls = [], onClose, onEdi
 
         {/* Footer de acciones */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20, paddingTop: 16, borderTop: '1px solid #f1efe8' }}>
-          {puedePDF && (
+          {puedePDF ? (
             <button onClick={generar} disabled={generando}
               style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', cursor: generando ? 'default' : 'pointer', fontWeight: 600, fontSize: 13.5 }}>
-              {generando ? 'Generando PDF…' : '📄 Generar documento PDF → adjuntar a ISO'}
+              {generando ? 'Generando PDF…' : (controlIds.length > 0 ? '📄 Generar informe PDF → adjuntar a ISO' : '📄 Generar informe PDF')}
             </button>
+          ) : (
+            <div style={{ width: '100%', padding: '10px 12px', borderRadius: 8, background: '#FEF3E2', color: '#633806', fontSize: 12.5, textAlign: 'center' }}>
+              Cambia el estado a "En tratamiento" para generar el informe PDF.
+            </div>
           )}
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => onEditar(riesgo)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13.5 }}>Editar riesgo</button>

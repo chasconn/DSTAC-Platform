@@ -128,7 +128,8 @@ export default function RiesgosPage() {
   async function generarPDF(r) {
     try {
       const res = await apiFetch(`/api/admin/riesgos/${r.id}/generar-pdf`, { method: 'POST', headers })
-      showToast(res.message || 'PDF generado ✓')
+      if (res.pdf_base64) abrirPdf(res.pdf_base64, res.filename || `Informe_Riesgo_${r.id}.pdf`)
+      showToast(res.message || 'Informe generado ✓')
       cargar()
     } catch (err) { showToast(err.message || 'No se pudo generar el PDF', 'error') }
   }
@@ -203,6 +204,30 @@ export default function RiesgosPage() {
       )}
     </div>
   )
+}
+
+// Abre un PDF (base64) en un visor superpuesto, con botón de descarga.
+// El iframe del blob usa el visor PDF del navegador (zoom/imprimir incluidos).
+function abrirPdf(b64, filename = 'Informe.pdf') {
+  try {
+    const bin = atob(b64)
+    const arr = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+    const url = URL.createObjectURL(new Blob([arr], { type: 'application/pdf' }))
+    const ov = document.createElement('div')
+    ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,5,12,.88);display:flex;flex-direction:column;padding:14px;box-sizing:border-box'
+    const bar = document.createElement('div'); bar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;flex-wrap:wrap'
+    const t = document.createElement('span'); t.style.cssText = 'color:#fff;font:600 15px system-ui'; t.textContent = 'Informe del riesgo'
+    const btns = document.createElement('div'); btns.style.cssText = 'display:flex;align-items:center;gap:8px'
+    const dl = document.createElement('a'); dl.textContent = 'Descargar'; dl.href = url; dl.download = filename; dl.style.cssText = 'background:#534AB7;color:#fff;border-radius:999px;padding:9px 18px;font:600 13px system-ui;cursor:pointer;text-decoration:none'
+    const cl = document.createElement('button'); cl.textContent = 'Cerrar'; cl.style.cssText = 'background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:9px 16px;font:600 13px system-ui;cursor:pointer'
+    btns.append(dl, cl); bar.append(t, btns); ov.appendChild(bar)
+    const ifr = document.createElement('iframe'); ifr.src = url; ifr.style.cssText = 'flex:1;border:0;border-radius:10px;background:#fff'
+    ov.appendChild(ifr); document.body.appendChild(ov)
+    const close = () => { ov.remove(); URL.revokeObjectURL(url); document.removeEventListener('keydown', k) }
+    const k = (e) => { if (e.key === 'Escape') close() }
+    cl.onclick = close; ov.addEventListener('click', e => { if (e.target === ov) close() }); document.addEventListener('keydown', k)
+  } catch (e) { alert('No se pudo abrir el PDF: ' + e) }
 }
 
 function useIsMobile(bp = 820) {
