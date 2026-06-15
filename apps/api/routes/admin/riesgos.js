@@ -315,8 +315,10 @@ router.post('/:id/generar-pdf', async (req, res, next) => {
       campo('Riesgo residual esperado', `${riesgo.residual_nivel}/25 (P:${riesgo.residual_probabilidad} × I:${riesgo.residual_impacto})`)
     }
 
-    // Controles ISO relacionados
-    const controles = riesgo.iso_control_ids ? JSON.parse(riesgo.iso_control_ids) : []
+    // Controles ISO relacionados (la columna puede venir ya parseada por mysql2)
+    let controles = riesgo.iso_control_ids || []
+    if (typeof controles === 'string') { try { controles = JSON.parse(controles) } catch { controles = [] } }
+    if (!Array.isArray(controles)) controles = []
     if (controles.length) {
       seccion('4. CONTROLES ISO 27001 RELACIONADOS')
       controles.forEach(c => doc.text(`• ${c}`))
