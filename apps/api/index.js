@@ -32,6 +32,7 @@ app.use('/api', apiLimiter)
 // Rutas
 app.use('/api/auth',            require('./routes/auth'))
 app.use('/api/public',          require('./routes/public'))
+app.use('/api/edr',             require('./routes/edr'))
 app.use('/api/admin/leads',     require('./routes/admin/leads'))
 app.use('/api/companies',       require('./routes/companies'))
 app.use('/api/dashboard',       require('./routes/dashboard'))
@@ -68,6 +69,7 @@ app.use('/api/admin/pendientes',   require('./routes/admin/pendientes'))
 app.use('/api/admin/trustbar',     require('./routes/admin/trustbar'))
 app.use('/api/admin/riesgos',      require('./routes/admin/riesgos'))
 app.use('/api/admin/cotizaciones', require('./routes/admin/cotizaciones'))
+app.use('/api/admin/edr',          require('./routes/admin/edr'))
 
 // Health check
 app.get('/api/health', (req, res) => {

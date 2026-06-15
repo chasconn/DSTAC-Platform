@@ -20,6 +20,7 @@ const NAV = [
   { href: '/admin/riesgos',     label: 'Riesgos',     icon: IconRiesgos     },
   { href: '/admin/nist',        label: 'NIST',        icon: IconNist        },
   { href: '/admin/iso',         label: 'ISO 27001',   icon: IconIso         },
+  { href: '/admin/edr',         label: 'EDR',         icon: IconEdr         },
   { href: '/admin/pendientes',  label: 'Pendientes',  icon: IconPendientes  },
   { href: '/admin/sitio',       label: 'Sitio web',   icon: IconSitio       },
 ]
@@ -562,6 +563,14 @@ function IconNist({ color }) {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  )
+}
+function IconEdr({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <path d="M9 12l2 2 4-4"/>
     </svg>
   )
 }
