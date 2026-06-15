@@ -111,7 +111,7 @@ export default function SoaTab({ domainId, slug, evaluationId, onRefresh }) {
 
       {/* Tabla */}
       <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8f7f4', borderBottom: '1px solid #e2e0d8' }}>
               <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, width: 60 }}>ID</th>
@@ -188,7 +188,7 @@ export default function SoaTab({ domainId, slug, evaluationId, onRefresh }) {
               )
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   )

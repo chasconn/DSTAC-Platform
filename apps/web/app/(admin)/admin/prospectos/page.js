@@ -268,7 +268,7 @@ export default function ProspectosPage() {
 
       {/* Tabla */}
       <div style={{ border: '1px solid #E6E2F0', borderRadius: 12, overflow: 'hidden', background: '#fff' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+        <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
           <thead>
             <tr style={{ background: '#F7F6FB', color: '#6E6884', textAlign: 'left' }}>
               <th style={{ padding: '11px 14px', fontWeight: 600 }}>Empresa / Contacto</th>
@@ -309,7 +309,7 @@ export default function ProspectosPage() {
               )
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {/* Panel de detalle */}

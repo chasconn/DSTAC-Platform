@@ -252,7 +252,7 @@ export default function AdminDashboard() {
         {ultimas_empresas.length === 0 ? (
           <div style={{ fontSize: 13, color: '#888780', textAlign: 'center', padding: '20px 0' }}>Sin empresas registradas</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 {['Empresa', 'Plan', 'Estado', 'Fecha de alta'].map(h => (
@@ -284,7 +284,7 @@ export default function AdminDashboard() {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
     </div>
