@@ -1,0 +1,61 @@
+<!-- Local rules -->
+<!-- Modify it at your will. -->
+<!-- Copyright (C) 2015, Wazuh Inc. -->
+
+<!-- Example -->
+<group name="local,syslog,sshd,">
+
+  <!--
+  Dec 10 01:02:02 host sshd[1234]: Failed none for root from 1.1.1.1 port 1066 ssh2
+  -->
+  <rule id="100001" level="5">
+    <if_sid>5716</if_sid>
+    <srcip>1.1.1.1</srcip>
+    <description>sshd: authentication failed from IP 1.1.1.1.</description>
+    <group>authentication_failed,pci_dss_10.2.4,pci_dss_10.2.5,</group>
+  </rule>
+
+</group>
+
+<!-- ===================================================================== -->
+<!-- Reglas propias DSTAC (EDR). IDs 100100+ reservados para DSTAC.         -->
+<!-- ===================================================================== -->
+<group name="dstac,local,">
+
+  <!-- 100100: Marcador de prueba DSTAC. Valida el pipeline completo
+       (deteccion -> integrator -> portal -> escalada a incidente) bajo demanda.
+       Disparar en un agente con:  logger "DSTAC_EDR_TEST motivo"            -->
+  <rule id="100100" level="12">
+    <match>DSTAC_EDR_TEST</match>
+    <description>DSTAC: alerta de prueba del EDR (marcador manual)</description>
+    <group>dstac_test,</group>
+  </rule>
+
+  <!-- 100110: Cambio en archivo critico de seguridad detectado por FIM.
+       syscheck ya monitorea /etc por defecto. Se eleva a critico.          -->
+  <rule id="100110" level="13">
+    <if_group>syscheck</if_group>
+    <field name="file" type="pcre2">/etc/shadow|/etc/sudoers|/etc/ssh/sshd_config|/etc/passwd</field>
+    <description>DSTAC: cambio en archivo critico de seguridad</description>
+    <group>dstac_fim_critico,</group>
+  </rule>
+
+  <!-- 100120: Fuerza bruta SSH (6+ intentos de usuario inexistente desde la
+       misma IP en 2 min). Se eleva a critico para abrir incidente.         -->
+  <rule id="100120" level="12" frequency="6" timeframe="120">
+    <if_matched_sid>5710</if_matched_sid>
+    <same_source_ip />
+    <description>DSTAC: ataque de fuerza bruta SSH detectado</description>
+    <group>dstac_bruteforce,authentication_failures,</group>
+  </rule>
+
+  <!-- 100130: Modificacion de la configuracion del agente Wazuh local
+       (posible intento de desactivar el EDR).                              -->
+  <rule id="100130" level="12">
+    <if_group>syscheck</if_group>
+    <field name="file" type="pcre2">/var/ossec/etc/ossec.conf|/var/ossec/etc/internal_options.conf</field>
+    <description>DSTAC: modificacion de la configuracion del agente EDR</description>
+    <group>dstac_tamper,</group>
+  </rule>
+
+</group>

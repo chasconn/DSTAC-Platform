@@ -50,6 +50,24 @@ instalado, sólo lo re-enrola con el nombre indicado y reinicia.
 > de un agente no asignado queda en "sin asignar" (no la ve ningún cliente). Aun
 > así, no publicar el script con la clave embebida en un repo/URL público.
 
+## Reglas propias DSTAC — `local_rules.xml`
+
+Reglas de detección a medida (IDs 100100+). Se copian a
+`/var/ossec/etc/rules/local_rules.xml` del Manager y se cargan al reiniciar.
+**Validar siempre antes de reiniciar** para no romper el ruleset:
+
+```sh
+cp local_rules.xml /var/ossec/etc/rules/local_rules.xml
+chown root:wazuh /var/ossec/etc/rules/local_rules.xml && chmod 660 /var/ossec/etc/rules/local_rules.xml
+/var/ossec/bin/wazuh-analysisd -t && echo OK || echo "ruleset INVALIDO, revertir"
+systemctl restart wazuh-manager
+```
+
+Reglas incluidas: `100100` marcador de prueba (`logger "DSTAC_EDR_TEST ..."`),
+`100110` cambio en archivo crítico (FIM), `100120` fuerza bruta SSH,
+`100130` manipulación de la config del agente. Las de nivel ≥12 abren incidente
+automáticamente en el portal.
+
 ## Notas
 
 - El python embebido de Wazuh no trae CA bundle propio; `custom-dstac.py` usa el
