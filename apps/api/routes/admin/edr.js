@@ -70,7 +70,7 @@ router.get('/alerts', async (req, res, next) => {
     const [rows] = await centralDB.execute(`
       SELECT id, wazuh_id, agent_name, rule_id, rule_level, rule_description,
              rule_groups, mitre_ids, mitre_tactics, mitre_techniques,
-             location, src_ip, full_log, event_time
+             location, src_ip, full_log, event_time, incidente_id
       FROM edr_alerts
       ${where}
       ORDER BY event_time DESC, id DESC
@@ -97,6 +97,7 @@ router.get('/stats', async (req, res, next) => {
       SELECT COUNT(*) AS total,
              SUM(rule_level >= 12)                       AS criticas,
              SUM(rule_level BETWEEN 7 AND 11)            AS altas,
+             SUM(incidente_id IS NOT NULL)               AS incidentes,
              SUM(event_time >= (NOW() - INTERVAL 24 HOUR)) AS ultimas_24h
       FROM edr_alerts WHERE company_id = ?
     `, [companyId])
@@ -115,6 +116,7 @@ router.get('/stats', async (req, res, next) => {
         total:       Number(al.total || 0),
         criticas:    Number(al.criticas || 0),
         altas:       Number(al.altas || 0),
+        incidentes:  Number(al.incidentes || 0),
         ultimas_24h: Number(al.ultimas_24h || 0),
       },
       sin_asignar: Number(sinAsignar[0].n || 0),

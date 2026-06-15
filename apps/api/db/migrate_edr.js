@@ -47,6 +47,8 @@ async function main() {
       full_log         TEXT         NULL,
       event_time       DATETIME     NULL,
       raw              JSON         NULL,
+      incidente_id     INT          NULL,
+      incidente_slug   VARCHAR(120) NULL,
       created_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
       KEY idx_company_time (company_id, event_time),
       KEY idx_level (rule_level),

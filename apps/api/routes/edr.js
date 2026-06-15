@@ -3,6 +3,10 @@
 // se valida con el header x-edr-key contra EDR_WEBHOOK_SECRET (si está configurado).
 const router = require('express').Router()
 const centralDB = require('../db/central')
+const { getTenantDB } = require('../db/tenant')
+
+// Nivel mínimo de regla Wazuh para abrir un incidente automáticamente (12 = crítico).
+const INCIDENT_MIN_LEVEL = parseInt(process.env.EDR_INCIDENT_MIN_LEVEL, 10) || 12
 
 function s(v, n) { return v == null ? null : (String(v).slice(0, n) || null) }
 function j(v) { return v == null ? null : JSON.stringify(v) }
@@ -14,6 +18,51 @@ function toMysqlDate(ts) {
   const d = new Date(ts)
   if (Number.isNaN(d.getTime())) return null
   return d.toISOString().slice(0, 19).replace('T', ' ')
+}
+
+// Abre un incidente en la BD del tenant a partir de una alerta grave del EDR.
+// Idempotente por ventana: no duplica si ya se escaló esa firma (empresa+agente+regla)
+// en las últimas 6 horas. Nunca lanza (el webhook no debe fallar por esto).
+async function escalarIncidente({ companyId, wazuhId, agentName, alertId, rule, mitre, srcIp, fullLog, eventTime }) {
+  // Dedupe: ¿ya hay un incidente reciente para esta misma firma?
+  const [dup] = await centralDB.execute(`
+    SELECT id FROM edr_alerts
+    WHERE company_id = ? AND wazuh_id = ? AND rule_id = ? AND incidente_id IS NOT NULL
+      AND created_at >= (NOW() - INTERVAL 6 HOUR)
+    LIMIT 1
+  `, [companyId, wazuhId, intOrNull(rule.id)])
+  if (dup.length) return
+
+  const [comp] = await centralDB.execute(`SELECT slug FROM companies WHERE id = ? LIMIT 1`, [companyId])
+  const slug = comp[0]?.slug
+  if (!slug) return
+
+  const level     = intOrNull(rule.level) || 0
+  const severidad = level >= 14 ? 'critica' : 'alta'
+  const impacto   = level >= 14 ? 'critico' : 'alto'
+  const tipo      = (`EDR: ${rule.description || 'Alerta de seguridad'}`).slice(0, 100)
+  const tactics    = Array.isArray(mitre.tactic) ? mitre.tactic.join(', ') : ''
+  const techniques = Array.isArray(mitre.technique) ? mitre.technique.join(', ') : ''
+  const descripcion = [
+    'Detección automática del EDR (Wazuh).',
+    `Agente: ${agentName || wazuhId} (${wazuhId})`,
+    `Regla ${rule.id} · nivel ${level}: ${rule.description || ''}`,
+    tactics    ? `MITRE táctica: ${tactics}` : '',
+    techniques ? `MITRE técnica: ${techniques}` : '',
+    srcIp      ? `Origen: ${srcIp}` : '',
+    fullLog    ? `Log: ${String(fullLog).slice(0, 500)}` : '',
+  ].filter(Boolean).join('\n')
+
+  const tdb = await getTenantDB(slug)
+  const [ins] = await tdb.execute(`
+    INSERT INTO incidentes (tipo, categoria, estado, severidad, impacto, descripcion, fecha_deteccion)
+    VALUES (?, ?, 'abierto', ?, ?, ?, ?)
+  `, [tipo, 'Endpoint / EDR', severidad, impacto, descripcion, eventTime || null])
+
+  await centralDB.execute(
+    `UPDATE edr_alerts SET incidente_id = ?, incidente_slug = ? WHERE id = ?`,
+    [ins.insertId, slug, alertId]
+  )
 }
 
 // POST /api/edr/alerts — ingesta de una alerta de Wazuh.
@@ -52,7 +101,8 @@ router.post('/alerts', async (req, res) => {
     const companyId = agRows[0]?.company_id ?? null
 
     // 3) Guardar la alerta.
-    await centralDB.execute(`
+    const srcIp = s(data.srcip || data.src_ip, 64)
+    const [ins] = await centralDB.execute(`
       INSERT INTO edr_alerts
         (company_id, wazuh_id, agent_name, rule_id, rule_level, rule_description,
          rule_groups, mitre_ids, mitre_tactics, mitre_techniques,
@@ -63,9 +113,22 @@ router.post('/alerts', async (req, res) => {
       intOrNull(rule.id), intOrNull(rule.level), s(rule.description, 1024),
       j(rule.groups), j(mitre.id), j(mitre.tactic), j(mitre.technique),
       s(a.location, 255), s(a.decoder?.name, 120),
-      s(data.srcip || data.src_ip, 64), s(a.full_log, 65000),
+      srcIp, s(a.full_log, 65000),
       toMysqlDate(a.timestamp), j(a),
     ])
+
+    // 4) Escalar a incidente si la alerta es grave y el agente pertenece a un tenant.
+    const level = intOrNull(rule.level) || 0
+    if (companyId && level >= INCIDENT_MIN_LEVEL) {
+      try {
+        await escalarIncidente({
+          companyId, wazuhId, agentName, alertId: ins.insertId,
+          rule, mitre, srcIp, fullLog: a.full_log, eventTime: toMysqlDate(a.timestamp),
+        })
+      } catch (e) {
+        console.error('edr escalada incidente:', e.message)
+      }
+    }
 
     res.json({ ok: true })
   } catch (e) {

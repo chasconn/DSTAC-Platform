@@ -105,6 +105,7 @@ export default function EdrPage() {
     { label: 'Alertas 24h',     value: stats.alertas.ultimas_24h, color: '#185FA5' },
     { label: 'Críticas',        value: stats.alertas.criticas,    color: '#791F1F' },
     { label: 'Altas',           value: stats.alertas.altas,       color: '#854F0B' },
+    { label: 'Incidentes',      value: stats.alertas.incidentes ?? 0, color: '#3C3489' },
   ] : []
 
   return (
@@ -240,7 +241,14 @@ export default function EdrPage() {
                       </span>
                     </td>
                     <td style={td}>{al.agent_name || al.wazuh_id}</td>
-                    <td style={{ ...td, maxWidth: 360 }}>{al.rule_description || '—'}</td>
+                    <td style={{ ...td, maxWidth: 360 }}>
+                      {al.rule_description || '—'}
+                      {al.incidente_id ? (
+                        <span style={{ marginLeft: 8, background: '#EEEDFE', color: '#3C3489', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                          → Incidente #{al.incidente_id}
+                        </span>
+                      ) : null}
+                    </td>
                     <td style={td}>{tactics.length ? tactics.join(', ') : '—'}</td>
                     <td style={td}>{al.src_ip || '—'}</td>
                   </tr>
