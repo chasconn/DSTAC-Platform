@@ -27,6 +27,9 @@ function fechaHora(d) {
   if (isNaN(date.getTime())) date = new Date(String(d).replace(' ', 'T') + 'Z')
   return isNaN(date.getTime()) ? '—' : date.toLocaleString('es-CL', opts)
 }
+function diaCorto(d) {
+  try { return new Date(d + 'T00:00:00').toLocaleDateString('es-CL', { weekday: 'short' }).replace('.', '') } catch { return d.slice(5) }
+}
 
 // ── Mini-gráficos SVG (sin librerías) ──────────────────────────────────────────
 function Donut({ segments, total, size = 150 }) {
@@ -131,6 +134,17 @@ export default function EdrPage() {
     }
   }
 
+  async function bloquearTodo() {
+    if (!confirm('¿Bloquear TODAS las IPs de origen detectadas en las alertas de esta empresa?\n\nSe ejecuta firewall-drop en los endpoints correspondientes (solo agentes activos).')) return
+    try {
+      const data = await api.post('/api/admin/edr/bloquear-todo', {}, headers)
+      showToast(data.message || 'Bloqueo masivo enviado')
+      await cargar()
+    } catch (err) {
+      showToast(err.message || 'Error en el bloqueo masivo', 'error')
+    }
+  }
+
   async function asignar(wazuhId) {
     try {
       await api.post(`/api/admin/edr/agents/${wazuhId}/asignar`, {}, headers)
@@ -179,6 +193,7 @@ export default function EdrPage() {
     { label: 'Críticas',        value: stats.alertas.criticas,    color: '#D8543F', icon: IconFlame },
     { label: 'Altas',           value: stats.alertas.altas,       color: '#C98A1E', icon: IconWarn },
     { label: 'Incidentes',      value: stats.alertas.incidentes ?? 0, color: '#534AB7', icon: IconBolt },
+    { label: 'Correcciones',    value: stats.correcciones?.total ?? 0, color: '#0F6E56', icon: IconCheck },
   ] : []
 
   const visibles = nivelMin ? alerts.filter(a => a.rule_level >= Number(nivelMin)) : alerts
@@ -262,8 +277,8 @@ export default function EdrPage() {
         </div>
       )}
 
-      {/* Overview: severidad + MITRE */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(300px, 1.6fr)', gap: 14, marginBottom: 18 }}>
+      {/* Overview: severidad + MITRE + correcciones */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 14, marginBottom: 18 }}>
         <div className="edr-card" style={cardStyle}>
           <div style={titleStyle}>Distribución por severidad</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 6 }}>
@@ -298,6 +313,29 @@ export default function EdrPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Correcciones (7 días) */}
+        <div className="edr-card" style={cardStyle}>
+          <div style={titleStyle}>Correcciones (7 días)</div>
+          {(() => {
+            const serie = stats?.correcciones?.serie ?? []
+            const max = Math.max(...serie.map(d => d.n), 1)
+            return (
+              <>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 7, height: 84, marginTop: 14 }}>
+                  {serie.map(d => (
+                    <div key={d.dia} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 10, color: '#888780', fontWeight: 700, height: 12 }}>{d.n || ''}</span>
+                      <div className="edr-bar" title={`${d.dia}: ${d.n}`} style={{ width: '100%', height: d.n ? Math.max(8, (d.n / max) * 62) : 3, borderRadius: 5, background: d.n ? 'linear-gradient(180deg,#6E63D8,#3C3489)' : '#EFEDE6' }} />
+                      <span style={{ fontSize: 9.5, color: '#9A988F' }}>{diaCorto(d.dia)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11.5, color: '#888780', marginTop: 10 }}>Total histórico: <strong style={{ color: '#2C2C2A' }}>{stats?.correcciones?.total ?? 0}</strong> respuestas activas</div>
+              </>
+            )
+          })()}
         </div>
       </div>
 
@@ -364,6 +402,10 @@ export default function EdrPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ ...titleStyle, fontSize: 15, margin: '0 2px' }}>Alertas recientes</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={bloquearTodo} title="Bloquear todas las IPs de origen detectadas"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg,#C0392B,#E2574C)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 700, boxShadow: '0 6px 16px -8px rgba(192,57,43,.7)' }}>
+            ⨯ Bloquear todo
+          </button>
           <select value={nivelMin} onChange={e => setNivelMin(e.target.value)} style={inputStyle}>
             <option value="">Todos los niveles</option>
             <option value="4">Nivel ≥ 4 (medio)</option>
@@ -450,3 +492,4 @@ function IconFlame({ color }) { return (<svg width="18" height="18" viewBox="0 0
 function IconWarn({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>) }
 function IconBolt({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>) }
 function IconRefresh({ color }) { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>) }
+function IconCheck({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>) }

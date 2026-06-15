@@ -125,6 +125,24 @@ router.get('/stats', async (req, res, next) => {
       `SELECT COUNT(*) AS n FROM edr_agents WHERE company_id IS NULL`
     )
 
+    // Correcciones (respuestas activas): total + serie de los últimos 7 días.
+    const [[corr]] = await centralDB.query(
+      `SELECT COUNT(*) AS total FROM edr_responses WHERE company_id = ?`, [companyId]
+    )
+    const [serieRows] = await centralDB.execute(`
+      SELECT DATE_FORMAT(created_at, '%Y-%m-%d') AS dia, COUNT(*) AS n
+      FROM edr_responses
+      WHERE company_id = ? AND created_at >= (CURRENT_DATE - INTERVAL 6 DAY)
+      GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d')
+    `, [companyId])
+    const byDay = {}
+    serieRows.forEach(s => { byDay[s.dia] = Number(s.n) })
+    const serie = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+      serie.push({ dia: d, n: byDay[d] || 0 })
+    }
+
     res.json({
       agentes: {
         total:         Number(ag.total || 0),
@@ -138,9 +156,50 @@ router.get('/stats', async (req, res, next) => {
         incidentes:  Number(al.incidentes || 0),
         ultimas_24h: Number(al.ultimas_24h || 0),
       },
+      correcciones: { total: Number(corr.total || 0), serie },
       sin_asignar: Number(sinAsignar[0].n || 0),
     })
   } catch (err) { next(err) }
+})
+
+// POST /bloquear-todo — bloquea todas las IPs de origen disponibles en las alertas
+// del tenant (únicas por agente; excluye loopback y la IP del manager). Requiere
+// que el agente esté activo; reporta cuántas se bloquearon y cuántas fallaron.
+router.post('/bloquear-todo', async (req, res) => {
+  try {
+    const companyId = req.company.id
+    const [rows] = await centralDB.execute(`
+      SELECT DISTINCT wazuh_id, src_ip
+      FROM edr_alerts
+      WHERE company_id = ? AND src_ip IS NOT NULL AND src_ip <> ''
+        AND src_ip NOT LIKE '127.%' AND src_ip <> '::1' AND src_ip <> '2.25.183.242'
+      LIMIT 100
+    `, [companyId])
+
+    let ok = 0, fail = 0
+    for (const r of rows) {
+      try {
+        await wazuhApi.activeResponse(r.wazuh_id, 'firewall-drop', [r.src_ip])
+        await centralDB.execute(
+          `INSERT INTO edr_responses (company_id, wazuh_id, action, target) VALUES (?, ?, 'bloquear_ip', ?)`,
+          [companyId, r.wazuh_id, r.src_ip]
+        )
+        ok++
+      } catch { fail++ }
+    }
+
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'edr', company_id: companyId,
+      descripcion: `Bloqueo masivo: ${ok} IP(s) bloqueada(s)${fail ? `, ${fail} fallida(s)` : ''}`,
+    })
+
+    res.json({
+      success: true, total: rows.length, bloqueadas: ok, fallidas: fail,
+      message: rows.length === 0 ? 'No hay IPs para bloquear' : `${ok} IP(s) bloqueada(s)${fail ? `, ${fail} fallida(s) (agentes desconectados)` : ''}`,
+    })
+  } catch (err) {
+    res.status(502).json({ error: err.message || 'No se pudo ejecutar el bloqueo masivo' })
+  }
 })
 
 // GET /sca — cumplimiento CIS/SCA por agente. Se arma desde el último resumen
@@ -212,6 +271,12 @@ router.post('/agents/:wazuhId/responder', async (req, res) => {
 
     const args = cfg.needsTarget ? [String(target)] : []
     await wazuhApi.activeResponse(wazuhId, cfg.command, args)
+
+    // Registrar la corrección (para el contador/gráfico del panel)
+    await centralDB.execute(
+      `INSERT INTO edr_responses (company_id, wazuh_id, action, target) VALUES (?, ?, ?, ?)`,
+      [req.company.id, wazuhId, action, target ?? null]
+    ).catch(() => {})
 
     await registrarActividad({
       req, accion: 'editar', modulo: 'edr',

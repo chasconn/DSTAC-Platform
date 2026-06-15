@@ -56,7 +56,19 @@ async function main() {
     ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
 
-  console.log('✓ Tablas EDR listas (edr_agents, edr_alerts)')
+  await centralDB.query(`
+    CREATE TABLE IF NOT EXISTS edr_responses (
+      id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+      company_id  INT          NULL,
+      wazuh_id    VARCHAR(10)  NULL,
+      action      VARCHAR(40)  NULL,
+      target      VARCHAR(120) NULL,
+      created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+      KEY idx_company_time (company_id, created_at)
+    ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `)
+
+  console.log('✓ Tablas EDR listas (edr_agents, edr_alerts, edr_responses)')
 }
 
 main().then(() => process.exit(0)).catch(err => { console.error('✗', err.message); process.exit(1) })
