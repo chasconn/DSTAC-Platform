@@ -3,36 +3,67 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
 
-// Color por severidad del nivel de regla Wazuh (0–15).
+// ── Helpers de estilo / datos ─────────────────────────────────────────────────
 function nivelStyle(lvl) {
   if (lvl >= 12) return { label: 'Crítico', color: '#791F1F', bg: '#FCEBEB' }
-  if (lvl >= 7)  return { label: 'Alto',    color: '#633806', bg: '#FAEEDA' }
-  if (lvl >= 4)  return { label: 'Medio',   color: '#7A5C00', bg: '#FFFBF0' }
+  if (lvl >= 7)  return { label: 'Alto',    color: '#854F0B', bg: '#FAEEDA' }
+  if (lvl >= 4)  return { label: 'Medio',   color: '#7A5C00', bg: '#FFF6DD' }
   return { label: 'Bajo', color: '#27500A', bg: '#EAF3DE' }
 }
-
-// Color del score de cumplimiento CIS/SCA.
-function scoreStyle(score) {
-  if (score >= 80) return { color: '#27500A', bg: '#EAF3DE', track: '#CDE5B5' }
-  if (score >= 50) return { color: '#7A5C00', bg: '#FFFBF0', track: '#F0E2B0' }
-  return { color: '#791F1F', bg: '#FCEBEB', track: '#F2C9C9' }
+function scoreColor(s) {
+  if (s >= 80) return '#1D9E75'
+  if (s >= 50) return '#C98A1E'
+  return '#D8543F'
 }
-
 function parseJsonArr(v) {
   if (!v) return []
   if (Array.isArray(v)) return v
   try { const p = JSON.parse(v); return Array.isArray(p) ? p : [] } catch { return [] }
 }
-
 function fechaHora(d) {
   if (!d) return '—'
-  const opts = { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }
-  // mysql2 serializa los DATETIME como ISO con Z; new Date() los parsea directo.
+  const opts = { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }
   let date = new Date(d)
-  // Fallback por si llega "YYYY-MM-DD HH:MM:SS" sin zona (se asume UTC).
   if (isNaN(date.getTime())) date = new Date(String(d).replace(' ', 'T') + 'Z')
-  if (isNaN(date.getTime())) return '—'
-  return date.toLocaleString('es-CL', opts)
+  return isNaN(date.getTime()) ? '—' : date.toLocaleString('es-CL', opts)
+}
+
+// ── Mini-gráficos SVG (sin librerías) ──────────────────────────────────────────
+function Donut({ segments, total, size = 150 }) {
+  const r = size / 2 - 15, cx = size / 2, cy = size / 2, circ = 2 * Math.PI * r
+  let offset = 0
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#EFEDE6" strokeWidth="13" />
+      {total > 0 && segments.map((s, i) => {
+        const len = (s.value / total) * circ
+        const el = (
+          <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth="13"
+            strokeDasharray={`${len} ${circ - len}`} strokeDashoffset={-offset}
+            transform={`rotate(-90 ${cx} ${cy})`} style={{ transition: 'stroke-dasharray .6s ease' }} />
+        )
+        offset += len
+        return el
+      })}
+      <text x={cx} y={cy - 1} textAnchor="middle" fontSize="30" fontWeight="800" fill="#2C2C2A">{total}</text>
+      <text x={cx} y={cy + 17} textAnchor="middle" fontSize="10.5" fill="#9A988F">alertas</text>
+    </svg>
+  )
+}
+
+function Ring({ pct, size = 92 }) {
+  const r = size / 2 - 7, cx = size / 2, cy = size / 2, circ = 2 * Math.PI * r
+  const len = (Math.max(0, Math.min(100, pct)) / 100) * circ
+  const col = scoreColor(pct)
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#EFEDE6" strokeWidth="7" />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke={col} strokeWidth="7" strokeLinecap="round"
+        strokeDasharray={`${len} ${circ - len}`} transform={`rotate(-90 ${cx} ${cy})`}
+        style={{ transition: 'stroke-dasharray .7s ease' }} />
+      <text x={cx} y={cy + 6} textAnchor="middle" fontSize="21" fontWeight="800" fill={col}>{pct}%</text>
+    </svg>
+  )
 }
 
 export default function EdrPage() {
@@ -87,7 +118,7 @@ export default function EdrPage() {
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
-    setTimeout(() => setToast(null), 3200)
+    setTimeout(() => setToast(null), 3400)
   }
 
   async function responder(wazuhId, action, target, label) {
@@ -120,54 +151,109 @@ export default function EdrPage() {
     )
   }
 
-  const STAT_CARDS = stats ? [
-    { label: 'Agentes activos', value: `${stats.agentes.activos}/${stats.agentes.total}`, color: '#0F6E56' },
-    { label: 'Alertas 24h',     value: stats.alertas.ultimas_24h, color: '#185FA5' },
-    { label: 'Críticas',        value: stats.alertas.criticas,    color: '#791F1F' },
-    { label: 'Altas',           value: stats.alertas.altas,       color: '#854F0B' },
-    { label: 'Incidentes',      value: stats.alertas.incidentes ?? 0, color: '#3C3489' },
+  // ── Agregaciones para los gráficos ──────────────────────────────────────────
+  const dist = { crit: 0, alto: 0, medio: 0, bajo: 0 }
+  alerts.forEach(a => {
+    if (a.rule_level >= 12) dist.crit++
+    else if (a.rule_level >= 7) dist.alto++
+    else if (a.rule_level >= 4) dist.medio++
+    else dist.bajo++
+  })
+  const donutSegs = [
+    { label: 'Crítico', value: dist.crit,  color: '#D8543F' },
+    { label: 'Alto',    value: dist.alto,  color: '#E0992E' },
+    { label: 'Medio',   value: dist.medio, color: '#E6C34D' },
+    { label: 'Bajo',    value: dist.bajo,  color: '#5DA63A' },
+  ]
+  const donutTotal = alerts.length
+
+  const tacticCount = {}
+  alerts.forEach(a => parseJsonArr(a.mitre_tactics).forEach(t => { tacticCount[t] = (tacticCount[t] || 0) + 1 }))
+  const topTactics = Object.entries(tacticCount).map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value).slice(0, 6)
+  const tacticMax = Math.max(...topTactics.map(t => t.value), 1)
+
+  const KPIS = stats ? [
+    { label: 'Agentes activos', value: `${stats.agentes.activos}/${stats.agentes.total}`, color: '#0F6E56', icon: IconShield },
+    { label: 'Alertas 24h',     value: stats.alertas.ultimas_24h, color: '#185FA5', icon: IconPulse },
+    { label: 'Críticas',        value: stats.alertas.criticas,    color: '#D8543F', icon: IconFlame },
+    { label: 'Altas',           value: stats.alertas.altas,       color: '#C98A1E', icon: IconWarn },
+    { label: 'Incidentes',      value: stats.alertas.incidentes ?? 0, color: '#534AB7', icon: IconBolt },
   ] : []
 
+  const visibles = nivelMin ? alerts.filter(a => a.rule_level >= Number(nivelMin)) : alerts
+
   return (
-    <div style={{ padding: 28, maxWidth: 1200, margin: '0 auto' }}>
-      {/* Encabezado */}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>EDR · Detección y respuesta</h1>
-        <p style={{ fontSize: 13, color: '#888780', margin: '4px 0 0' }}>
-          Telemetría de endpoints de {empresaActiva.name} (Wazuh)
-        </p>
+    <div style={{ padding: 26, maxWidth: 1240, margin: '0 auto' }}>
+      <style>{`
+        @keyframes edrPulse { 0%{box-shadow:0 0 0 0 rgba(29,158,117,.55)} 70%{box-shadow:0 0 0 7px rgba(29,158,117,0)} 100%{box-shadow:0 0 0 0 rgba(29,158,117,0)} }
+        @keyframes edrFade { from{opacity:0; transform:translateY(7px)} to{opacity:1; transform:none} }
+        .edr-card{ animation: edrFade .35s ease both; transition: transform .15s ease, box-shadow .15s ease; }
+        .edr-lift:hover{ transform: translateY(-3px); box-shadow: 0 16px 36px -14px rgba(60,52,137,.32) !important; }
+        .edr-row{ transition: background .12s ease; }
+        .edr-row:hover{ background: #FAFAF7; }
+        .edr-dot-live{ animation: edrPulse 2.2s infinite; }
+        .edr-bar{ transition: width .7s cubic-bezier(.2,.8,.2,1); }
+      `}</style>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg,#3C3489,#6E63D8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px -8px rgba(60,52,137,.6)' }}>
+            <IconShield color="#fff" size={24} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: 23, fontWeight: 800, color: '#2C2C2A', margin: 0, letterSpacing: -0.3 }}>EDR · Detección y respuesta</h1>
+            <p style={{ fontSize: 12.5, color: '#888780', margin: '3px 0 0' }}>Telemetría de endpoints de {empresaActiva.name} · <span style={{ color: '#7F77DD' }}>Wazuh</span></p>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 13px', borderRadius: 20, background: '#EAF6F1', color: '#0F6E56', fontSize: 12, fontWeight: 700 }}>
+            <span className="edr-dot-live" style={{ width: 8, height: 8, borderRadius: '50%', background: '#1D9E75' }} />
+            Protección activa
+          </span>
+          <button onClick={cargar} disabled={loading} title="Actualizar"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 10, border: '1px solid #e2e0d8', background: '#fff', color: '#444441', cursor: loading ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 600 }}>
+            <IconRefresh color="#534AB7" /> {loading ? 'Cargando…' : 'Actualizar'}
+          </button>
+        </div>
       </div>
 
       {toast && (
-        <div style={{ marginBottom: 14, background: toast.type === 'error' ? '#FCEBEB' : '#EAF3DE', borderRadius: 8, padding: '9px 14px', fontSize: 12.5, color: toast.type === 'error' ? '#791F1F' : '#27500A', fontWeight: 500 }}>
+        <div style={{ marginBottom: 16, background: toast.type === 'error' ? '#FCEBEB' : '#EAF6F1', borderRadius: 10, padding: '10px 15px', fontSize: 13, color: toast.type === 'error' ? '#791F1F' : '#0F6E56', fontWeight: 600, animation: 'edrFade .3s ease' }}>
           {toast.msg}
         </div>
       )}
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 18 }}>
-        {STAT_CARDS.map(s => (
-          <div key={s.label} style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', padding: '14px 18px' }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: '#888780', marginTop: 4 }}>{s.label}</div>
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(168px, 1fr))', gap: 14, marginBottom: 18 }}>
+        {KPIS.map(k => (
+          <div key={k.label} className="edr-card edr-lift" style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: k.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <k.icon color={k.color} />
+              </div>
+              <div>
+                <div style={{ fontSize: 25, fontWeight: 800, color: '#2C2C2A', lineHeight: 1 }}>{k.value}</div>
+                <div style={{ fontSize: 11.5, color: '#888780', marginTop: 3 }}>{k.label}</div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Agentes sin asignar */}
+      {/* Banner sin asignar */}
       {sinAsig.length > 0 && (
-        <div style={{ marginBottom: 18, background: '#FFFBF0', border: '1px solid #EAD9A6', borderRadius: 12, padding: '14px 18px' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#633806', marginBottom: 8 }}>
+        <div className="edr-card" style={{ ...cardStyle, marginBottom: 18, background: '#FFFBF0', borderColor: '#EAD9A6' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#633806', marginBottom: 10 }}>
             {sinAsig.length} agente{sinAsig.length !== 1 ? 's' : ''} sin asignar
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {sinAsig.map(a => (
               <div key={a.wazuh_id} style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: '#2C2C2A' }}>
-                  <strong>{a.wazuh_id}</strong> · {a.name || 'sin nombre'} · {a.ip || '—'}
-                </span>
+                <span style={{ fontSize: 12.5, color: '#2C2C2A' }}><strong>{a.wazuh_id}</strong> · {a.name || 'sin nombre'} · {a.ip || '—'}</span>
                 <button onClick={() => asignar(a.wazuh_id)}
-                  style={{ padding: '5px 12px', borderRadius: 7, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                  style={{ padding: '5px 13px', borderRadius: 8, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
                   Asignar a {empresaActiva.name}
                 </button>
               </div>
@@ -176,157 +262,191 @@ export default function EdrPage() {
         </div>
       )}
 
-      {/* Agentes asignados */}
-      <h2 style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', margin: '0 0 10px' }}>Agentes</h2>
-      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden', marginBottom: 24 }}>
-        {agents.length === 0 ? (
-          <div style={{ padding: 30, textAlign: 'center', color: '#888780', fontSize: 13 }}>
-            Aún no hay agentes asignados a esta empresa.
-          </div>
-        ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-            <thead>
-              <tr style={{ background: '#f8f7f4', color: '#888780', textAlign: 'left' }}>
-                <th style={th}>ID</th><th style={th}>Nombre</th><th style={th}>IP</th>
-                <th style={th}>Estado</th><th style={th}>Último contacto</th><th style={th}>Alertas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {agents.map(a => (
-                <tr key={a.wazuh_id} style={{ borderTop: '1px solid #f1efe8' }}>
-                  <td style={td}><strong>{a.wazuh_id}</strong></td>
-                  <td style={td}>{a.name || '—'}</td>
-                  <td style={td}>{a.ip || '—'}</td>
-                  <td style={td}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: a.status === 'active' ? '#1D9E75' : '#C0392B' }} />
-                      {a.status === 'active' ? 'Activo' : 'Desconectado'}
-                    </span>
-                  </td>
-                  <td style={td}>{fechaHora(a.last_keepalive)}</td>
-                  <td style={td}>{a.total_alertas ?? 0}</td>
-                </tr>
+      {/* Overview: severidad + MITRE */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1fr) minmax(300px, 1.6fr)', gap: 14, marginBottom: 18 }}>
+        <div className="edr-card" style={cardStyle}>
+          <div style={titleStyle}>Distribución por severidad</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 6 }}>
+            <Donut segments={donutSegs} total={donutTotal} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {donutSegs.map(s => (
+                <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color }} />
+                  <span style={{ color: '#444441', minWidth: 52 }}>{s.label}</span>
+                  <strong style={{ color: '#2C2C2A' }}>{s.value}</strong>
+                </div>
               ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+            </div>
+          </div>
+        </div>
 
-      {/* Cumplimiento CIS / SCA */}
-      {sca.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', margin: '0 0 4px' }}>Cumplimiento (CIS / SCA)</h2>
-          <p style={{ fontSize: 12, color: '#888780', margin: '0 0 12px' }}>
-            Evaluación de configuración segura por endpoint (benchmark CIS de Wazuh).
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-            {sca.map((s, i) => {
-              const ss  = scoreStyle(s.score)
-              const pct = Math.max(0, Math.min(100, s.score))
-              return (
-                <div key={`${s.wazuh_id}-${s.policy_id}-${i}`} style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', padding: '16px 18px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A' }}>{s.agent_name || s.wazuh_id}</div>
-                      <div style={{ fontSize: 11.5, color: '#888780', marginTop: 2, lineHeight: 1.4 }}>{s.policy || s.policy_id}</div>
-                    </div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: ss.color, lineHeight: 1, flexShrink: 0 }}>{s.score}%</div>
+        <div className="edr-card" style={cardStyle}>
+          <div style={titleStyle}>Top tácticas MITRE ATT&CK</div>
+          {topTactics.length === 0 ? (
+            <div style={{ color: '#9A988F', fontSize: 12.5, padding: '18px 0' }}>Aún no hay tácticas detectadas en las alertas cargadas.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 8 }}>
+              {topTactics.map((t, i) => (
+                <div key={t.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#444441', marginBottom: 4 }}>
+                    <span>{t.label}</span><strong style={{ color: '#2C2C2A' }}>{t.value}</strong>
                   </div>
-                  {/* Barra de score */}
-                  <div style={{ height: 8, borderRadius: 6, background: ss.track, marginTop: 12, overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: ss.color, borderRadius: 6 }} />
-                  </div>
-                  {/* Conteos */}
-                  <div style={{ display: 'flex', gap: 14, marginTop: 12, fontSize: 12 }}>
-                    <span style={{ color: '#27500A', fontWeight: 600 }}>✓ {s.passed} aprobados</span>
-                    <span style={{ color: '#791F1F', fontWeight: 600 }}>✗ {s.failed} fallidos</span>
-                    <span style={{ color: '#888780' }}>de {s.total_checks}</span>
+                  <div style={{ height: 8, borderRadius: 6, background: '#F1EFE8', overflow: 'hidden' }}>
+                    <div className="edr-bar" style={{ width: `${(t.value / tacticMax) * 100}%`, height: '100%', borderRadius: 6, background: `linear-gradient(90deg,#534AB7,#8B82E8)` }} />
                   </div>
                 </div>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Agentes */}
+      <div style={{ ...titleStyle, fontSize: 15, margin: '4px 2px 12px' }}>Agentes</div>
+      {agents.length === 0 ? (
+        <div className="edr-card" style={{ ...cardStyle, textAlign: 'center', color: '#9A988F', fontSize: 13, padding: 28, marginBottom: 24 }}>
+          Aún no hay agentes asignados a esta empresa.
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 14, marginBottom: 24 }}>
+          {agents.map(a => {
+            const activo = a.status === 'active'
+            return (
+              <div key={a.wazuh_id} className="edr-card edr-lift" style={cardStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className={activo ? 'edr-dot-live' : ''} style={{ width: 10, height: 10, borderRadius: '50%', background: activo ? '#1D9E75' : '#C0392B', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#2C2C2A' }}>{a.name || a.wazuh_id}</div>
+                      <div style={{ fontSize: 11, color: '#9A988F' }}>ID {a.wazuh_id} · {a.ip || 's/IP'}</div>
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: activo ? '#EAF6F1' : '#FCEBEB', color: activo ? '#0F6E56' : '#791F1F' }}>
+                    {activo ? 'Activo' : 'Desconectado'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1EFE8', fontSize: 11.5, color: '#888780' }}>
+                  <span><strong style={{ color: '#534AB7', fontSize: 14 }}>{a.total_alertas ?? 0}</strong> alertas</span>
+                  <span>visto {fechaHora(a.last_keepalive)}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
+      {/* Cumplimiento CIS/SCA */}
+      {sca.length > 0 && (
+        <>
+          <div style={{ ...titleStyle, fontSize: 15, margin: '4px 2px 4px' }}>Cumplimiento (CIS / SCA)</div>
+          <p style={{ fontSize: 12, color: '#9A988F', margin: '0 2px 12px' }}>Evaluación de configuración segura por endpoint (benchmark CIS de Wazuh).</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14, marginBottom: 24 }}>
+            {sca.map((s, i) => (
+              <div key={`${s.wazuh_id}-${i}`} className="edr-card edr-lift" style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 16 }}>
+                <Ring pct={s.score} />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#2C2C2A' }}>{s.agent_name || s.wazuh_id}</div>
+                  <div style={{ fontSize: 11, color: '#9A988F', margin: '2px 0 8px', lineHeight: 1.4 }}>{s.policy || s.policy_id}</div>
+                  <div style={{ fontSize: 12 }}>
+                    <span style={{ color: '#1D9E75', fontWeight: 700 }}>✓ {s.passed}</span>
+                    <span style={{ color: '#9A988F' }}> / </span>
+                    <span style={{ color: '#D8543F', fontWeight: 700 }}>✗ {s.failed}</span>
+                    <span style={{ color: '#9A988F' }}> de {s.total_checks}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Alertas */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 10 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Alertas</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ ...titleStyle, fontSize: 15, margin: '0 2px' }}>Alertas recientes</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <select value={nivelMin} onChange={e => setNivelMin(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 12, background: '#fff' }}>
+          <select value={nivelMin} onChange={e => setNivelMin(e.target.value)} style={inputStyle}>
             <option value="">Todos los niveles</option>
             <option value="4">Nivel ≥ 4 (medio)</option>
             <option value="7">Nivel ≥ 7 (alto)</option>
             <option value="12">Nivel ≥ 12 (crítico)</option>
           </select>
           <input value={busca} onChange={e => setBusca(e.target.value)} placeholder="Buscar…"
-            onKeyDown={e => e.key === 'Enter' && cargar()}
-            style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 12, width: 160 }} />
-          <button onClick={cargar}
-            style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-            Filtrar
-          </button>
+            onKeyDown={e => e.key === 'Enter' && cargar()} style={{ ...inputStyle, width: 150 }} />
+          <button onClick={cargar} style={{ padding: '8px 15px', borderRadius: 9, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Filtrar</button>
         </div>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+      <div className="edr-card" style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ padding: 30, textAlign: 'center', color: '#888780', fontSize: 13 }}>Cargando…</div>
-        ) : alerts.length === 0 ? (
-          <div style={{ padding: 30, textAlign: 'center', color: '#888780', fontSize: 13 }}>
-            No hay alertas. Cuando un agente enrolado genere eventos, aparecerán aquí.
-          </div>
+          <div style={{ padding: 32, textAlign: 'center', color: '#9A988F', fontSize: 13 }}>Cargando…</div>
+        ) : visibles.length === 0 ? (
+          <div style={{ padding: 32, textAlign: 'center', color: '#9A988F', fontSize: 13 }}>No hay alertas. Cuando un agente genere eventos, aparecerán aquí.</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
-            <thead>
-              <tr style={{ background: '#f8f7f4', color: '#888780', textAlign: 'left' }}>
-                <th style={th}>Fecha</th><th style={th}>Nivel</th><th style={th}>Agente</th>
-                <th style={th}>Descripción</th><th style={th}>MITRE</th><th style={th}>Origen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alerts.map(al => {
-                const ns = nivelStyle(al.rule_level)
-                const tactics = parseJsonArr(al.mitre_tactics)
-                return (
-                  <tr key={al.id} style={{ borderTop: '1px solid #f1efe8' }}>
-                    <td style={td}>{fechaHora(al.event_time)}</td>
-                    <td style={td}>
-                      <span style={{ background: ns.bg, color: ns.color, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20 }}>
-                        {al.rule_level} · {ns.label}
-                      </span>
-                    </td>
-                    <td style={td}>{al.agent_name || al.wazuh_id}</td>
-                    <td style={{ ...td, maxWidth: 360 }}>
-                      {al.rule_description || '—'}
-                      {al.incidente_id ? (
-                        <span style={{ marginLeft: 8, background: '#EEEDFE', color: '#3C3489', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>
-                          → Incidente #{al.incidente_id}
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+              <thead>
+                <tr style={{ background: '#FAFAF7', color: '#9A988F', textAlign: 'left' }}>
+                  <th style={th}>Fecha</th><th style={th}>Nivel</th><th style={th}>Agente</th>
+                  <th style={th}>Descripción</th><th style={th}>MITRE</th><th style={th}>Origen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibles.map(al => {
+                  const ns = nivelStyle(al.rule_level)
+                  const tactics = parseJsonArr(al.mitre_tactics)
+                  return (
+                    <tr key={al.id} className="edr-row" style={{ borderTop: '1px solid #F1EFE8' }}>
+                      <td style={td}>{fechaHora(al.event_time)}</td>
+                      <td style={td}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: ns.bg, color: ns.color, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20 }}>
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: ns.color }} />{al.rule_level} · {ns.label}
                         </span>
-                      ) : null}
-                    </td>
-                    <td style={td}>{tactics.length ? tactics.join(', ') : '—'}</td>
-                    <td style={td}>
-                      {al.src_ip || '—'}
-                      {al.src_ip && al.wazuh_id && (
-                        <button onClick={() => responder(al.wazuh_id, 'bloquear_ip', al.src_ip, `Bloquear IP ${al.src_ip}`)}
-                          title="Bloquear esta IP en el endpoint (respuesta activa)"
-                          style={{ marginLeft: 6, padding: '2px 8px', borderRadius: 6, border: '1px solid #f0c4c4', background: '#FDF4F4', color: '#791F1F', cursor: 'pointer', fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
-                          Bloquear
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td style={td}>{al.agent_name || al.wazuh_id}</td>
+                      <td style={{ ...td, maxWidth: 340 }}>
+                        {al.rule_description || '—'}
+                        {al.incidente_id ? (
+                          <span style={{ marginLeft: 8, background: '#EEEDFE', color: '#3C3489', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>→ Incidente #{al.incidente_id}</span>
+                        ) : null}
+                      </td>
+                      <td style={td}>
+                        {tactics.length ? tactics.map(t => (
+                          <span key={t} style={{ display: 'inline-block', background: '#F1EFE8', color: '#6A675E', fontSize: 10, padding: '1px 7px', borderRadius: 5, marginRight: 4, marginBottom: 3 }}>{t}</span>
+                        )) : '—'}
+                      </td>
+                      <td style={td}>
+                        {al.src_ip || '—'}
+                        {al.src_ip && al.wazuh_id && (
+                          <button onClick={() => responder(al.wazuh_id, 'bloquear_ip', al.src_ip, `Bloquear IP ${al.src_ip}`)}
+                            title="Bloquear esta IP en el endpoint (respuesta activa)"
+                            style={{ marginLeft: 6, padding: '2px 9px', borderRadius: 6, border: '1px solid #f0c4c4', background: '#FDF4F4', color: '#791F1F', cursor: 'pointer', fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            ⨯ Bloquear
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
   )
 }
 
-const th = { padding: '10px 14px', fontWeight: 600, fontSize: 11.5, whiteSpace: 'nowrap' }
-const td = { padding: '9px 14px', color: '#2C2C2A', verticalAlign: 'top' }
+// ── estilos compartidos ─────────────────────────────────────────────────────
+const cardStyle = { background: '#fff', borderRadius: 16, border: '1px solid #ECEAE3', padding: '16px 18px', boxShadow: '0 1px 2px rgba(0,0,0,.03), 0 10px 26px -16px rgba(60,52,137,.18)' }
+const titleStyle = { fontSize: 13, fontWeight: 700, color: '#2C2C2A' }
+const inputStyle = { padding: '8px 11px', borderRadius: 9, border: '1px solid #e2e0d8', fontSize: 12, background: '#fff' }
+const th = { padding: '11px 15px', fontWeight: 600, fontSize: 11, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: .3 }
+const td = { padding: '10px 15px', color: '#2C2C2A', verticalAlign: 'top' }
+
+// ── íconos ───────────────────────────────────────────────────────────────────
+function IconShield({ color, size = 18 }) { return (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>) }
+function IconPulse({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4" /></svg>) }
+function IconFlame({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" /></svg>) }
+function IconWarn({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>) }
+function IconBolt({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>) }
+function IconRefresh({ color }) { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>) }

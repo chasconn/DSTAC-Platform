@@ -215,14 +215,34 @@ EOF
     $PKG install -y wazuh-agent
 }
 
+install_suse() {
+  rpm --import https://packages.wazuh.com/key/GPG-KEY-WAZUH 2>/dev/null || true
+  cat > /etc/zypp/repos.d/wazuh.repo <<EOF
+[wazuh]
+gpgcheck=1
+gpgkey=https://packages.wazuh.com/key/GPG-KEY-WAZUH
+enabled=1
+name=Wazuh repository
+baseurl=https://packages.wazuh.com/${WAZUH_REPO}/yum/
+EOF
+  WAZUH_MANAGER="$WAZUH_MANAGER_IP" \
+  WAZUH_REGISTRATION_PASSWORD="$WAZUH_ENROLL_PASSWORD" \
+  WAZUH_AGENT_NAME="$AGENT_NAME" \
+  ${AGENT_GROUP:+WAZUH_AGENT_GROUP="$AGENT_GROUP"} \
+    zypper -n install wazuh-agent
+}
+
 if command -v apt-get >/dev/null 2>&1; then
   c_inf "Distro tipo Debian/Ubuntu/Parrot/Kali/Mint → instalando…"
   install_debian
-elif command -v yum >/dev/null 2>&1 || command -v dnf >/dev/null 2>&1; then
+elif command -v zypper >/dev/null 2>&1; then
+  c_inf "Distro tipo SUSE/openSUSE → instalando…"
+  install_suse
+elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
   c_inf "Distro tipo RHEL/CentOS/Rocky/Alma/Fedora → instalando…"
   install_rhel
 else
-  c_err "Gestor de paquetes no soportado (ni apt ni yum/dnf)."
+  c_err "Gestor de paquetes no soportado (apt, dnf/yum o zypper)."
   exit 1
 fi
 
