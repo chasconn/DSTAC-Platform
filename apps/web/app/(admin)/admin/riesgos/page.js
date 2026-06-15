@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../../lib/api'
+import BotonInforme from '../../../../components/admin/BotonInforme'
 import { NIVEL, ESTADO, CATEGORIA } from './components/constants'
 import RiesgosStats  from './components/RiesgosStats'
 import MatrizRiesgos from './components/MatrizRiesgos'
@@ -150,7 +151,7 @@ export default function RiesgosPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#2C2C2A' }}>Riesgos</h1>
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#2C2C2A' }}>Riesgos</h1> <BotonInforme tipo="riesgos" slug={slug} />
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888780' }}>{empresaActiva ? `Gestión de riesgos · ${empresaActiva.name}` : 'Selecciona una empresa'}</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

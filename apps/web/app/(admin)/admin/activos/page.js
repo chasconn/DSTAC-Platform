@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { api } from '../../../../lib/api'
+import BotonInforme from '../../../../components/admin/BotonInforme'
 import ActivosStats       from './components/ActivosStats'
 import ActivosToolbar     from './components/ActivosToolbar'
 import ActivosTabla       from './components/ActivosTabla'
@@ -148,7 +149,7 @@ export default function ActivosPage() {
           <div style={{ marginBottom: 24 }}>
             <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>
               Activos
-            </h1>
+            </h1> <BotonInforme tipo="activos" slug={slug} />
             <p style={{ fontSize: 13, color: '#888780', margin: '4px 0 0' }}>
               {empresaActiva
                 ? `Inventario de activos de ${empresaActiva.name}`

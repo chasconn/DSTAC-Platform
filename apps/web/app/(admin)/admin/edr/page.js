@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
+import BotonInforme from '../../../../components/admin/BotonInforme'
 
 // ── Helpers de estilo / datos ─────────────────────────────────────────────────
 function nivelStyle(lvl) {
@@ -288,6 +289,7 @@ export default function EdrPage() {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 10, border: '1px solid #e2e0d8', background: '#fff', color: '#444441', cursor: loading ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 600 }}>
             <IconRefresh color="#534AB7" /> {loading ? 'Cargando…' : 'Actualizar'}
           </button>
+          <BotonInforme tipo="edr" slug={slug} />
         </div>
       </div>
 

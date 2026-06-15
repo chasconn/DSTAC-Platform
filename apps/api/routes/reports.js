@@ -13,6 +13,9 @@ const REPORT_MODULES = {
   identidades: () => require('../services/reports/identidades'),
   incidentes:  () => require('../services/reports/incidentes'),
   riesgos:     () => require('../services/reports/riesgos'),
+  iso:         () => require('../services/reports/iso'),
+  nist:        () => require('../services/reports/nist'),
+  edr:         () => require('../services/reports/edr'),
 }
 
 router.get('/:reporteId', requireAuth, requireDstacRole, resolveTenant, async (req, res, next) => {

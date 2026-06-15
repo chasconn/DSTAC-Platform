@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { api } from '../../../../lib/api'
+import BotonInforme from '../../../../components/admin/BotonInforme'
 import IdentidadesStats      from './components/IdentidadesStats'
 import IdentidadesToolbar    from './components/IdentidadesToolbar'
 import IdentidadesTabla      from './components/IdentidadesTabla'
@@ -125,7 +126,7 @@ export default function IdentidadesPage() {
 
           {/* Encabezado */}
           <div style={{ marginBottom: 20 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Identidades</h1>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Identidades</h1> <BotonInforme tipo="identidades" slug={slug} />
             <p style={{ fontSize: 13, color: '#888780', margin: '4px 0 0' }}>
               {empresaActiva ? `Cuentas digitales de ${empresaActiva.name}` : 'Selecciona una empresa para continuar'}
             </p>
