@@ -27,20 +27,24 @@ WAZUH_REPO="4.x"   # canal estable
 
 AGENT_NAME=""
 AGENT_GROUP=""
+AGENT_COMPANY=""
 
 c_ok()  { printf "\033[0;32m%s\033[0m\n" "$1"; }
 c_err() { printf "\033[0;31m%s\033[0m\n" "$1"; }
 c_inf() { printf "\033[0;36m%s\033[0m\n" "$1"; }
 
 usage() {
-  echo "Uso: sudo $0 [-n NOMBRE_AGENTE] [-g GRUPO]"
+  echo "Uso: sudo $0 [-n NOMBRE_AGENTE] [-c SLUG_EMPRESA] [-g GRUPO_WAZUH]"
+  echo "  -c SLUG  asigna el agente a esa empresa del portal automáticamente"
+  echo "           (escribe la label dstac_company=SLUG; sin esto queda 'sin asignar')."
   exit 1
 }
 
-while getopts ":n:g:h" opt; do
+while getopts ":n:g:c:h" opt; do
   case "$opt" in
     n) AGENT_NAME="$OPTARG" ;;
     g) AGENT_GROUP="$OPTARG" ;;
+    c) AGENT_COMPANY="$OPTARG" ;;
     h) usage ;;
     *) usage ;;
   esac
@@ -70,7 +74,8 @@ AGENT_NAME="$(echo "$AGENT_NAME" | tr ' ' '_' | tr -cd 'A-Za-z0-9_.-')"
 echo
 c_inf "Agente:  $AGENT_NAME"
 c_inf "Manager: $WAZUH_MANAGER_IP"
-[ -n "$AGENT_GROUP" ] && c_inf "Grupo:   $AGENT_GROUP"
+[ -n "$AGENT_COMPANY" ] && c_inf "Empresa: $AGENT_COMPANY (auto-asignación)"
+[ -n "$AGENT_GROUP" ]   && c_inf "Grupo:   $AGENT_GROUP"
 echo
 
 # ── Verificar conectividad a los puertos del Manager ──────────────────
@@ -87,6 +92,21 @@ check_port 1514
 check_port 1515
 echo
 
+# ── Etiqueta de empresa (auto-asignación en el portal) ────────────────
+# Escribe la label dstac_company=<slug> en el ossec.conf del agente. El webhook
+# del portal la lee en cada alerta y asigna el agente a esa empresa. Idempotente.
+set_company_label() {
+  [ -z "$AGENT_COMPANY" ] && return 0
+  local conf=/var/ossec/etc/ossec.conf
+  [ -f "$conf" ] || return 0
+  if grep -q "dstac_company" "$conf"; then
+    sed -i "s|<label key=\"dstac_company\">[^<]*</label>|<label key=\"dstac_company\">${AGENT_COMPANY}</label>|" "$conf"
+  else
+    sed -i "s|</ossec_config>|  <labels>\n    <label key=\"dstac_company\">${AGENT_COMPANY}</label>\n  </labels>\n</ossec_config>|" "$conf"
+  fi
+  c_inf "   etiqueta de empresa: dstac_company=${AGENT_COMPANY}"
+}
+
 # ── ¿Ya está instalado? → solo (re)enrolar y reiniciar ────────────────
 if [ -d /var/ossec ] && command -v /var/ossec/bin/wazuh-control >/dev/null 2>&1; then
   c_inf "wazuh-agent ya está instalado → reconfigurando…"
@@ -98,6 +118,7 @@ if [ -d /var/ossec ] && command -v /var/ossec/bin/wazuh-control >/dev/null 2>&1;
   GROUP_ARG=""; [ -n "$AGENT_GROUP" ] && GROUP_ARG="-G $AGENT_GROUP"
   # shellcheck disable=SC2086
   /var/ossec/bin/agent-auth -m "$WAZUH_MANAGER_IP" -P "$WAZUH_ENROLL_PASSWORD" -A "$AGENT_NAME" $GROUP_ARG
+  set_company_label
   /var/ossec/bin/wazuh-control start >/dev/null 2>&1 || true
   systemctl restart wazuh-agent >/dev/null 2>&1 || true
   c_ok "✓ Reconfigurado como '$AGENT_NAME' y reiniciado."
@@ -157,6 +178,9 @@ else
   exit 1
 fi
 
+# ── Etiqueta de empresa antes de arrancar ─────────────────────────────
+set_company_label
+
 # ── Arrancar y verificar ──────────────────────────────────────────────
 systemctl daemon-reload >/dev/null 2>&1 || true
 systemctl enable --now wazuh-agent >/dev/null 2>&1 || /var/ossec/bin/wazuh-control start
@@ -168,9 +192,14 @@ if systemctl is-active --quiet wazuh-agent 2>/dev/null || /var/ossec/bin/wazuh-c
   c_ok "  ✓ Agente '$AGENT_NAME' instalado y activo"
   c_ok "════════════════════════════════════════════"
   echo
-  echo "Siguiente paso (DSTAC): en el portal → EDR, asigna el agente"
-  echo "\"$AGENT_NAME\" a la empresa del cliente. Su telemetría empezará a"
-  echo "aparecer en segundos."
+  if [ -n "$AGENT_COMPANY" ]; then
+    echo "El agente se auto-asignará a la empresa '$AGENT_COMPANY' en el portal"
+    echo "en cuanto envíe su primera alerta (label dstac_company)."
+  else
+    echo "Siguiente paso (DSTAC): en el portal → EDR, asigna el agente"
+    echo "\"$AGENT_NAME\" a la empresa del cliente. (Tip: usa -c SLUG para que"
+    echo "se asigne solo)."
+  fi
 else
   c_err "El servicio no quedó activo. Revisa: systemctl status wazuh-agent"
   exit 1

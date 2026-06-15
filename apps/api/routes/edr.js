@@ -83,16 +83,30 @@ router.post('/alerts', async (req, res) => {
     const agentName = s(agent.name, 255)
     const agentIp   = s(agent.ip, 64)
 
-    // 1) Upsert del agente — conserva company_id si ya estaba asignado.
+    // Auto-mapeo a empresa: si el agente trae la label dstac_company=<slug>
+    // (puesta por el instalador), resolvemos la empresa para asignarlo solo.
+    const labelSlug = agent.labels?.dstac_company || null
+    let labelCompanyId = null
+    if (labelSlug) {
+      const [c] = await centralDB.execute(
+        `SELECT id FROM companies WHERE slug = ? AND status = 'active' LIMIT 1`, [labelSlug]
+      )
+      labelCompanyId = c[0]?.id ?? null
+    }
+
+    // 1) Upsert del agente. company_id se asigna desde la label SOLO si aún
+    //    estaba sin asignar (COALESCE conserva una asignación manual previa).
     await centralDB.execute(`
-      INSERT INTO edr_agents (wazuh_id, name, ip, last_keepalive, status)
-      VALUES (?, ?, ?, NOW(), 'active')
+      INSERT INTO edr_agents (wazuh_id, name, ip, group_name, company_id, last_keepalive, status)
+      VALUES (?, ?, ?, ?, ?, NOW(), 'active')
       ON DUPLICATE KEY UPDATE
         name           = COALESCE(VALUES(name), name),
         ip             = COALESCE(VALUES(ip), ip),
+        group_name     = COALESCE(VALUES(group_name), group_name),
+        company_id     = COALESCE(company_id, VALUES(company_id)),
         last_keepalive = NOW(),
         status         = 'active'
-    `, [wazuhId, agentName, agentIp])
+    `, [wazuhId, agentName, agentIp, labelSlug, labelCompanyId])
 
     // 2) Resolver el tenant del agente (NULL = sin asignar todavía).
     const [agRows] = await centralDB.execute(
