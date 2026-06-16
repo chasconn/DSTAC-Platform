@@ -35,13 +35,17 @@ async function recalcularScores(evaluationId) {
 
   for (const fn of fns) {
     const [r] = await centralDB.execute(`
-      SELECT AVG(nca.progress) AS avg_progress
-      FROM nist_control_assessments nca
-      JOIN nist_controls nc    ON nca.control_id  = nc.id
-      JOIN nist_categories ncat ON nc.category_id = ncat.id
-      WHERE nca.evaluation_id = ?
-        AND ncat.function_id  = ?
-        AND nca.status       != 'no_aplica'
+      SELECT AVG(max_progress) AS avg_progress
+      FROM (
+        SELECT nca.control_id, MAX(nca.progress) AS max_progress
+        FROM nist_control_assessments nca
+        JOIN nist_controls nc     ON nca.control_id  = nc.id
+        JOIN nist_categories ncat ON nc.category_id  = ncat.id
+        WHERE nca.evaluation_id = ?
+          AND ncat.function_id  = ?
+          AND nca.status       != 'no_aplica'
+        GROUP BY nca.control_id
+      ) AS scores
     `, [evaluationId, fn.id])
 
     const avg = Number(r[0].avg_progress ?? 0)
@@ -236,12 +240,18 @@ router.put('/assessments/:controlId', async (req, res, next) => {
     )
     const previousData = prev[0] ?? null
 
-    // Calcular progress automáticamente desde checklist si se pasan checklist_items
+    // Calcular progress automáticamente desde checklist si el control tiene checklist real
+    const hasChecklist = checklist_items && typeof checklist_items === 'object' && Object.keys(checklist_items).length > 0
     let computedProgress = progress ?? previousData?.progress ?? 0
-    if (checklist_items && typeof checklist_items === 'object') {
+    if (hasChecklist) {
       const items  = Object.values(checklist_items)
       const done   = items.filter(Boolean).length
-      computedProgress = items.length ? Math.round((done / items.length) * 100) : 0
+      computedProgress = Math.round((done / items.length) * 100)
+    } else if (status === 'implementado') {
+      // Sin checklist, el status manual es la única fuente de verdad del progreso
+      computedProgress = 100
+    } else if (status === 'pendiente') {
+      computedProgress = 0
     }
 
     // Derivar status desde progress si no se pasa explícitamente
@@ -282,6 +292,8 @@ router.put('/assessments/:controlId', async (req, res, next) => {
         comment ?? null])
 
     const totalScore = await recalcularScores(evalId)
+
+    console.log('[NIST] Assessment guardado:', controlId, computedStatus, computedProgress)
 
     res.json({ success: true, progress: computedProgress, status: computedStatus, score_total: totalScore })
   } catch (err) { next(err) }
