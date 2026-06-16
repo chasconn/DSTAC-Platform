@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '../../../../lib/api'
+import BotonInforme from '../../../../components/admin/BotonInforme'
 import { StatusBadge, PlanBadge, getInitials } from '../clientes/components/badges'
 
 export default function AdminDashboard() {
@@ -57,7 +58,7 @@ export default function AdminDashboard() {
 
       {/* Encabezado */}
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Dashboard</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Dashboard</h1> <BotonInforme tipo="brochure" label="Brochure corporativo" />
         <p style={{ fontSize: 13, color: '#888780', margin: '4px 0 0' }}>
           Resumen operacional de la cartera de clientes
         </p>

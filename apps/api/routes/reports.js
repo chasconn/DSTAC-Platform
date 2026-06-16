@@ -16,6 +16,7 @@ const REPORT_MODULES = {
   iso:         () => require('../services/reports/iso'),
   nist:        () => require('../services/reports/nist'),
   edr:         () => require('../services/reports/edr'),
+  brochure:    () => require('../services/reports/brochure'),
 }
 
 router.get('/:reporteId', requireAuth, requireDstacRole, resolveTenant, async (req, res, next) => {

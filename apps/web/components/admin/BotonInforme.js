@@ -43,10 +43,15 @@ export default function BotonInforme({ tipo, slug, label = 'Generar informe' }) 
   const [loading, setLoading] = useState(false)
 
   async function abrir() {
-    if (!slug || loading) return
+    if (loading) return
+    let sl = slug
+    if (!sl && typeof window !== 'undefined') {
+      try { sl = JSON.parse(localStorage.getItem('empresa_activa') || '{}').slug } catch {}
+    }
+    if (!sl) { alert('Selecciona una empresa primero'); return }
     setLoading(true)
     try {
-      const res = await fetch(`/api/reports/${tipo}?format=html`, { credentials: 'include', headers: { 'X-Company-Slug': slug } })
+      const res = await fetch(`/api/reports/${tipo}?format=html`, { credentials: 'include', headers: { 'X-Company-Slug': sl } })
       if (!res.ok) {
         let msg = 'No se pudo generar el informe'
         try { const j = await res.json(); msg = j.message || j.error || msg } catch {}
