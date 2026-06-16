@@ -4,7 +4,7 @@
 // controles ISO. Guarda directamente contra /api/admin/riesgos con X-Company-Slug.
 import { useState, useMemo } from 'react'
 import { apiFetch } from '../../../../../lib/api'
-import { NIVEL, CATEGORIA, TRATAMIENTO, PROB_LABELS, IMP_LABELS, nivelDe } from './constants'
+import { NIVEL, ESTADO, CATEGORIA, TRATAMIENTO, PROB_LABELS, IMP_LABELS, nivelDe } from './constants'
 
 const inp = { width: '100%', boxSizing: 'border-box', padding: '8px 11px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, color: '#2C2C2A', background: '#fff', outline: 'none' }
 
@@ -13,6 +13,7 @@ export default function RiesgoModal({ riesgo, slug, activos = [], isoControls = 
   const [f, setF] = useState({
     nombre:        riesgo?.nombre ?? '',
     descripcion:   riesgo?.descripcion ?? '',
+    estado:        riesgo?.estado ?? 'identificado',
     categoria:     riesgo?.categoria ?? 'tecnico',
     activo_id:     riesgo?.activo_id ?? '',
     amenaza:       riesgo?.amenaza ?? '',
@@ -54,7 +55,7 @@ export default function RiesgoModal({ riesgo, slug, activos = [], isoControls = 
     if (!f.nombre.trim() || !f.amenaza.trim()) { setError('Nombre y amenaza son obligatorios'); return }
     setSaving(true); setError('')
     const body = {
-      nombre: f.nombre.trim(), descripcion: f.descripcion.trim() || null, categoria: f.categoria,
+      nombre: f.nombre.trim(), descripcion: f.descripcion.trim() || null, estado: f.estado, categoria: f.categoria,
       activo_id: f.activo_id || null, amenaza: f.amenaza.trim(), vulnerabilidad: f.vulnerabilidad.trim() || null,
       probabilidad: Number(f.probabilidad), impacto: Number(f.impacto),
       tipo_tratamiento: f.tipo_tratamiento || null, plan_tratamiento: f.plan_tratamiento.trim() || null,
@@ -92,7 +93,12 @@ export default function RiesgoModal({ riesgo, slug, activos = [], isoControls = 
           <Field label="Nombre del riesgo *"><input value={f.nombre} onChange={e => set('nombre', e.target.value)} autoFocus style={inp} placeholder="Ej. Acceso no autorizado al servidor de BD" /></Field>
           <Field label="Descripción"><textarea value={f.descripcion} onChange={e => set('descripcion', e.target.value)} rows={2} style={{ ...inp, resize: 'vertical' }} /></Field>
 
-          <Row>
+          <Row style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+            <Field label="Estado *">
+              <select value={f.estado} onChange={e => set('estado', e.target.value)} style={inp} required>
+                {Object.entries(ESTADO).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+              </select>
+            </Field>
             <Field label="Categoría *">
               <select value={f.categoria} onChange={e => set('categoria', e.target.value)} style={inp}>
                 {Object.entries(CATEGORIA).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
