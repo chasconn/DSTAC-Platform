@@ -558,15 +558,18 @@ router.get('/politicas/:controlId/plantilla', async (req, res, next) => {
       }
       fname = `${prefijo}-PSI-001_Politica_Seguridad_Informacion.docx`
     } else {
-      buffer = await buildPolicyDocx(spec, {
-        empresa:     emp?.name || '',
-        responsable: ass?.responsable || '',
-        cargo:       '',
-        fecha,
-        version:     '1.0',
-        aprobador:   '',
-        codigo:      controlId,
-      })
+      // Política específica (hija): estructura profesional + contenido propio.
+      const { buildEspecifica } = require('../../services/policies/buildEspecifica')
+      const [[ic]] = await centralDB.query(`SELECT name FROM iso_controls WHERE id = ?`, [controlId])
+      buffer = await buildEspecifica(
+        { ...spec, controlId, controlName: ic?.name || controlId },
+        {
+          empresa: emp?.name || '',
+          codigo:  `${prefijo}-PSE-${controlId.replace(/[^0-9]/g, '')}`,
+          rsi:     ass?.responsable || '',
+          fecha,
+          version: '1.0',
+        })
       fname = `Politica_${controlId.replace(/\./g, '_')}_${req.company.slug}.docx`
     }
     res.set({
