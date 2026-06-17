@@ -75,7 +75,8 @@ router.post('/sync', async (req, res, next) => {
 router.post('/enroll', async (req, res, next) => {
   try {
     if (!mdm.isConfigured()) return res.status(400).json({ error: 'MDM no configurado' })
-    const tok = await mdm.createEnrollmentToken({ slug: req.company.slug, companyId: req.company.id })
+    const personalUsage = (req.body && req.body.mode === 'work_profile')
+    const tok = await mdm.createEnrollmentToken({ slug: req.company.slug, companyId: req.company.id, personalUsage })
     await centralDB.execute(
       `INSERT INTO mdm_enrollment_tokens (company_id, token_name, token_value, qr_json, policy_id, expiration, created_by)
        VALUES (?,?,?,?,?,?,?)`,

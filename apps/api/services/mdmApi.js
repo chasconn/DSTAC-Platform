@@ -66,7 +66,9 @@ async function ensureBaselinePolicy(policyId = 'baseline') {
 
 // Crea (o reutiliza) un token de inscripción para una empresa. El additionalData
 // viaja con el dispositivo al inscribirse → así sabemos a qué empresa pertenece.
-async function createEnrollmentToken({ slug, companyId, policyId = 'baseline' }) {
+// personalUsage=true → permite "perfil de trabajo" en un equipo YA en uso (BYOD),
+// sin restaurarlo de fábrica. false → equipo totalmente gestionado (de fábrica).
+async function createEnrollmentToken({ slug, companyId, policyId = 'baseline', personalUsage = false }) {
   const am = getClient()
   await ensureBaselinePolicy(policyId)
   const res = await am.enterprises.enrollmentTokens.create({
@@ -76,6 +78,7 @@ async function createEnrollmentToken({ slug, companyId, policyId = 'baseline' })
       additionalData: JSON.stringify({ slug, companyId }),
       duration: '3600s',          // 1 h de validez del QR
       oneTimeOnly: false,         // permite inscribir varios equipos con el mismo QR
+      allowPersonalUsage: personalUsage ? 'PERSONAL_USAGE_ALLOWED' : 'PERSONAL_USAGE_DISALLOWED',
     },
   })
   return res.data // { name, value, qrCode, expirationTimestamp }
