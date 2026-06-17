@@ -7,7 +7,15 @@ async function getData() {
 
 const PUR = '#8B7BFF', GRN = '#2FCB8F', INK = '#0a0a12', MUT = '#9A98B5', LBL = '#8A86B8'
 
-function logo() {
+// Logo real embebido (PNG blanco, mismo que el motor de informes). Fallback CSS.
+let LOGO_DATA = ''
+try {
+  const fs = require('fs'), path = require('path')
+  LOGO_DATA = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, '../../assets/logo-dstac.png')).toString('base64')
+} catch { /* sin archivo → fallback */ }
+
+function logo(h = 40) {
+  if (LOGO_DATA) return `<img src="${LOGO_DATA}" alt="DSTAC" style="height:${h}px;width:auto;display:block;" />`
   return `<div style="display:flex;flex-direction:column;line-height:1;">
     <div><span style="font-family:'Arial Black',Arial;font-weight:900;font-size:24px;color:#fff;letter-spacing:-1px;">DS</span><span style="font-family:'Arial Black',Arial;font-weight:900;font-size:24px;color:${PUR};letter-spacing:-1px;">TAC</span></div>
     <div style="font-size:8px;letter-spacing:5px;color:${MUT};margin-top:3px;">TACTICAL SECURITY</div>
@@ -193,7 +201,7 @@ function buildHTML(data) {
       `<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:18px;text-align:center;"><div style="font-size:10px;letter-spacing:2px;color:${LBL};margin-bottom:7px;">CORREO</div><div style="font-size:14px;color:#fff;font-weight:700;">contacto@dstac.cl</div></div>`,
       `<div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:18px;text-align:center;"><div style="font-size:10px;letter-spacing:2px;color:${LBL};margin-bottom:7px;">SITIO WEB</div><div style="font-size:15px;color:#fff;font-weight:700;">www.dstac.cl</div></div>`,
     ].join(''), 30)}
-    <div style="text-align:center;">${logo()}</div>
+    <div style="display:flex;justify-content:center;">${logo(46)}</div>
     ${pageFoot()}
   </div>`
 
