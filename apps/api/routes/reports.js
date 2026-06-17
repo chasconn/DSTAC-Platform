@@ -14,6 +14,7 @@ const REPORT_MODULES = {
   incidentes:  () => require('../services/reports/incidentes'),
   riesgos:     () => require('../services/reports/riesgos'),
   iso:         () => require('../services/reports/iso'),
+  soa:         () => require('../services/reports/soa'),
   nist:        () => require('../services/reports/nist'),
   edr:         () => require('../services/reports/edr'),
   brochure:    () => require('../services/reports/brochure'),

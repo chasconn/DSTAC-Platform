@@ -85,7 +85,11 @@ export default function IsoPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#2C2C2A' }}>ISO 27001:2022</h1> <BotonInforme tipo="iso" slug={slug} />
+          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#2C2C2A' }}>ISO 27001:2022</h1>{' '}
+          <span style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+            <BotonInforme tipo="iso" slug={slug} />
+            <BotonInforme tipo="soa" slug={slug} label="Declaración de Aplicabilidad" />
+          </span>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888780' }}>
             Evaluación de madurez y alineamiento por empresa
           </p>
