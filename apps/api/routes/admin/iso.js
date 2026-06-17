@@ -540,16 +540,22 @@ router.get('/politicas/:controlId/plantilla', async (req, res, next) => {
 
     let buffer, fname
     if (controlId === 'A.5.1') {
-      // Política MAESTRA (estructura completa tipo DSTAC-PSI-001).
-      const { buildMaestra } = require('../../services/policies/buildMaestra')
-      buffer = await buildMaestra({
-        empresa:       emp?.name || '',
-        codigo:        `${prefijo}-PSI-001`,
-        rsi:           ass?.responsable || '',
-        representante: '',
-        fecha,
-        version:       '1.0',
-      })
+      // Política MAESTRA: se rellena la plantilla con el diseño propio del
+      // cliente (PSI-001.docx) conservando su formato; fallback al generador.
+      const tplPath = path.join(__dirname, '../../services/policies/templates/PSI-001.docx')
+      if (fs.existsSync(tplPath)) {
+        const { fillTemplate } = require('../../services/policies/fillTemplate')
+        buffer = fillTemplate(tplPath, {
+          empresa:       emp?.name || '[EMPRESA]',
+          prefijo,
+          rsi:           ass?.responsable || '[Responsable de Seguridad de la Información]',
+          representante: '[Representante Legal]',
+          fecha,
+        })
+      } else {
+        const { buildMaestra } = require('../../services/policies/buildMaestra')
+        buffer = await buildMaestra({ empresa: emp?.name || '', codigo: `${prefijo}-PSI-001`, rsi: ass?.responsable || '', representante: '', fecha, version: '1.0' })
+      }
       fname = `${prefijo}-PSI-001_Politica_Seguridad_Informacion.docx`
     } else {
       buffer = await buildPolicyDocx(spec, {
