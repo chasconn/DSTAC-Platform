@@ -15,7 +15,7 @@ async function getData(tenantDB, centralDB, companyId, company) {
     SELECT d.id AS domain_id, d.name AS domain_name, d.order_num AS d_order,
            ic.id AS control_id, ic.name AS control_name,
            COALESCE(ica.applies, 1)          AS applies,
-           ica.non_apply_reason, ica.notes_dstac,
+           ica.non_apply_reason, ica.notes_dstac, ica.responsable,
            COALESCE(ica.status, 'pendiente') AS status,
            COALESCE(ica.progress, 0)         AS progress
     FROM iso_domains d
@@ -68,7 +68,7 @@ function buildHTML(data) {
     let domainRow = ''
     if (r.domain_id !== lastDomain) {
       lastDomain = r.domain_id
-      domainRow = `<tr style="break-inside:avoid;"><td colspan="4" style="background:${NAVY};color:#fff;font-size:10px;font-weight:700;letter-spacing:0.5px;padding:6px 10px;">${esc(r.domain_id)} · ${esc(r.domain_name)}</td></tr>`
+      domainRow = `<tr style="break-inside:avoid;"><td colspan="5" style="background:${NAVY};color:#fff;font-size:10px;font-weight:700;letter-spacing:0.5px;padding:6px 10px;">${esc(r.domain_id)} · ${esc(r.domain_name)}</td></tr>`
     }
     return `${domainRow}
 <tr style="break-inside:avoid;">
@@ -80,6 +80,7 @@ function buildHTML(data) {
   <td style="padding:6px 8px;text-align:center;border-bottom:1px solid #f1efe8;vertical-align:top;">
     <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:${st.bg};color:${st.color};">${st.label}</span>
   </td>
+  <td style="padding:6px 8px;font-size:9.5px;color:#6A675E;border-bottom:1px solid #f1efe8;vertical-align:top;">${esc(r.responsable, 40) || '—'}</td>
 </tr>`
   }).join('')
 
@@ -108,7 +109,7 @@ function buildHTML(data) {
     <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
       <thead>
         <tr style="background:#f8f7f4;">
-          ${['Control', 'Aplica', 'Justificación', 'Estado'].map((h, i) =>
+          ${['Control', 'Aplica', 'Justificación', 'Estado', 'Responsable'].map((h, i) =>
             `<th style="padding:7px 8px;font-size:9.5px;color:#888780;font-weight:700;text-align:${i === 1 || i === 3 ? 'center' : 'left'};text-transform:uppercase;letter-spacing:0.5px;border-bottom:1.5px solid #e2e0d8;">${h}</th>`
           ).join('')}
         </tr>

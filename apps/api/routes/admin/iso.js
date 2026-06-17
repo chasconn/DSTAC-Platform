@@ -119,7 +119,7 @@ router.get('/controls', async (req, res, next) => {
       SELECT ic.*, d.name AS domain_name, d.color AS domain_color,
              ica.id AS assessment_id, ica.status, ica.progress,
              ica.applies, ica.non_apply_reason,
-             ica.checklist_items, ica.notes_dstac, ica.policy_content,
+             ica.checklist_items, ica.notes_dstac, ica.policy_content, ica.responsable,
              ica.updated_at AS assessed_at,
              u.first_name AS updated_by_name
       FROM iso_controls ic
@@ -145,7 +145,7 @@ router.get('/controls/:id', async (req, res, next) => {
       SELECT ic.*, d.name AS domain_name, d.color AS domain_color,
              ica.id AS assessment_id, ica.status, ica.progress,
              ica.applies, ica.non_apply_reason, ica.checklist_items,
-             ica.notes_dstac, ica.policy_content, ica.updated_at AS assessed_at,
+             ica.notes_dstac, ica.policy_content, ica.responsable, ica.updated_at AS assessed_at,
              u.first_name AS updated_by_name
       FROM iso_controls ic
       JOIN iso_domains d ON ic.domain_id = d.id
@@ -175,7 +175,7 @@ router.get('/controls/:id', async (req, res, next) => {
 router.put('/assessments/:controlId', async (req, res, next) => {
   try {
     const { controlId } = req.params
-    const { status, progress, applies, non_apply_reason, checklist_items, notes_dstac, comment } = req.body
+    const { status, progress, applies, non_apply_reason, checklist_items, notes_dstac, responsable, comment } = req.body
     const companyId = req.company.id
     const userId    = req.user.user_id || req.user.id
     const evalId    = await getOrCreateEvaluation(companyId, userId)
@@ -184,7 +184,7 @@ router.put('/assessments/:controlId', async (req, res, next) => {
     if (!ctrl.length) return res.status(404).json({ error: 'Control no encontrado' })
 
     const [prev] = await centralDB.execute(
-      `SELECT status, progress, applies, notes_dstac FROM iso_control_assessments
+      `SELECT status, progress, applies, notes_dstac, responsable FROM iso_control_assessments
        WHERE evaluation_id = ? AND control_id = ?`,
       [evalId, controlId]
     )
@@ -214,8 +214,8 @@ router.put('/assessments/:controlId', async (req, res, next) => {
     await centralDB.execute(`
       INSERT INTO iso_control_assessments
         (evaluation_id, control_id, applies, non_apply_reason, status, progress,
-         checklist_items, notes_dstac, updated_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         checklist_items, notes_dstac, responsable, updated_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON DUPLICATE KEY UPDATE
         applies          = VALUES(applies),
         non_apply_reason = VALUES(non_apply_reason),
@@ -223,6 +223,7 @@ router.put('/assessments/:controlId', async (req, res, next) => {
         progress         = VALUES(progress),
         checklist_items  = VALUES(checklist_items),
         notes_dstac      = VALUES(notes_dstac),
+        responsable      = VALUES(responsable),
         updated_by       = VALUES(updated_by)
     `, [
       evalId, controlId, appliesToUse,
@@ -230,6 +231,7 @@ router.put('/assessments/:controlId', async (req, res, next) => {
       computedStatus, computedProgress,
       checklist_items ? JSON.stringify(checklist_items) : null,
       notes_dstac ?? previousData?.notes_dstac ?? null,
+      responsable !== undefined ? (responsable || null) : (previousData?.responsable ?? null),
       userId
     ])
 

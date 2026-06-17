@@ -16,6 +16,7 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
   const [applies,       setApplies]       = useState(control.applies !== 0)
   const [nonApplyReason,setNonApplyReason]= useState(control.non_apply_reason ?? '')
   const [notes,         setNotes]         = useState(control.notes_dstac ?? '')
+  const [responsable,   setResponsable]   = useState(control.responsable ?? '')
   const [comment,       setComment]       = useState('')
   const [checklist,     setChecklist]     = useState(() => {
     try { return JSON.parse(control.checklist_items ?? '{}') } catch { return {} }
@@ -30,6 +31,7 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
     setApplies(control.applies !== 0)
     setNonApplyReason(control.non_apply_reason ?? '')
     setNotes(control.notes_dstac ?? '')
+    setResponsable(control.responsable ?? '')
     setComment('')
     try { setChecklist(JSON.parse(control.checklist_items ?? '{}')) } catch { setChecklist({}) }
   }, [control.id])
@@ -49,6 +51,7 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
           non_apply_reason: applies ? null : nonApplyReason,
           checklist_items:  Object.keys(checklist).length ? checklist : null,
           notes_dstac:      notes || null,
+          responsable:      responsable || null,
           comment:          comment || null,
         }),
       })
@@ -108,8 +111,22 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
           <>
             {/* Descripción */}
             {control.description && (
-              <div style={{ fontSize: 12, color: '#888780', lineHeight: 1.6, marginBottom: 16, padding: '10px 12px', background: '#f8f7f4', borderRadius: 8 }}>
+              <div style={{ fontSize: 12, color: '#888780', lineHeight: 1.6, marginBottom: 12, padding: '10px 12px', background: '#f8f7f4', borderRadius: 8 }}>
                 {control.description}
+              </div>
+            )}
+
+            {/* Objetivo (qué pide ISO) */}
+            {control.purpose && (
+              <div style={{ fontSize: 12, color: '#3C3489', lineHeight: 1.6, marginBottom: 10, padding: '10px 12px', background: '#EEEDFE', borderRadius: 8 }}>
+                <strong>🎯 Qué pide ISO:</strong> {control.purpose}
+              </div>
+            )}
+
+            {/* Documento / evidencia a preparar */}
+            {control.policy_template && (
+              <div style={{ fontSize: 12, color: '#27500A', lineHeight: 1.6, marginBottom: 16, padding: '10px 12px', background: '#EAF3DE', borderRadius: 8 }}>
+                <strong>📄 Documento a preparar:</strong> {control.policy_template}
               </div>
             )}
 
@@ -191,6 +208,18 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
                 <strong>Fuente:</strong> {control.data_source}
               </div>
             )}
+
+            {/* Responsable */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#888780', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Responsable</div>
+              <input
+                type="text"
+                value={responsable}
+                onChange={e => setResponsable(e.target.value)}
+                placeholder="Quién es responsable de este control…"
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 12, boxSizing: 'border-box', fontFamily: 'inherit' }}
+              />
+            </div>
 
             {/* Comentario de cambio */}
             <div style={{ marginBottom: 4 }}>
