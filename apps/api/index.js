@@ -70,6 +70,7 @@ app.use('/api/admin/trustbar',     require('./routes/admin/trustbar'))
 app.use('/api/admin/riesgos',      require('./routes/admin/riesgos'))
 app.use('/api/admin/cotizaciones', require('./routes/admin/cotizaciones'))
 app.use('/api/admin/edr',          require('./routes/admin/edr'))
+app.use('/api/admin/mdm',          require('./routes/admin/mdm'))
 
 // Health check
 app.get('/api/health', (req, res) => {
