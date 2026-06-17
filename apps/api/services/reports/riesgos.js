@@ -4,23 +4,22 @@ async function getData(tenantDB, centralDB, companyId, company) {
   const [[resumenRows], [detalleRows]] = await Promise.all([
     tenantDB.execute(`
       SELECT COUNT(*) AS total,
-        SUM(nivel_riesgo='critico')  AS criticos,
-        SUM(nivel_riesgo='alto')     AS altos,
-        SUM(nivel_riesgo='medio')    AS medios,
-        SUM(nivel_riesgo='bajo')     AS bajos,
-        SUM(estado='abierto')        AS abiertos,
-        SUM(estado='en_tratamiento') AS en_tratamiento,
-        SUM(estado='cerrado')        AS cerrados,
-        SUM(estado='aceptado')       AS aceptados
+        SUM(nivel_categoria='critico')         AS criticos,
+        SUM(nivel_categoria='alto')            AS altos,
+        SUM(nivel_categoria='medio')           AS medios,
+        SUM(nivel_categoria='bajo')            AS bajos,
+        SUM(estado='identificado')             AS abiertos,
+        SUM(estado='en_tratamiento')           AS en_tratamiento,
+        SUM(estado IN ('cerrado','mitigado'))  AS cerrados,
+        SUM(estado='aceptado')                 AS aceptados
       FROM riesgos
     `),
     tenantDB.execute(`
-      SELECT r.id, r.tipo, r.categoria, r.descripcion, r.probabilidad,
-             r.impacto, r.nivel_riesgo, r.estado, r.responsable,
-             a.nombre AS activo_nombre
-      FROM riesgos r
-      LEFT JOIN activos a ON a.id = r.activo_id
-      ORDER BY FIELD(r.nivel_riesgo,'critico','alto','medio','bajo','aceptable')
+      SELECT id, categoria, nombre, descripcion, amenaza,
+             probabilidad, impacto, nivel_riesgo, nivel_categoria,
+             estado, responsable, activo_nombre
+      FROM riesgos
+      ORDER BY nivel_riesgo DESC, id DESC
       LIMIT 200
     `),
   ])
@@ -40,7 +39,8 @@ const NIVEL_STYLE = {
   bajo:      { color: '#1D9E75', bg: '#EAF3DE', label: 'Bajo'      },
   aceptable: { color: '#888780', bg: '#F1EFE8', label: 'Aceptable' },
 }
-const PROB_COLOR = { alta: '#DC2626', media: '#D97706', baja: '#1D9E75' }
+// probabilidad / impacto ahora son enteros 1-5 → color por valor.
+function numColor(n) { n = Number(n); if (n >= 4) return '#DC2626'; if (n === 3) return '#D97706'; return '#1D9E75' }
 
 function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').substring(0,80) : '—' }
 
@@ -95,16 +95,16 @@ function buildHTML(data) {
 </div>`
 
   const rows = data.riesgos.map(ri => {
-    const nv = NIVEL_STYLE[ri.nivel_riesgo] ?? NIVEL_STYLE.medio
+    const nv = NIVEL_STYLE[ri.nivel_categoria] ?? NIVEL_STYLE.medio
     return `
 <tr>
-  <td style="padding:6px 8px;font-size:10px;border-bottom:1px solid #f8f7f4;">${esc(ri.tipo)}</td>
-  <td style="padding:6px 8px;font-size:10px;border-bottom:1px solid #f8f7f4;color:#888780;">${esc(ri.descripcion)}</td>
+  <td style="padding:6px 8px;font-size:10px;border-bottom:1px solid #f8f7f4;">${esc(ri.categoria)}</td>
+  <td style="padding:6px 8px;font-size:10px;border-bottom:1px solid #f8f7f4;">${esc(ri.nombre)}</td>
   <td style="padding:6px 8px;text-align:center;border-bottom:1px solid #f8f7f4;">
-    <span style="font-size:9px;color:${PROB_COLOR[ri.probabilidad]||'#888780'};font-weight:600;">${ri.probabilidad||'—'}</span>
+    <span style="font-size:10px;color:${numColor(ri.probabilidad)};font-weight:700;">${ri.probabilidad ?? '—'}</span>
   </td>
   <td style="padding:6px 8px;text-align:center;border-bottom:1px solid #f8f7f4;">
-    <span style="font-size:9px;color:${PROB_COLOR[ri.impacto]||'#888780'};font-weight:600;">${ri.impacto||'—'}</span>
+    <span style="font-size:10px;color:${numColor(ri.impacto)};font-weight:700;">${ri.impacto ?? '—'}</span>
   </td>
   <td style="padding:6px 8px;text-align:center;border-bottom:1px solid #f8f7f4;">
     <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:${nv.bg};color:${nv.color};">${nv.label}</span>
@@ -122,7 +122,7 @@ function buildHTML(data) {
     <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
       <thead>
         <tr style="background:#f8f7f4;">
-          ${['Tipo','Descripción','Prob.','Impacto','Nivel','Estado','Activo'].map(h =>
+          ${['Categoría','Riesgo','Prob.','Impacto','Nivel','Estado','Activo'].map(h =>
             `<th style="padding:7px 8px;font-size:10px;color:#888780;font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid #e2e0d8;">${h}</th>`
           ).join('')}
         </tr>
