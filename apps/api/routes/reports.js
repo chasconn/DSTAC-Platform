@@ -34,7 +34,7 @@ router.get('/:reporteId', requireAuth, requireDstacRole, resolveTenant, async (r
       return res.set('Content-Type', 'text/html; charset=utf-8').send(html)
     }
 
-    const pdf  = await htmlToPDF(html)
+    const pdf  = await htmlToPDF(html, m.pdfOptions)
 
     const fecha = new Date().toISOString().split('T')[0]
     res.set({

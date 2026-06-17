@@ -18,7 +18,7 @@ function findSystemBrowser() {
   return null
 }
 
-async function htmlToPDF(html) {
+async function htmlToPDF(html, opts = {}) {
   const executablePath = findSystemBrowser()
   const browser = await puppeteer.launch({
     headless: 'new',
@@ -38,6 +38,7 @@ async function htmlToPDF(html) {
       format: 'A4',
       printBackground: true,
       margin: { top: '0mm', right: '0mm', bottom: '0mm', left: '0mm' },
+      ...opts,
     })
     return pdf
   } finally {
