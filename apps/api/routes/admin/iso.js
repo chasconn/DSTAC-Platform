@@ -535,17 +535,34 @@ router.get('/politicas/:controlId/plantilla', async (req, res, next) => {
       `SELECT responsable FROM iso_control_assessments WHERE evaluation_id = ? AND control_id = ?`,
       [evalId, controlId])
 
-    const buffer = await buildPolicyDocx(spec, {
-      empresa:     emp?.name || '',
-      responsable: ass?.responsable || '',
-      cargo:       '',
-      fecha:       new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
-      version:     '1.0',
-      aprobador:   '',
-      codigo:      controlId,
-    })
+    const fecha   = new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' })
+    const prefijo = (req.company.slug || 'org').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'ORG'
 
-    const fname = `Politica_${controlId.replace(/\./g, '_')}_${req.company.slug}.docx`
+    let buffer, fname
+    if (controlId === 'A.5.1') {
+      // Política MAESTRA (estructura completa tipo DSTAC-PSI-001).
+      const { buildMaestra } = require('../../services/policies/buildMaestra')
+      buffer = await buildMaestra({
+        empresa:       emp?.name || '',
+        codigo:        `${prefijo}-PSI-001`,
+        rsi:           ass?.responsable || '',
+        representante: '',
+        fecha,
+        version:       '1.0',
+      })
+      fname = `${prefijo}-PSI-001_Politica_Seguridad_Informacion.docx`
+    } else {
+      buffer = await buildPolicyDocx(spec, {
+        empresa:     emp?.name || '',
+        responsable: ass?.responsable || '',
+        cargo:       '',
+        fecha,
+        version:     '1.0',
+        aprobador:   '',
+        codigo:      controlId,
+      })
+      fname = `Politica_${controlId.replace(/\./g, '_')}_${req.company.slug}.docx`
+    }
     res.set({
       'Content-Type':        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'Content-Disposition': `attachment; filename="${fname}"`,
