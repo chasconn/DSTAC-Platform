@@ -18,6 +18,11 @@ const CALLBACK = process.env.MDM_CALLBACK_URL || 'https://portal.dstac.cl/mdm-ca
 
 function creds() {
   if (process.env.MDM_SA_JSON) return JSON.parse(process.env.MDM_SA_JSON)
+  // Clave montada como archivo (GOOGLE_APPLICATION_CREDENTIALS): la leemos para
+  // poder sacar el project_id.
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    try { return JSON.parse(require('fs').readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, 'utf8')) } catch {}
+  }
   return null
 }
 
