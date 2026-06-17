@@ -515,22 +515,43 @@ router.get('/politicas', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// GET /politicas/:controlId/plantilla — descarga el .dotx base del control
+// GET /politicas/:controlId/plantilla — genera al vuelo el documento .docx de la
+// política, auto-rellenado con los datos de la empresa (nombre, responsable,
+// fecha). Los campos que faltan quedan como marcadores [CARGO]/[APROBADOR].
 router.get('/politicas/:controlId/plantilla', async (req, res, next) => {
   try {
     const { controlId } = req.params
-    const [ctrl] = await centralDB.execute(
-      `SELECT policy_filename FROM iso_controls WHERE id = ? AND requires_policy = 1`,
-      [controlId]
-    )
-    if (!ctrl.length || !ctrl[0].policy_filename) {
-      return res.status(404).json({ error: 'Este control no tiene plantilla asociada' })
-    }
-    const filePath = path.join(PLANTILLAS_DIR, ctrl[0].policy_filename)
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'Plantilla no disponible aún' })
-    }
-    res.download(filePath, ctrl[0].policy_filename)
+    const POLICIES = require('../../services/policies/policyContent')
+    const { buildPolicyDocx } = require('../../services/policies/buildPolicyDocx')
+    const spec = POLICIES[controlId]
+    if (!spec) return res.status(404).json({ error: 'Este control no tiene plantilla asociada' })
+
+    const companyId = req.company.id
+    const userId    = req.user.user_id || req.user.id
+    const evalId    = await getOrCreateEvaluation(companyId, userId)
+
+    const [[emp]] = await centralDB.query(`SELECT name FROM companies WHERE id = ?`, [companyId])
+    const [[ass]] = await centralDB.query(
+      `SELECT responsable FROM iso_control_assessments WHERE evaluation_id = ? AND control_id = ?`,
+      [evalId, controlId])
+
+    const buffer = await buildPolicyDocx(spec, {
+      empresa:     emp?.name || '',
+      responsable: ass?.responsable || '',
+      cargo:       '',
+      fecha:       new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
+      version:     '1.0',
+      aprobador:   '',
+      codigo:      controlId,
+    })
+
+    const fname = `Politica_${controlId.replace(/\./g, '_')}_${req.company.slug}.docx`
+    res.set({
+      'Content-Type':        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Disposition': `attachment; filename="${fname}"`,
+      'Content-Length':       buffer.length,
+    })
+    res.send(buffer)
   } catch (err) { next(err) }
 })
 

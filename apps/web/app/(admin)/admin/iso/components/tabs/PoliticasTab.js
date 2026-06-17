@@ -248,7 +248,7 @@ export default function PoliticasTab({ domainId, slug }) {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                   <button onClick={() => descargarPlantilla(p)} disabled={estaBusy}
                     style={btnStyle('#e2e0d8', '#fff', '#444441', estaBusy)}>
-                    ↓ Plantilla .dotx
+                    ↓ Plantilla .docx
                   </button>
                   {tieneDoc && (
                     <button onClick={() => descargarDocumento(p)} disabled={estaBusy}
@@ -275,7 +275,7 @@ export default function PoliticasTab({ domainId, slug }) {
 
       {/* Nota informativa */}
       <div style={{ marginTop: 18, background: '#fff', border: '1px solid #e2e0d8', borderRadius: 10, padding: '12px 16px', fontSize: 12, color: '#888780', lineHeight: 1.7 }}>
-        <strong style={{ color: '#444441' }}>Flujo:</strong> descarga la plantilla <strong>.dotx</strong>, complétala en Word con los datos del cliente y súbela aquí como política vigente.
+        <strong style={{ color: '#444441' }}>Flujo:</strong> descarga la plantilla <strong>.docx</strong> (viene auto-rellenada con la empresa, el responsable y la fecha), completa en Word los campos entre corchetes [CARGO] / [APROBADOR], revisa el contenido y súbela aquí como política vigente.
         Luego expórtala a PDF y adjúntala en <strong>Evidencias</strong> del control correspondiente.
       </div>
     </div>
