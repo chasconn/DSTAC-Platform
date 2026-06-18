@@ -200,7 +200,7 @@ function buildHTML(data) {
       statCard('Sin registro', 'resultado inmediato', PUR),
       statCard('3 herramientas', '100% gratuitas', GRN),
     ].join(''))}
-    ${banner(GRN, 'Informe técnico y accionable, listo para actuar.', 'Cada herramienta entrega hallazgos claros y priorizados para que sepas exactamente qué corregir primero. Pruébalas ahora en www.dstac.cl.')}
+    ${banner(GRN, 'Informes técnicos y accionables, listos para actuar.', 'Cada herramienta entrega hallazgos claros y priorizados para que sepas exactamente qué corregir primero. Pruébalas ahora en www.dstac.cl.')}
     ${pageFoot()}
   </div>`
 
