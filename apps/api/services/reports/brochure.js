@@ -192,9 +192,9 @@ function buildHTML(data) {
     ${label('Planes de servicio')}
     ${title('Cobertura a tu medida')}
     ${grid(3, [
-      plan('Plan PYME', '1–15 colaboradores', ['Gestión de activos, identidades y accesos', 'Organización tecnológica', 'Evaluación e inventario inicial', 'Buenas prácticas operacionales'], false),
-      plan('Plan Profesional', '15–50 colaboradores', ['Todo lo del Plan PYME', 'Gestión de incidentes', 'Segmentación básica de red', 'Control avanzado de accesos', 'Reportes ejecutivos'], true),
-      plan('Plan Empresarial', '+50 colaboradores', ['Todo lo del Plan Profesional', 'Arquitectura de seguridad', 'Segmentación avanzada', 'Acompañamiento estratégico', 'Soporte prioritario'], false),
+      plan('TIER 1', 'PYME · 1–15 colaboradores', ['Gestión de activos, identidades y accesos', 'Organización tecnológica', 'Evaluación e inventario inicial', 'Buenas prácticas operacionales'], false),
+      plan('TIER 2', 'Profesional · 15–50 colaboradores', ['Todo lo del TIER 1', 'Gestión de incidentes', 'Segmentación básica de red', 'Control avanzado de accesos', 'Reportes ejecutivos'], true),
+      plan('TIER 3', 'Empresarial · +50 colaboradores', ['Todo lo del TIER 2', 'Arquitectura de seguridad', 'Segmentación avanzada', 'Acompañamiento estratégico', 'Soporte prioritario'], false),
     ].join(''))}
     ${label('Servicios complementarios')}
     ${grid(3, [
