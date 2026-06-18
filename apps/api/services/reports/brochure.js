@@ -75,7 +75,7 @@ function buildHTML(data) {
       </div>
       <div style="flex:1;display:flex;flex-direction:column;gap:16px;justify-content:center;">
         ${statCard('24/7', 'EDR · respuesta activa', GRN)}
-        ${statCard('ISO 27001', 'preparación + soporte', PUR)}
+        ${statCard('ISO 27001', 'autoevaluación', PUR)}
         ${statCard('NIST', 'CSF 2.0 · madurez', PUR)}
         ${statCard('Multi-empresa', 'informes con tu marca', GRN)}
       </div>
@@ -131,17 +131,17 @@ function buildHTML(data) {
     ${pageHead('PRODUCTO', 'PLATAFORMA PROPIA')}
     ${label('Lo que desarrollamos')}
     ${title('La plataforma <span style="color:' + PUR + '">DSTAC CIBERSECURITY</span>')}
-    <div style="font-size:14px;color:${MUT};line-height:1.65;margin-bottom:22px;">Monitoreo y gestión de toda tu ciberseguridad en un solo lugar: multi-empresa, con informes con tu marca y todo lo que necesitas para proteger, medir y cumplir.</div>
+    <div style="font-size:13.5px;color:${MUT};line-height:1.55;margin-bottom:16px;">Monitoreo y gestión de toda tu ciberseguridad en un solo lugar: multi-empresa y con informes con tu marca.</div>
     ${grid(3, [
       card('◆', 'EDR · Detección y Respuesta 24/7', 'Vigilancia continua de tus endpoints con detección de amenazas y <b style="color:#fff">respuesta activa</b>: bloqueo automático de ataques en tiempo real.'),
-      card('✓', 'Aceleración hacia ISO 27001', 'Aceleramos el Anexo A: evaluación de los 93 controles, <b style="color:#fff">SoA derivada de tu análisis de riesgos</b> y plantillas de políticas adaptables a tu contexto. El SGSI de gestión (riesgos, auditoría interna, revisión por la dirección) se construye con nuestro acompañamiento.'),
+      card('✓', 'Aceleración hacia ISO 27001', 'Aceleramos el Anexo A (93 controles, <b style="color:#fff">SoA basada en tu análisis de riesgos</b> y plantillas adaptables). El sistema de gestión se construye con acompañamiento.'),
       card('◈', 'NIST CSF 2.0', 'Evaluación de madurez y brechas por función, con informes ejecutivos descargables para la dirección.'),
       card('▲', 'Riesgos e Incidentes', 'Matriz de riesgos cuantitativa, registro y respuesta a incidentes con escalamiento automático desde el EDR.'),
       card('▣', 'Inventario y Accesos', 'Activos, identidades, accesos y personal centralizados, controlados y siempre actualizados.'),
       card('◐', 'Cumplimiento y Reportes', 'Informes ejecutivos por módulo, con tu logo, listos para presentar a clientes o auditores.'),
-    ].join(''))}
-    ${banner(PUR, 'Multi-empresa', 'Gestiona y reporta la ciberseguridad de cada cliente por separado, con informes que llevan tu marca. Ideal para empresas y para quienes prestan servicios de seguridad.')}
-    <div style="font-size:10.5px;color:${LBL};margin-top:12px;font-style:italic;line-height:1.5;">La certificación ISO 27001 la emite un organismo acreditado independiente (BSI, SGS, AENOR…). DSTAC te prepara y acompaña para superarla.</div>
+    ].join(''), 12)}
+    ${banner(PUR, 'Multi-empresa', 'Gestiona y reporta la ciberseguridad de cada cliente por separado, con informes que llevan tu marca.')}
+    <div style="font-size:10px;color:${LBL};margin-top:8px;font-style:italic;line-height:1.45;">La certificación ISO 27001 la emite un organismo acreditado independiente (BSI, SGS, AENOR…). DSTAC te prepara y acompaña para superarla.</div>
     ${pageFoot()}
   </div>`
 
