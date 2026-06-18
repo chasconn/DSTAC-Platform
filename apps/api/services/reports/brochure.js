@@ -1,4 +1,4 @@
-// Brochure corporativo DSTAC CIBERSECURITY — estilo "Informe de Seguridad Web"
+// Brochure corporativo DSTAC Cybersecurity — estilo "Informe de Seguridad Web"
 // (oscuro, técnico, grilla, mono, acentos morado/verde). HORIZONTAL (landscape).
 // Self-contained (CSS oscuro propio). 8 láminas de alto impacto.
 async function getData() {
@@ -60,6 +60,28 @@ const banner = (accent, t, d) => `<div style="background:${accent}16;border:1px 
   <div style="font-size:13px;color:${MUT};line-height:1.6;">${d}</div></div>`
 const grid = (cols, inner, mb = 18) => `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:16px;margin-bottom:${mb}px;">${inner}</div>`
 
+// Íconos SVG inline (siempre renderizan en el PDF; no dependen de fuentes de glifos).
+const SVG = (p) => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:block;">${p}</svg>`
+const IC = {
+  shield:   '<path d="M12 3l7 3v6c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
+  iso:      '<circle cx="12" cy="12" r="9"/><path d="M8.4 12.2l2.4 2.4 4.8-5.2"/>',
+  nist:     '<path d="M12 3l8 4.5-8 4.5-8-4.5L12 3z"/><path d="M4 12l8 4.5 8-4.5"/>',
+  risk:     '<path d="M10.3 4.4 2.7 17.5A1.8 1.8 0 0 0 4.3 20h15.4a1.8 1.8 0 0 0 1.6-2.5L13.7 4.4a1.8 1.8 0 0 0-3.4 0z"/><line x1="12" y1="9.5" x2="12" y2="13.5"/><line x1="12" y1="16.6" x2="12" y2="16.65"/>',
+  box:      '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><line x1="3.5" y1="9.5" x2="20.5" y2="9.5"/><line x1="9.5" y1="20.5" x2="9.5" y2="9.5"/>',
+  report:   '<path d="M14 3.5H7A1.8 1.8 0 0 0 5.2 5.3v13.4A1.8 1.8 0 0 0 7 20.5h10a1.8 1.8 0 0 0 1.8-1.8V8.3z"/><path d="M14 3.5V8.3h4.8"/><line x1="8.5" y1="13" x2="15" y2="13"/><line x1="8.5" y1="16.5" x2="13" y2="16.5"/>',
+  target:   '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.4"/>',
+  law:      '<line x1="12" y1="4" x2="12" y2="20"/><line x1="7.5" y1="20" x2="16.5" y2="20"/><path d="M5 8h14"/><path d="M5 8l-2.2 5a2.6 2.6 0 0 0 5.2 0L5.8 8"/><path d="M19 8l-2.2 5a2.6 2.6 0 0 0 5.2 0L19.8 8"/>',
+  clock:    '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  pentest:  '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/>',
+  dfir:     '<path d="M3 12h4l2.5 6.5 4-13 2.5 6.5H21"/>',
+  infra:    '<rect x="3.5" y="4.5" width="17" height="6" rx="1.5"/><rect x="3.5" y="13.5" width="17" height="6" rx="1.5"/><line x1="7" y1="7.5" x2="7.1" y2="7.5"/><line x1="7" y1="16.5" x2="7.1" y2="16.5"/>',
+  users:    '<circle cx="9" cy="8" r="3"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3 3 0 0 1 0 6"/><path d="M19.5 19.5a5.5 5.5 0 0 0-3-5"/>',
+  adapt:    '<path d="M4 12a8 8 0 0 1 13.5-5.8L20 8.5"/><path d="M20 4.5v4h-4"/><path d="M20 12a8 8 0 0 1-13.5 5.8L4 15.5"/><path d="M4 19.5v-4h4"/>',
+  scan:     '<circle cx="11" cy="11" r="7"/><line x1="16" y1="16" x2="21" y2="21"/>',
+  clipboard:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9z"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="13" y2="15"/>',
+}
+const ic = (n) => SVG(IC[n] || '')
+
 function buildHTML(data) {
   // ── P1 · Portada / hero (dos columnas) ──────────────────────────────
   const p1 = `<div class="page">
@@ -67,7 +89,7 @@ function buildHTML(data) {
     <div style="display:flex;gap:30px;margin-top:14px;">
       <div style="flex:1.4;">
         <div style="font-size:13px;letter-spacing:5px;color:${LBL};margin-bottom:20px;">PLATAFORMA · SERVICIOS · RESULTADOS</div>
-        <div style="font-size:62px;font-weight:900;color:#fff;line-height:1.0;">DSTAC<br><span style="color:${PUR};">CIBERSECURITY</span></div>
+        <div style="font-size:62px;font-weight:900;color:#fff;line-height:1.0;">DSTAC<br><span style="color:${PUR};">Cybersecurity</span></div>
         <div style="font-size:16px;color:${MUT};margin-top:22px;line-height:1.7;">
           Ciberseguridad adaptada a la realidad operacional de tu organización: una <b style="color:#fff">plataforma propia</b>, <b style="color:#fff">servicios expertos</b> y <b style="color:#fff">herramientas gratuitas</b> para proteger, cumplir y operar sin detenerte.
         </div>
@@ -89,9 +111,9 @@ function buildHTML(data) {
     ${label('El panorama')}
     ${title('La pregunta ya no es <span style="color:' + PUR + '">si</span> te atacarán, sino <span style="color:' + PUR + '">cuándo</span>')}
     ${grid(3, [
-      card('▲', 'Las PYMEs son el blanco', 'Menos defensas y datos valiosos: los atacantes lo saben y automatizan sus ataques. Un solo incidente puede frenar tu operación, exponer datos de clientes y golpear tu reputación de forma duradera.'),
-      card('§', 'La regulación subió la vara', 'La Ley Marco de Ciberseguridad (21.663) y la Ley de Protección de Datos (21.719) elevan las exigencias para empresas de todos los tamaños. Cumplir dejó de ser opcional y empezó a fiscalizarse.'),
-      card('◷', 'El costo de no prepararse', 'Pérdida de información, multas, interrupción del negocio y clientes que se van por desconfianza. Prevenir y monitorear cuesta una fracción de lo que vale recuperarse de un incidente grave.'),
+      card(ic('target'), 'Las PYMEs son el blanco', 'Menos defensas y datos valiosos: los atacantes lo saben y automatizan sus ataques. Un solo incidente puede frenar tu operación, exponer datos de clientes y golpear tu reputación de forma duradera.'),
+      card(ic('law'), 'La regulación subió la vara', 'La Ley Marco de Ciberseguridad (21.663) y la Ley de Protección de Datos (21.719) elevan las exigencias para empresas de todos los tamaños. Cumplir dejó de ser opcional y empezó a fiscalizarse.'),
+      card(ic('clock'), 'El costo de no prepararse', 'Pérdida de información, multas, interrupción del negocio y clientes que se van por desconfianza. Prevenir y monitorear cuesta una fracción de lo que vale recuperarse de un incidente grave.'),
     ].join(''))}
     ${label('Lo que está en juego')}
     ${grid(3, [
@@ -130,18 +152,18 @@ function buildHTML(data) {
   const p4 = `<div class="page">
     ${pageHead('PRODUCTO', 'PLATAFORMA PROPIA')}
     ${label('Lo que desarrollamos')}
-    ${title('La plataforma <span style="color:' + PUR + '">DSTAC CIBERSECURITY</span>')}
-    <div style="font-size:13.5px;color:${MUT};line-height:1.55;margin-bottom:16px;">Monitoreo y gestión de toda tu ciberseguridad en un solo lugar: multi-empresa y con informes con tu marca.</div>
+    ${title('La plataforma <span style="color:' + PUR + '">DSTAC Cybersecurity</span>')}
+    <div style="font-size:13.5px;color:${MUT};line-height:1.5;margin-bottom:12px;">Monitoreo y gestión de toda tu ciberseguridad en un solo lugar: multi-empresa y con informes con tu marca.</div>
     ${grid(3, [
-      card('◆', 'EDR · Detección y Respuesta 24/7', 'Vigilancia continua de tus endpoints con detección de amenazas y <b style="color:#fff">respuesta activa</b>: bloqueo automático de ataques en tiempo real.'),
-      card('✓', 'Aceleración hacia ISO 27001', 'Aceleramos el Anexo A (93 controles, <b style="color:#fff">SoA basada en tu análisis de riesgos</b> y plantillas adaptables). El sistema de gestión se construye con acompañamiento.'),
-      card('◈', 'NIST CSF 2.0', 'Evaluación de madurez y brechas por función, con informes ejecutivos descargables para la dirección.'),
-      card('▲', 'Riesgos e Incidentes', 'Matriz de riesgos cuantitativa, registro y respuesta a incidentes con escalamiento automático desde el EDR.'),
-      card('▣', 'Inventario y Accesos', 'Activos, identidades, accesos y personal centralizados, controlados y siempre actualizados.'),
-      card('◐', 'Cumplimiento y Reportes', 'Informes ejecutivos por módulo, con tu logo, listos para presentar a clientes o auditores.'),
+      card(ic('shield'), 'EDR · Detección y Respuesta 24/7', 'Vigilancia continua de tus endpoints con detección de amenazas y <b style="color:#fff">respuesta activa</b>: bloqueo automático de ataques en tiempo real.'),
+      card(ic('iso'), 'Preparación hacia ISO 27001', 'Estructuramos tu avance sobre el Anexo A (93 controles, <b style="color:#fff">SoA basada en tu análisis de riesgos</b> y plantillas adaptables). Construyes tu sistema de gestión paso a paso, con nuestro acompañamiento.'),
+      card(ic('nist'), 'NIST CSF 2.0', 'Evaluación de madurez y brechas por función, con informes ejecutivos descargables para la dirección.'),
+      card(ic('risk'), 'Riesgos e Incidentes', 'Matriz de riesgos cuantitativa, registro y respuesta a incidentes con escalamiento automático desde el EDR.'),
+      card(ic('box'), 'Inventario y Accesos', 'Activos, identidades, accesos y personal centralizados, controlados y siempre actualizados.'),
+      card(ic('report'), 'Cumplimiento y Reportes', 'Informes ejecutivos por módulo, con tu logo, listos para presentar a clientes o auditores.'),
     ].join(''), 12)}
     ${banner(PUR, 'Multi-empresa', 'Gestiona y reporta la ciberseguridad de cada cliente por separado, con informes que llevan tu marca.')}
-    <div style="font-size:10px;color:${LBL};margin-top:8px;font-style:italic;line-height:1.45;">La certificación ISO 27001 la emite un organismo acreditado independiente (BSI, SGS, AENOR…). DSTAC te prepara y acompaña para superarla.</div>
+    <div style="font-size:12.5px;color:#CFCDEA;margin-top:6px;line-height:1.45;">La certificación ISO 27001 la emite un organismo acreditado independiente (BSI, SGS, AENOR…). DSTAC te prepara y acompaña para superarla.</div>
     ${pageFoot()}
   </div>`
 
@@ -151,12 +173,12 @@ function buildHTML(data) {
     ${label('Nuestros servicios')}
     ${title('Del diagnóstico a la defensa')}
     ${grid(3, [
-      card('⊕', 'Pentesting y Red Team', 'Encontramos las brechas antes que los atacantes, con explotación controlada y reportes claros y accionables.'),
-      card('⚖', 'Consultoría GRC y Cumplimiento', 'Gobernanza, riesgo y cumplimiento: ISO 27001, NIST y la normativa chilena, con un plan realista.'),
-      card('◉', 'Respuesta a Incidentes (DFIR)', 'Contención, análisis forense y recuperación cuando algo pasa, para volver a operar lo antes posible.'),
-      card('▦', 'Infraestructura y Redes Seguras', 'Diseñamos arquitecturas fuertes y segmentadas, listas para enfrentar las amenazas actuales.'),
-      card('⌬', 'Active Directory y Centralización', 'Fortalecemos la gestión de identidades con control sólido de accesos y menos riesgo operacional.'),
-      card('↻', 'Estrategias de Seguridad Adaptativas', 'Protección que sigue el ritmo de tu negocio y de las amenazas, con análisis y automatización.'),
+      card(ic('pentest'), 'Pentesting y Red Team', 'Encontramos las brechas antes que los atacantes, con explotación controlada y reportes claros y accionables.'),
+      card(ic('law'), 'Consultoría GRC y Cumplimiento', 'Gobernanza, riesgo y cumplimiento: ISO 27001, NIST y la normativa chilena, con un plan realista.'),
+      card(ic('dfir'), 'Respuesta a Incidentes (DFIR)', 'Contención, análisis forense y recuperación cuando algo pasa, para volver a operar lo antes posible.'),
+      card(ic('infra'), 'Infraestructura y Redes Seguras', 'Diseñamos arquitecturas fuertes y segmentadas, listas para enfrentar las amenazas actuales.'),
+      card(ic('users'), 'Active Directory y Centralización', 'Fortalecemos la gestión de identidades con control sólido de accesos y menos riesgo operacional.'),
+      card(ic('adapt'), 'Estrategias de Seguridad Adaptativas', 'Protección que sigue el ritmo de tu negocio y de las amenazas, con análisis y automatización.'),
     ].join(''))}
     ${banner(PUR, 'Todo se entrega con evidencia', 'Cada servicio incluye informes claros, hallazgos priorizados y recomendaciones accionables — no solo un PDF, sino un plan para avanzar.')}
     ${pageFoot()}
@@ -169,16 +191,16 @@ function buildHTML(data) {
     ${title('Conoce tu riesgo <span style="color:' + GRN + '">sin costo</span>')}
     <div style="font-size:14px;color:${MUT};line-height:1.65;margin-bottom:22px;">Herramientas reales en nuestro sitio para que midas tu seguridad en minutos, sin registro y sin compromiso. El primer paso para tomar decisiones con datos.</div>
     ${grid(3, [
-      card('↯', 'Escáner de seguridad web', 'Califica tu sitio (A+ a F) al instante: certificado TLS, cabeceras de seguridad (HSTS, CSP), SPF/DKIM/DMARC y exposición de versiones, con un informe claro de hallazgos.'),
-      card('?', 'Autodiagnóstico de ciberseguridad', 'Cuestionario rápido que mide el nivel de madurez de tu empresa y te muestra exactamente dónde concentrar tus esfuerzos.'),
-      card('✓', 'Autoevaluación ISO 27001', 'Descubre qué tan cerca estás de cumplir el estándar internacional, gratis y en pocos minutos, antes de iniciar tu certificación.'),
+      card(ic('scan'), 'Escáner de seguridad web', 'Califica tu sitio (A+ a F) al instante: certificado TLS, cabeceras de seguridad (HSTS, CSP), SPF/DKIM/DMARC y exposición de versiones, con un informe claro de hallazgos.'),
+      card(ic('clipboard'), 'Autodiagnóstico de ciberseguridad', 'Cuestionario rápido que mide el nivel de madurez de tu empresa y te muestra exactamente dónde concentrar tus esfuerzos.'),
+      card(ic('iso'), 'Autoevaluación ISO 27001', 'Identifica tus brechas frente al estándar internacional en pocos minutos y obtén un punto de partida claro para tu camino hacia la certificación.'),
     ].join(''))}
     ${grid(3, [
       statCard('A+ → F', 'calificación clara', GRN),
       statCard('Sin registro', 'resultado inmediato', PUR),
       statCard('3 herramientas', '100% gratuitas', GRN),
     ].join(''))}
-    ${banner(GRN, 'Mismo estándar visual de este documento', 'El informe del escáner web es claro, técnico y accionable — igual que lo que estás leyendo. Pruébalo ahora en www.dstac.cl.')}
+    ${banner(GRN, 'Informe técnico y accionable, listo para actuar.', 'Cada herramienta entrega hallazgos claros y priorizados para que sepas exactamente qué corregir primero. Pruébalas ahora en www.dstac.cl.')}
     ${pageFoot()}
   </div>`
 
