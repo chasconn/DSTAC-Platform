@@ -78,6 +78,8 @@ export default function EdrPage() {
   const [sca,     setSca]     = useState([])
   const [empresas, setEmpresas] = useState([])
   const [alerts,  setAlerts]  = useState([])
+  const [totalAlertas, setTotalAlertas] = useState(0)
+  const [cargandoMas, setCargandoMas] = useState(false)
   const [loading, setLoading] = useState(true)
   const [nivelMin, setNivelMin] = useState('')
   const [busca,    setBusca]    = useState('')
@@ -109,6 +111,7 @@ export default function EdrPage() {
       setStats(st)
       setAgents(ag.agents ?? [])
       setAlerts(al.alerts ?? [])
+      setTotalAlertas(al.total ?? (al.alerts ?? []).length)
       setSca(sc.sca ?? [])
       try { const e = await api.get('/api/admin/edr/empresas', headers); setEmpresas(e.empresas ?? []) } catch {}
       if ((st?.sin_asignar ?? 0) > 0) {
@@ -123,6 +126,25 @@ export default function EdrPage() {
   }, [slug, nivelMin, busca, limite])
 
   useEffect(() => { cargar() }, [slug, limite])
+
+  async function cargarMas() {
+    if (!slug) return
+    setCargandoMas(true)
+    try {
+      const params = new URLSearchParams()
+      if (nivelMin) params.set('nivel_min', nivelMin)
+      if (busca)    params.set('q', busca)
+      params.set('limit', '50')
+      params.set('offset', String(alerts.length))
+      const al = await api.get(`/api/admin/edr/alerts?${params}`, headers)
+      setAlerts(prev => [...prev, ...(al.alerts ?? [])])
+      setTotalAlertas(al.total ?? alerts.length)
+    } catch (err) {
+      showToast(err.message || 'Error cargando más alertas', 'error')
+    } finally {
+      setCargandoMas(false)
+    }
+  }
 
   function showToast(msg, type = 'success') {
     setToast({ msg, type })
@@ -545,6 +567,10 @@ export default function EdrPage() {
                       <td style={td}>{al.agent_name || al.wazuh_id}</td>
                       <td style={{ ...td, maxWidth: 340 }}>
                         {al.rule_description || '—'}
+                        {al.count > 1 ? (
+                          <span title={`Repetida ${al.count} veces · última vez ${fechaHora(al.last_seen)}`}
+                            style={{ marginLeft: 8, background: '#F1EFE8', color: '#6A675E', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>×{al.count}</span>
+                        ) : null}
                         {al.incidente_id ? (
                           <span style={{ marginLeft: 8, background: '#EEEDFE', color: '#3C3489', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>→ Incidente #{al.incidente_id}</span>
                         ) : null}
@@ -576,6 +602,14 @@ export default function EdrPage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+        {!loading && visibles.length > 0 && alerts.length < totalAlertas && (
+          <div style={{ padding: 14, textAlign: 'center', borderTop: '1px solid #F1EFE8' }}>
+            <button onClick={cargarMas} disabled={cargandoMas}
+              style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid #e2e0d8', background: '#fff', color: '#3C3489', cursor: cargandoMas ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 600 }}>
+              {cargandoMas ? 'Cargando…' : `Cargar más (${alerts.length} de ${totalAlertas})`}
+            </button>
           </div>
         )}
       </div>

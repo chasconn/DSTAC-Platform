@@ -94,7 +94,8 @@ router.post('/agents/:wazuhId/asignar', async (req, res, next) => {
 router.get('/alerts', async (req, res, next) => {
   try {
     const { nivel_min, q, date_from, date_to, agent } = req.query
-    const limit = Math.min(parseInt(req.query.limit, 10) || 200, 1000)
+    const limit  = Math.min(parseInt(req.query.limit, 10) || 200, 1000)
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0)
 
     let where = 'WHERE company_id = ?'
     const params = [req.company.id]
@@ -105,14 +106,18 @@ router.get('/alerts', async (req, res, next) => {
     if (date_to)   { where += ' AND event_time <= ?'; params.push(date_to + ' 23:59:59') }
     if (q)         { where += ' AND (rule_description LIKE ? OR full_log LIKE ?)'; params.push(`%${q}%`, `%${q}%`) }
 
+    const [[{ total }]] = await centralDB.query(
+      `SELECT COUNT(*) AS total FROM edr_alerts ${where}`, params
+    )
+
     const [rows] = await centralDB.execute(`
       SELECT id, wazuh_id, agent_name, rule_id, rule_level, rule_description,
              rule_groups, mitre_ids, mitre_tactics, mitre_techniques,
-             location, src_ip, full_log, event_time, incidente_id
+             location, src_ip, full_log, event_time, incidente_id, count, last_seen
       FROM edr_alerts
       ${where}
       ORDER BY event_time DESC, id DESC
-      LIMIT ${limit}
+      LIMIT ${limit} OFFSET ${offset}
     `, params)
 
     // IPs ya bloqueadas (alerta 651 "Host Blocked"): para ocultar el botón.
@@ -123,7 +128,7 @@ router.get('/alerts', async (req, res, next) => {
     const bloqueadas = new Set(blk.map(b => `${b.wazuh_id}|${b.src_ip}`))
     const alerts = rows.map(r => ({ ...r, bloqueada: r.src_ip ? bloqueadas.has(`${r.wazuh_id}|${r.src_ip}`) : false }))
 
-    res.json({ alerts })
+    res.json({ alerts, total: Number(total), offset, limit })
   } catch (err) { next(err) }
 })
 

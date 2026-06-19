@@ -4,9 +4,20 @@
 const router = require('express').Router()
 const centralDB = require('../db/central')
 const { getTenantDB } = require('../db/tenant')
+const { sendMail } = require('../services/emailService')
 
 // Nivel mínimo de regla Wazuh para abrir un incidente automáticamente (12 = crítico).
 const INCIDENT_MIN_LEVEL = parseInt(process.env.EDR_INCIDENT_MIN_LEVEL, 10) || 12
+// Ventana de deduplicación: alertas idénticas (mismo agente+regla+IP) dentro de
+// este lapso solo incrementan un contador en vez de crear una fila nueva (ruido).
+const DEDUPE_WINDOW_MIN = parseInt(process.env.EDR_DEDUPE_WINDOW_MIN, 10) || 5
+const NOTIFY_TO = process.env.EDR_NOTIFY_EMAIL || process.env.MAIL_FROM
+
+// Notificación por correo al equipo DSTAC (nunca lanza: no debe romper el webhook).
+async function notificar(asunto, html) {
+  if (!NOTIFY_TO) return
+  try { await sendMail(NOTIFY_TO, asunto, html) } catch (e) { console.error('edr notificar:', e.message) }
+}
 
 function s(v, n) { return v == null ? null : (String(v).slice(0, n) || null) }
 function j(v) { return v == null ? null : JSON.stringify(v) }
@@ -33,7 +44,7 @@ async function escalarIncidente({ companyId, wazuhId, agentName, alertId, rule, 
   `, [companyId, wazuhId, intOrNull(rule.id)])
   if (dup.length) return
 
-  const [comp] = await centralDB.execute(`SELECT slug FROM companies WHERE id = ? LIMIT 1`, [companyId])
+  const [comp] = await centralDB.execute(`SELECT name, slug FROM companies WHERE id = ? LIMIT 1`, [companyId])
   const slug = comp[0]?.slug
   if (!slug) return
 
@@ -62,6 +73,19 @@ async function escalarIncidente({ companyId, wazuhId, agentName, alertId, rule, 
   await centralDB.execute(
     `UPDATE edr_alerts SET incidente_id = ?, incidente_slug = ? WHERE id = ?`,
     [ins.insertId, slug, alertId]
+  )
+
+  await notificar(
+    `🚨 EDR: incidente ${severidad} — ${comp[0]?.name || slug}`,
+    `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a">
+       <p>Se escaló un incidente automático del EDR.</p>
+       <p><b>Empresa:</b> ${comp[0]?.name || slug}<br>
+          <b>Agente:</b> ${agentName || wazuhId} (${wazuhId})<br>
+          <b>Regla:</b> ${rule.id} · nivel ${level}: ${rule.description || ''}<br>
+          ${tactics ? `<b>MITRE táctica:</b> ${tactics}<br>` : ''}
+          ${srcIp ? `<b>Origen:</b> ${srcIp}<br>` : ''}</p>
+       <p>Revísalo en el portal: módulo Incidentes de ${comp[0]?.name || slug}.</p>
+     </div>`
   )
 }
 
@@ -123,21 +147,40 @@ router.post('/alerts', async (req, res) => {
       }
     }
 
-    // 3) Guardar la alerta.
+    // 3) Guardar la alerta — deduplicando repeticiones idénticas (mismo agente+regla+IP)
+    //    dentro de una ventana corta: solo se incrementa el contador, no se crea ruido.
     const srcIp = s(data.srcip || data.src_ip, 64)
+    const eventTime = toMysqlDate(a.timestamp)
+    const ruleId = intOrNull(rule.id)
+
+    const [dupe] = await centralDB.execute(`
+      SELECT id FROM edr_alerts
+      WHERE company_id <=> ? AND wazuh_id <=> ? AND rule_id <=> ? AND src_ip <=> ?
+        AND last_seen >= (NOW() - INTERVAL ? MINUTE)
+      ORDER BY id DESC LIMIT 1
+    `, [companyId, wazuhId, ruleId, srcIp, DEDUPE_WINDOW_MIN])
+
+    if (dupe.length) {
+      await centralDB.execute(
+        `UPDATE edr_alerts SET count = count + 1, last_seen = NOW(), event_time = COALESCE(?, event_time) WHERE id = ?`,
+        [eventTime, dupe[0].id]
+      )
+      return res.json({ ok: true, deduped: true })
+    }
+
     const [ins] = await centralDB.execute(`
       INSERT INTO edr_alerts
         (company_id, wazuh_id, agent_name, rule_id, rule_level, rule_description,
          rule_groups, mitre_ids, mitre_tactics, mitre_techniques,
-         location, decoder, src_ip, full_log, event_time, raw)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         location, decoder, src_ip, full_log, event_time, raw, count, last_seen)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())
     `, [
       companyId, wazuhId, agentName,
-      intOrNull(rule.id), intOrNull(rule.level), s(rule.description, 1024),
+      ruleId, intOrNull(rule.level), s(rule.description, 1024),
       j(rule.groups), j(mitre.id), j(mitre.tactic), j(mitre.technique),
       s(a.location, 255), s(a.decoder?.name, 120),
       srcIp, s(a.full_log, 65000),
-      toMysqlDate(a.timestamp), j(a),
+      eventTime, j(a),
     ])
 
     // 4) Escalar a incidente si la alerta es grave y el agente pertenece a un tenant.
@@ -146,7 +189,7 @@ router.post('/alerts', async (req, res) => {
       try {
         await escalarIncidente({
           companyId, wazuhId, agentName, alertId: ins.insertId,
-          rule, mitre, srcIp, fullLog: a.full_log, eventTime: toMysqlDate(a.timestamp),
+          rule, mitre, srcIp, fullLog: a.full_log, eventTime,
         })
       } catch (e) {
         console.error('edr escalada incidente:', e.message)
@@ -165,6 +208,16 @@ router.post('/alerts', async (req, res) => {
         await centralDB.execute(
           `INSERT INTO edr_responses (company_id, wazuh_id, action, target) VALUES (?, ?, 'bloqueo_auto', ?)`,
           [companyId, wazuhId, srcIp]
+        ).catch(() => {})
+        const [comp] = await centralDB.execute(`SELECT name FROM companies WHERE id = ? LIMIT 1`, [companyId])
+        notificar(
+          `⚡ EDR: auto-bloqueo de IP — ${comp[0]?.name || companyId}`,
+          `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a">
+             <p>El EDR bloqueó automáticamente una IP por fuerza bruta SSH.</p>
+             <p><b>Empresa:</b> ${comp[0]?.name || companyId}<br>
+                <b>Agente:</b> ${agentName || wazuhId} (${wazuhId})<br>
+                <b>IP bloqueada:</b> ${srcIp}</p>
+           </div>`
         ).catch(() => {})
       }
     }
