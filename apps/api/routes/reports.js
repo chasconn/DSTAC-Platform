@@ -19,6 +19,7 @@ const REPORT_MODULES = {
   edr:         () => require('../services/reports/edr'),
   diagnostico: () => require('../services/reports/diagnostico'),
   brochure:    () => require('../services/reports/brochure'),
+  propuesta:   () => require('../services/reports/propuesta'),
 }
 
 router.get('/:reporteId', requireAuth, requireDstacRole, resolveTenant, async (req, res, next) => {
