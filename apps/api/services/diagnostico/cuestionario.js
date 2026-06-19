@@ -102,6 +102,16 @@ const TAMANOS = [
 ]
 const planDeTamano = (t) => (TAMANOS.find(x => x.id === t) || TAMANOS[1]).plan
 
+// Tier mínimo de cada proyecto (1=PYME, 2=Mediana, 3=Grande) y tope de proyectos
+// recomendados por tamaño → cotizaciones realistas, sin apilar lo premium en pymes.
+const TIER_NUM = { PYMES: 1, Profesional: 2, Empresarial: 3 }
+const MAX_PROY = { PYMES: 3, Profesional: 5, Empresarial: 8 }
+const PROY_TIER = {
+  'Endurecimiento de M365': 1, 'Capacitación': 1, 'Ley 21.663': 1, 'Ley 21.719': 1, 'DPO as-a-Service': 1, 'ISO 27001': 1, 'Active Directory': 1,
+  'Segmentación de red': 2, 'Diseño de infraestructura segura': 2, 'CSPM': 2, 'Pentest': 2, 'BCP/DRP': 2,
+  'Red Team': 3,
+}
+
 const VAL = { si: 100, parcial: 50, no: 0 }
 const nivelDe = (s) => (s >= 80 ? 'Alto' : s >= 50 ? 'Medio' : 'Bajo')
 
@@ -117,13 +127,21 @@ function evaluar(respuestas = {}) {
   })
   const conDatos = dominios.filter(d => d.score != null)
   const scoreTotal = conDatos.length ? Math.round(conDatos.reduce((s, d) => s + d.score, 0) / conDatos.length) : 0
-  const brechas = dominios.filter(d => d.score != null && d.score < 70)
-  const proyectos = []
-  brechas.forEach(d => {
-    const def = DOMINIOS.find(x => x.id === d.id)
-    def.proyectos.forEach(k => { if (!proyectos.includes(k)) proyectos.push(k) })
-  })
   const tamano = respuestas.tamano || 'Profesional'
+  const tierNum = TIER_NUM[tamano] || 2
+  const maxProy = MAX_PROY[tamano] || 5
+  const brechas = dominios.filter(d => d.score != null && d.score < 70)
+  // Peores dominios primero → se priorizan las brechas más críticas dentro del tope.
+  const proyectos = []
+  for (const d of [...brechas].sort((a, b) => a.score - b.score)) {
+    const def = DOMINIOS.find(x => x.id === d.id)
+    for (const k of def.proyectos) {
+      if (proyectos.length >= maxProy) break
+      if ((PROY_TIER[k] || 1) > tierNum) continue        // proyecto premium para tamaño mayor
+      if (!proyectos.includes(k)) proyectos.push(k)
+    }
+    if (proyectos.length >= maxProy) break
+  }
   return { dominios, scoreTotal, nivel: nivelDe(scoreTotal), brechas: brechas.map(b => b.id), proyectos, tamano, plan: planDeTamano(tamano) }
 }
 
