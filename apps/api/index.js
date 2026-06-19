@@ -71,6 +71,7 @@ app.use('/api/admin/riesgos',      require('./routes/admin/riesgos'))
 app.use('/api/admin/cotizaciones', require('./routes/admin/cotizaciones'))
 app.use('/api/admin/edr',          require('./routes/admin/edr'))
 app.use('/api/admin/mdm',          require('./routes/admin/mdm'))
+app.use('/api/admin/diagnostico',  require('./routes/admin/diagnostico'))
 
 // Health check
 app.get('/api/health', (req, res) => {

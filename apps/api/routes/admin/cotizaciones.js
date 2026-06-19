@@ -288,3 +288,5 @@ router.delete('/:id', async (req, res, next) => {
 })
 
 module.exports = router
+// Helpers reutilizables (p. ej. generación de cotización desde el diagnóstico).
+module.exports.helpers = { siguienteNumero, calcularTotales, guardarItems }
