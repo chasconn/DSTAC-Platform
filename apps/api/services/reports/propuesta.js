@@ -116,7 +116,7 @@ function buildHTML(data) {
     ${grid(3, [
       `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:20px;text-align:center;"><div style="font-size:10px;letter-spacing:2px;color:${LBL};margin-bottom:8px;">SITIO WEB</div><div style="font-size:15px;color:#fff;font-weight:700;">www.dstac.cl</div></div>`,
       `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:20px;text-align:center;"><div style="font-size:10px;letter-spacing:2px;color:${LBL};margin-bottom:8px;">CORREO</div><div style="font-size:14px;color:#fff;font-weight:700;">contacto@dstac.cl</div></div>`,
-      `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:20px;text-align:center;"><div style="font-size:10px;letter-spacing:2px;color:${LBL};margin-bottom:8px;">TELÉFONO</div><div style="font-size:15px;color:#fff;font-weight:700;">+56 9 4276 0353</div></div>`,
+      `<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:20px;text-align:center;"><div style="font-size:10px;letter-spacing:2px;color:${LBL};margin-bottom:8px;">TELÉFONO</div><div style="font-size:15px;color:#fff;font-weight:700;">+56 9 6219 8594</div></div>`,
     ].join(''), 30)}
     <div style="display:flex;justify-content:center;">${logo(48)}</div>
     ${pageFoot()}</div>`
