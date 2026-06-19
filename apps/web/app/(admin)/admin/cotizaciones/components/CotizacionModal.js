@@ -6,7 +6,7 @@ import { useState, useRef } from 'react'
 import { apiFetch } from '../../../../../lib/api'
 import { clp, totales, TIPO_LINEA } from './format'
 
-const inp = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, color: '#2C2C2A', background: '#fff', outline: 'none' }
+const inp = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 14, color: '#2C2C2A', background: '#fff', outline: 'none' }
 const lbl = { fontSize: 12, fontWeight: 600, color: '#888780', display: 'block', marginBottom: 5 }
 
 export default function CotizacionModal({ cotizacion, companies = [], leads = [], catalogo = [], onClose, onSaved }) {
@@ -35,6 +35,8 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }))
   const t = totales(items)
+  // Catálogo agrupado por nivel → selección más cómoda.
+  const cats = {}; catalogo.forEach(c => { const k = c.nivel || 'Otros'; (cats[k] = cats[k] || []).push(c) })
 
   // Vincular datos desde un cliente/prospecto existente
   function vincular(valor) {
@@ -94,7 +96,7 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(38,33,92,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 720, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 10px 50px rgba(0,0,0,0.25)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 980, maxHeight: '94vh', overflowY: 'auto', boxShadow: '0 10px 50px rgba(0,0,0,0.25)' }}>
 
         <div style={{ padding: '18px 22px', borderBottom: '1px solid #e2e0d8', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#2C2C2A' }}>{ed ? `Editar cotización ${cotizacion.numero}` : 'Nueva cotización'}</h2>
@@ -136,17 +138,18 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
 
           {/* Líneas */}
           <div style={{ borderTop: '1px solid #f1efe8', paddingTop: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A' }}>Servicios cotizados</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <select value={agregar} onChange={e => agregarCatalogo(e.target.value)} style={{ ...inp, width: 'auto', fontSize: 12 }}>
-                  <option value="">+ Del catálogo…</option>
-                  {catalogo.map(c => <option key={c.id} value={c.id}>{c.nivel ? `[${c.nivel}] ` : ''}{c.nombre}</option>)}
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', marginBottom: 12 }}>Servicios cotizados</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, marginBottom: 14, alignItems: 'end' }}>
+              <div>
+                <label style={lbl}>Agregar servicio del catálogo</label>
+                <select value={agregar} onChange={e => agregarCatalogo(e.target.value)} style={{ ...inp, fontSize: 14, padding: '11px 12px' }}>
+                  <option value="">— Elige un servicio para agregarlo —</option>
+                  {Object.entries(cats).map(([nivel, arr]) => <optgroup key={nivel} label={nivel}>{arr.map(c => <option key={c.id} value={c.id}>{c.nombre}{c.precio_sugerido ? ` · ${clp(c.precio_sugerido)}` : ''}</option>)}</optgroup>)}
                 </select>
-                <button onClick={lineaLibre} style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#3C3489' }}>+ Línea libre</button>
-                <button onClick={() => fileRef.current?.click()} title="Importar líneas desde Excel" style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#444441', display: 'flex', alignItems: 'center', gap: 5 }}><i className="ti ti-file-spreadsheet" /> Excel</button>
-                <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={e => importarLineas(e.target.files?.[0])} />
               </div>
+              <button onClick={lineaLibre} style={{ padding: '11px 16px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#3C3489', whiteSpace: 'nowrap' }}>+ Línea libre</button>
+              <button onClick={() => fileRef.current?.click()} title="Importar líneas desde Excel" style={{ padding: '11px 16px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#444441', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}><i className="ti ti-file-spreadsheet" /> Excel</button>
+              <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={e => importarLineas(e.target.files?.[0])} />
             </div>
 
             {items.length === 0 && <div style={{ fontSize: 12.5, color: '#B4B2A9', padding: '12px 0' }}>Agrega servicios desde el catálogo, como línea libre, o <span onClick={descargarPlantilla} style={{ color: '#534AB7', cursor: 'pointer', fontWeight: 600 }}>importa desde Excel</span> (descarga la plantilla).</div>}
@@ -154,26 +157,24 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
             {items.map((it, i) => {
               const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
               return (
-                <div key={i} style={{ background: '#FAFAF8', border: '1px solid #f1efe8', borderRadius: 10, padding: 10, marginBottom: 8 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                    <input value={it.servicio} onChange={e => setItem(i, 'servicio', e.target.value)} placeholder="Servicio" style={{ ...inp, flex: 1, fontWeight: 600 }} />
-                    <button onClick={() => quitar(i)} title="Quitar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#C0392B', fontSize: 16, padding: '4px 6px' }}>🗑</button>
+                <div key={i} style={{ background: '#FAFAF8', border: '1px solid #ECEAE3', borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                    <input value={it.servicio} onChange={e => setItem(i, 'servicio', e.target.value)} placeholder="Nombre del servicio" style={{ ...inp, flex: 1, fontWeight: 700 }} />
+                    <button onClick={() => quitar(i)} title="Quitar línea" style={{ background: '#FCEBEB', border: 'none', borderRadius: 8, cursor: 'pointer', color: '#C0392B', fontSize: 12.5, fontWeight: 600, padding: '9px 14px', whiteSpace: 'nowrap' }}>Quitar</button>
                   </div>
-                  <input value={it.detalle} onChange={e => setItem(i, 'detalle', e.target.value)} placeholder="Detalle / descripción" style={{ ...inp, marginTop: 6, fontSize: 12 }} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 1fr 1fr', gap: 8, marginTop: 6, alignItems: 'center' }}>
-                    <select value={it.tipo} onChange={e => setItem(i, 'tipo', e.target.value)} style={{ ...inp, fontSize: 12 }}>
-                      <option value="unico">Único</option><option value="mensual">Mensual</option>
-                    </select>
-                    <input type="number" min="1" value={it.cantidad} onChange={e => setItem(i, 'cantidad', e.target.value)} style={{ ...inp, fontSize: 12 }} title="Cantidad" />
-                    <input type="number" min="0" value={it.precio_unitario} onChange={e => setItem(i, 'precio_unitario', e.target.value)} placeholder="Precio unit." style={{ ...inp, fontSize: 12 }} />
-                    <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: '#2C2C2A' }}>{clp(sub)}</div>
+                  <input value={it.detalle} onChange={e => setItem(i, 'detalle', e.target.value)} placeholder="Detalle / descripción (opcional)" style={inp} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '150px 110px 1fr 1fr', gap: 12, marginTop: 10, alignItems: 'end' }}>
+                    <div><label style={lbl}>Tipo</label><select value={it.tipo} onChange={e => setItem(i, 'tipo', e.target.value)} style={inp}><option value="unico">Único</option><option value="mensual">Mensual</option></select></div>
+                    <div><label style={lbl}>Cantidad</label><input type="number" min="1" value={it.cantidad} onChange={e => setItem(i, 'cantidad', e.target.value)} style={inp} /></div>
+                    <div><label style={lbl}>Precio unitario</label><input type="number" min="0" value={it.precio_unitario} onChange={e => setItem(i, 'precio_unitario', e.target.value)} placeholder="0" style={inp} /></div>
+                    <div><label style={lbl}>Subtotal</label><div style={{ ...inp, textAlign: 'right', fontWeight: 700, background: '#F1EFE8', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>{clp(sub)}</div></div>
                   </div>
                 </div>
               )
             })}
 
             {/* Totales */}
-            <div style={{ marginLeft: 'auto', width: 240, marginTop: 8 }}>
+            <div style={{ marginLeft: 'auto', width: 300, marginTop: 14 }}>
               <Row l="Neto" v={clp(t.neto)} />
               <Row l="IVA (19%)" v={clp(t.iva)} />
               <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 8, fontSize: 16, fontWeight: 700, color: '#3C3489' }}>
