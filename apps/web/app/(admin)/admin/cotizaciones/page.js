@@ -160,7 +160,7 @@ export default function CotizacionesPage() {
       </div>
 
       {modalOpen && <CotizacionModal cotizacion={editando} companies={companies} leads={leads} catalogo={catalogo} onClose={() => { setModalOpen(false); setEditando(null) }} onSaved={handleSaved} />}
-      {viendo && <CotizacionDetalle cot={viendo} onClose={() => setViendo(null)} onEditar={c => { setViendo(null); apiFetch(`/api/admin/cotizaciones/${c.id}`).then(full => { setEditando(full); setModalOpen(true) }) }} onEliminar={eliminar} onCambiarEstado={cambiarEstado} />}
+      {viendo && <CotizacionDetalle cot={viendo} onClose={() => setViendo(null)} onEditar={c => { setViendo(null); apiFetch(`/api/admin/cotizaciones/${c.id}`).then(full => { setEditando(full); setModalOpen(true) }) }} onEliminar={eliminar} onCambiarEstado={cambiarEstado} onEnviada={() => { cargar(); setViendo(v => v && { ...v, estado: v.estado === 'borrador' ? 'enviada' : v.estado }) }} />}
       {catOpen && <CatalogoModal onClose={() => setCatOpen(false)} onChanged={cargarCatalogo} />}
     </div>
   )

@@ -34,21 +34,28 @@ async function getToken() {
   return _token
 }
 
-async function sendMail(to, subject, html) {
+// attachments opcional: [{ name, contentType, contentBytes (base64) }]
+async function sendMail(to, subject, html, attachments = []) {
   const token = await getToken()
+  const message = {
+    subject,
+    body: { contentType: 'HTML', content: html },
+    toRecipients: [{ emailAddress: { address: to } }]
+  }
+  if (attachments.length) {
+    message.attachments = attachments.map(a => ({
+      '@odata.type': '#microsoft.graph.fileAttachment',
+      name: a.name,
+      contentType: a.contentType || 'application/octet-stream',
+      contentBytes: a.contentBytes,
+    }))
+  }
   const r = await fetch(
     `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(MAIL_FROM)}/sendMail`,
     {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: {
-          subject,
-          body: { contentType: 'HTML', content: html },
-          toRecipients: [{ emailAddress: { address: to } }]
-        },
-        saveToSentItems: false
-      })
+      body: JSON.stringify({ message, saveToSentItems: false })
     }
   )
   if (!r.ok) {

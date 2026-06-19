@@ -1,14 +1,37 @@
 'use client'
 
 // Panel lateral de detalle de una cotización (solo lectura + acciones).
+import { useState } from 'react'
+import { apiFetch } from '../../../../../lib/api'
 import { clp, ESTADO, TIPO_LINEA, totales } from './format'
 import { previewCotizacion } from './quotePreview'
 
 const fmt = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
 
-export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, onCambiarEstado }) {
+export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, onCambiarEstado, onEnviada }) {
   const items = cot.items || []
   const t = totales(items, { tipo: cot.descuento_tipo, valor: cot.descuento_valor })
+  const [enviando, setEnviando] = useState(false)
+
+  async function enviarAlCliente() {
+    let to = cot.cliente_email
+    if (!to) {
+      to = prompt('No hay un correo registrado para esta cotización.\nIngresa el correo del cliente:')
+      if (!to?.trim()) return
+    }
+    if (!confirm(`¿Enviar la cotización ${cot.numero} a ${to}?`)) return
+    setEnviando(true)
+    try {
+      await apiFetch(`/api/admin/cotizaciones/${cot.id}/enviar`, { method: 'POST', body: JSON.stringify({ to }) })
+      alert(`Cotización enviada a ${to}`)
+      onEnviada?.()
+    } catch (err) {
+      alert(err.message || 'No se pudo enviar la cotización')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
@@ -89,6 +112,9 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
         {/* Acciones */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 22, paddingTop: 16, borderTop: '1px solid #f1efe8' }}>
           <button onClick={() => previewCotizacion(cot)} style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13.5 }}>📄 Ver / Guardar PDF</button>
+          <button onClick={enviarAlCliente} disabled={enviando} style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', cursor: enviando ? 'wait' : 'pointer', fontWeight: 600, fontSize: 13.5 }}>
+            {enviando ? 'Enviando…' : `✉ Enviar al cliente${cot.cliente_email ? ` (${cot.cliente_email})` : ''}`}
+          </button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => onEditar(cot)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', color: '#3C3489', cursor: 'pointer', fontWeight: 600, fontSize: 13.5 }}>Editar</button>
             <button onClick={() => onEliminar(cot)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #E8A6A6', background: '#fff', color: '#C0392B', cursor: 'pointer', fontWeight: 600, fontSize: 13.5 }}>Eliminar</button>

@@ -7,6 +7,9 @@ const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { registrarActividad } = require('../../utils/activityLogger')
 const { leerExcel } = require('../../utils/importador')
 const { generarPlantillaCotizacionLineas } = require('../../utils/plantillas')
+const { htmlToPDF } = require('../../services/reportService')
+const { sendMail } = require('../../services/emailService')
+const { buildQuoteHtml } = require('../../services/cotizaciones/quoteHtml')
 
 router.use(requireAuth, requireDstacRole)
 
@@ -273,6 +276,54 @@ router.put('/:id', async (req, res, next) => {
     })
     res.json({ ok: true })
   } catch (err) { next(err) }
+})
+
+// ─── ENVIAR AL CLIENTE (correo con PDF adjunto) ────────────────────────────────
+router.post('/:id/enviar', async (req, res) => {
+  try {
+    const [[co]] = await centralDB.query(`SELECT * FROM cotizaciones WHERE id = ?`, [req.params.id])
+    if (!co) return res.status(404).json({ error: 'Cotización no encontrada' })
+
+    const destinatario = String(req.body?.to || co.cliente_email || '').trim()
+    if (!destinatario) {
+      return res.status(400).json({ error: 'No hay un correo de destino. Agrega el correo del cliente en la cotización o indícalo al enviar.' })
+    }
+
+    const [items] = await centralDB.execute(
+      `SELECT * FROM cotizacion_items WHERE cotizacion_id = ? ORDER BY orden, id`, [co.id]
+    )
+
+    const html = buildQuoteHtml({ ...co, items })
+    const pdf = await htmlToPDF(html)
+
+    const mensaje = String(req.body?.mensaje || '').trim()
+    const bodyHtml = `
+      <div style="font-family:Arial,sans-serif;font-size:14px;color:#2C2C2A;line-height:1.5">
+        <p>Hola${co.cliente_contacto ? ' ' + co.cliente_contacto : ''},</p>
+        <p>Adjuntamos la cotización <b>${co.numero}</b>${co.cliente_empresa ? ` para ${co.cliente_empresa}` : ''}.</p>
+        ${mensaje ? `<p>${mensaje}</p>` : ''}
+        <p>Quedamos atentos a cualquier consulta.</p>
+        <p style="color:#888780;font-size:12px;margin-top:18px">DSTAC Ciberseguridad · contacto@dstac.cl · www.dstac.cl</p>
+      </div>`
+
+    await sendMail(destinatario, `Cotización ${co.numero} · DSTAC Ciberseguridad`, bodyHtml, [
+      { name: `${co.numero}.pdf`, contentType: 'application/pdf', contentBytes: pdf.toString('base64') },
+    ])
+
+    if (co.estado === 'borrador') {
+      await centralDB.execute(`UPDATE cotizaciones SET estado = 'enviada' WHERE id = ?`, [co.id])
+    }
+
+    await registrarActividad({
+      req, accion: 'editar', modulo: 'cotizaciones',
+      descripcion: `Envió la cotización ${co.numero} a ${destinatario}`,
+      entidad_id: co.id, company_id: co.company_id,
+    })
+
+    res.json({ ok: true, enviado_a: destinatario })
+  } catch (err) {
+    res.status(502).json({ error: err.message || 'No se pudo enviar la cotización' })
+  }
 })
 
 // ─── CAMBIAR ESTADO ────────────────────────────────────────────────────────────
