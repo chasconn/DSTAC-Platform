@@ -40,7 +40,8 @@ function buildEspecifica(spec, d) {
   const rsi     = d.rsi     || '[Responsable de Seguridad de la Información]'
   const fecha   = d.fecha   || '[FECHA]'
   const version = d.version || '1.0'
-  const ctrl    = `${spec.controlId} «${spec.controlName}»`
+  const ctrl    = spec.controlId ? `${spec.controlId} «${spec.controlName}»` : (spec.controlName || '')
+  const ctrlRowLabel = spec.controlRowLabel || 'Control ISO relacionado'
   const fix     = (t) => String(t).replace(/{{EMPRESA}}/g, empresa)
 
   const children = []
@@ -69,14 +70,14 @@ function buildEspecifica(spec, d) {
     ['Responsable de mantenimiento', rsi],
     ['Fecha de emisión', fecha],
     ['Frecuencia de revisión', 'Anual, o ante cambios significativos'],
-    ['Política maestra', 'Política de Seguridad de la Información (documento rector del SGSI)'],
-    ['Control ISO relacionado', ctrl],
+    ['Política maestra', spec.politicaMaestra || 'Política de Seguridad de la Información (documento rector del SGSI)'],
+    ...(ctrl ? [[ctrlRowLabel, ctrl]] : []),
   ], [32, 68], { headerFirst: false }))
 
   // Historial
   push(H('Historial de Versiones'))
   push(table([['Versión', 'Fecha', 'Descripción del cambio', 'Responsable'],
-    [version, fecha, 'Emisión inicial alineada a ISO/IEC 27001:2022.', 'RSI']], [12, 18, 50, 20]))
+    [version, fecha, spec.historialInicial || 'Emisión inicial alineada a ISO/IEC 27001:2022.', 'RSI']], [12, 18, 50, 20]))
 
   // Aprobaciones
   push(H('Aprobaciones'))
@@ -86,17 +87,24 @@ function buildEspecifica(spec, d) {
 
   // Propósito
   push(H('Propósito'), P(fix(spec.objetivo)),
-    P(`Esta política específica desarrolla, para su ámbito, los principios establecidos en la Política de Seguridad de la Información de ${empresa}, en conformidad con el control ${ctrl} del Anexo A de ISO/IEC 27001:2022.`))
+    P(spec.propositoExtra
+      ? fix(spec.propositoExtra)
+      : `Esta política específica desarrolla, para su ámbito, los principios establecidos en la Política de Seguridad de la Información de ${empresa}, en conformidad con el control ${ctrl} del Anexo A de ISO/IEC 27001:2022.`))
 
   // Alcance
   push(H('Alcance'),
     P(fix(spec.alcance || `Esta política aplica a todo el personal, contratistas, sistemas, activos e información de ${empresa} comprendidos en el ámbito de este documento, independientemente de su ubicación o formato. Toda excepción debe ser aprobada formalmente conforme a la sección de Cumplimiento.`)))
 
   // Marco normativo
-  push(H('Marco Normativo de Referencia'),
-    LI(`ISO/IEC 27001:2022 — Anexo A, control ${ctrl}.`),
-    LI('NIST Cybersecurity Framework 2.0 y CIS Controls v8 — referencias complementarias.'),
-    LI('Ley N° 21.663 (Ciberseguridad) y Ley N° 21.719 (Protección de Datos Personales), cuando resulten aplicables.'))
+  push(H('Marco Normativo de Referencia'))
+  if (spec.marcoNormativo && spec.marcoNormativo.length) {
+    spec.marcoNormativo.forEach(m => push(LI(fix(m))))
+  } else {
+    push(
+      LI(`ISO/IEC 27001:2022 — Anexo A, control ${ctrl}.`),
+      LI('NIST Cybersecurity Framework 2.0 y CIS Controls v8 — referencias complementarias.'),
+      LI('Ley N° 21.663 (Ciberseguridad) y Ley N° 21.719 (Protección de Datos Personales), cuando resulten aplicables.'))
+  }
 
   // Definiciones (propias de la política)
   if (spec.definiciones && spec.definiciones.length) {
@@ -132,16 +140,17 @@ function buildEspecifica(spec, d) {
 
   // Revisión
   push(H('Revisión y Mejora Continua'),
-    P('Esta política se revisa al menos una vez al año, o ante cambios regulatorios, tecnológicos, de servicios o tras incidentes graves, conforme al ciclo de mejora continua (PDCA) del SGSI. Los indicadores asociados se reportan a la Dirección en la revisión por la dirección.'))
+    P(spec.revisionExtra || 'Esta política se revisa al menos una vez al año, o ante cambios regulatorios, tecnológicos, de servicios o tras incidentes graves, conforme al ciclo de mejora continua (PDCA) del SGSI. Los indicadores asociados se reportan a la Dirección en la revisión por la dirección.'))
 
   // Glosario
   push(H('Glosario'))
-  push(table([['Término', 'Definición'],
+  push(table([['Término', 'Definición'], ...(spec.glosario || [
     ['SGSI', 'Sistema de Gestión de Seguridad de la Información.'],
     ['RSI', 'Responsable de Seguridad de la Información.'],
     ['Confidencialidad', 'Propiedad que garantiza que solo personas autorizadas accedan a la información.'],
     ['Integridad', 'Propiedad que garantiza la exactitud y completitud de la información.'],
-    ['Disponibilidad', 'Propiedad que garantiza el acceso a la información por usuarios autorizados cuando la requieran.']], [24, 76]))
+    ['Disponibilidad', 'Propiedad que garantiza el acceso a la información por usuarios autorizados cuando la requieran.'],
+  ])], [24, 76]))
 
   push(new Paragraph({ spacing: { before: 240 },
     children: [new TextRun({ text: 'Documento generado por la plataforma DSTAC CIBERSECURITY. Complete los campos entre corchetes, ajuste las directrices a la operación real de la organización y obtenga la aprobación formal antes de su entrada en vigor.', italics: true, color: GRAY, size: 16 })] }))
