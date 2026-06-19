@@ -2,7 +2,7 @@
 // diagnóstico guardado de la empresa. Incluye score, brechas por dominio y
 // servicios recomendados (del catálogo) con valor estimado.
 const { buildHeader, buildFooter, colorFor, wrapDocument } = require('./template')
-const { planDeTamano } = require('../diagnostico/cuestionario')
+const { planDeRespuestas } = require('../diagnostico/cuestionario')
 
 const CLP = (n) => '$' + (Number(n) || 0).toLocaleString('es-CL')
 // Columnas JSON: mysql2 las devuelve ya parseadas (array); tolera string también.
@@ -20,7 +20,7 @@ async function getData(tenantDB, centralDB, companyId, company) {
       : (typeof d.respuestas === 'string' ? (() => { try { return JSON.parse(d.respuestas) || {} } catch { return {} } })() : {})
   }
   // Recomendación = PLAN (según tamaño) + diagnóstico de onboarding + proyectos.
-  const keywords = d ? [planDeTamano(resp.tamano), 'Diagnóstico de Postura', ...proyectos] : []
+  const keywords = d ? [planDeRespuestas(resp), 'Diagnóstico de Postura', ...proyectos] : []
   const servicios = []
   for (const kw of keywords) {
     const [rows] = await centralDB.execute(

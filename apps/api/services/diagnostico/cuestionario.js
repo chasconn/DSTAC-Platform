@@ -102,6 +102,19 @@ const TAMANOS = [
 ]
 const planDeTamano = (t) => (TAMANOS.find(x => x.id === t) || TAMANOS[1]).plan
 
+// Tamaño (y por ende el plan) derivado de la cantidad de trabajadores.
+function tamanoPorTrabajadores(n) {
+  n = Number(n) || 0
+  if (n <= 0) return null
+  if (n <= 15) return 'PYMES'
+  if (n <= 50) return 'Profesional'
+  return 'Empresarial'
+}
+function planDeRespuestas(resp = {}) {
+  const t = tamanoPorTrabajadores(resp.trabajadores) || resp.tamano || 'Profesional'
+  return planDeTamano(t)
+}
+
 // Tier mínimo de cada proyecto (1=PYME, 2=Mediana, 3=Grande) y tope de proyectos
 // recomendados por tamaño → cotizaciones realistas, sin apilar lo premium en pymes.
 const TIER_NUM = { PYMES: 1, Profesional: 2, Empresarial: 3 }
@@ -127,7 +140,7 @@ function evaluar(respuestas = {}) {
   })
   const conDatos = dominios.filter(d => d.score != null)
   const scoreTotal = conDatos.length ? Math.round(conDatos.reduce((s, d) => s + d.score, 0) / conDatos.length) : 0
-  const tamano = respuestas.tamano || 'Profesional'
+  const tamano = tamanoPorTrabajadores(respuestas.trabajadores) || respuestas.tamano || 'Profesional'
   const tierNum = TIER_NUM[tamano] || 2
   const maxProy = MAX_PROY[tamano] || 5
   const brechas = dominios.filter(d => d.score != null && d.score < 70)
@@ -145,4 +158,4 @@ function evaluar(respuestas = {}) {
   return { dominios, scoreTotal, nivel: nivelDe(scoreTotal), brechas: brechas.map(b => b.id), proyectos, tamano, plan: planDeTamano(tamano) }
 }
 
-module.exports = { DOMINIOS, TAMANOS, evaluar, nivelDe, planDeTamano }
+module.exports = { DOMINIOS, TAMANOS, evaluar, nivelDe, planDeTamano, tamanoPorTrabajadores, planDeRespuestas }

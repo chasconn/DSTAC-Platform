@@ -4,7 +4,7 @@ const router    = require('express').Router()
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { resolveTenant }                  = require('../../middleware/tenant')
 const centralDB = require('../../db/central')
-const { DOMINIOS, TAMANOS, evaluar, planDeTamano } = require('../../services/diagnostico/cuestionario')
+const { DOMINIOS, TAMANOS, evaluar, planDeRespuestas } = require('../../services/diagnostico/cuestionario')
 const { helpers } = require('./cotizaciones')
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
@@ -68,7 +68,7 @@ router.post('/:id/cotizacion', async (req, res, next) => {
       : (typeof d.servicios === 'string' && d.servicios ? (() => { try { return JSON.parse(d.servicios) || [] } catch { return [] } })() : [])
     let resp = d.respuestas
     if (typeof resp === 'string') { try { resp = JSON.parse(resp) } catch { resp = {} } }
-    const planKw = planDeTamano(resp && resp.tamano)
+    const planKw = planDeRespuestas(resp || {})
     // Cotización = PLAN recomendado (según tamaño) + diagnóstico de onboarding + proyectos puntuales.
     const keywords = [planKw, 'Diagnóstico de Postura', ...proyectos]
 
