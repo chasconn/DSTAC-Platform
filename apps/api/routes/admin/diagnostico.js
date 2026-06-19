@@ -4,7 +4,7 @@ const router    = require('express').Router()
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { resolveTenant }                  = require('../../middleware/tenant')
 const centralDB = require('../../db/central')
-const { DOMINIOS, evaluar } = require('../../services/diagnostico/cuestionario')
+const { DOMINIOS, TAMANOS, evaluar, planDeTamano } = require('../../services/diagnostico/cuestionario')
 const { helpers } = require('./cotizaciones')
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
@@ -12,7 +12,10 @@ const uid = (req) => req.user.id || req.user.user_id
 
 // Estructura del cuestionario (para pintar el formulario).
 router.get('/cuestionario', (req, res) => {
-  res.json({ dominios: DOMINIOS.map(d => ({ id: d.id, nombre: d.nombre, preguntas: d.preguntas })) })
+  res.json({
+    dominios: DOMINIOS.map(d => ({ id: d.id, nombre: d.nombre, preguntas: d.preguntas })),
+    tamanos: TAMANOS,
+  })
 })
 
 // Último diagnóstico + historial de la empresa activa.
@@ -47,7 +50,7 @@ router.post('/', async (req, res, next) => {
        VALUES (?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.company.id, ev.scoreTotal, ev.nivel,
        JSON.stringify(respuestas), JSON.stringify(ev.dominios), JSON.stringify(ev.brechas),
-       JSON.stringify(ev.servicios), notas || null, uid(req)])
+       JSON.stringify(ev.proyectos), notas || null, uid(req)])
     res.json({ id: r.insertId, ...ev })
   } catch (err) { next(err) }
 })
@@ -61,9 +64,13 @@ router.post('/:id/cotizacion', async (req, res, next) => {
     if (!d) return res.status(404).json({ error: 'Diagnóstico no encontrado' })
 
     // mysql2 devuelve columnas JSON ya parseadas (array); tolera string.
-    const keywords = Array.isArray(d.servicios) ? d.servicios
+    const proyectos = Array.isArray(d.servicios) ? d.servicios
       : (typeof d.servicios === 'string' && d.servicios ? (() => { try { return JSON.parse(d.servicios) || [] } catch { return [] } })() : [])
-    if (!keywords.length) return res.status(400).json({ error: 'El diagnóstico no detectó brechas con servicios asociados' })
+    let resp = d.respuestas
+    if (typeof resp === 'string') { try { resp = JSON.parse(resp) } catch { resp = {} } }
+    const planKw = planDeTamano(resp && resp.tamano)
+    // Cotización = PLAN recomendado (según tamaño) + diagnóstico de onboarding + proyectos puntuales.
+    const keywords = [planKw, 'Diagnóstico de Postura', ...proyectos]
 
     // Buscar en el catálogo los servicios que cierran las brechas (por keyword).
     const seen = new Set(), items = []

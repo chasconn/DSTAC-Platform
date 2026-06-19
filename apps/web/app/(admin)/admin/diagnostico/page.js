@@ -17,7 +17,8 @@ const CLP = (n) => '$' + (Number(n) || 0).toLocaleString('es-CL')
 export default function DiagnosticoPage() {
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [dominios, setDominios] = useState([])
-  const [respuestas, setRespuestas] = useState({})
+  const [tamanos, setTamanos] = useState([])
+  const [respuestas, setRespuestas] = useState({ tamano: 'Profesional' })
   const [resultado, setResultado] = useState(null)
   const [cotResult, setCotResult] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -35,14 +36,14 @@ export default function DiagnosticoPage() {
 
   const cargar = useCallback(async () => {
     if (!slug) return
-    try { const d = await api.get('/api/admin/diagnostico/cuestionario', headers); setDominios(d.dominios ?? []) }
+    try { const d = await api.get('/api/admin/diagnostico/cuestionario', headers); setDominios(d.dominios ?? []); setTamanos(d.tamanos ?? []) }
     catch { showToast('No se pudo cargar el cuestionario') }
   }, [slug])
   useEffect(() => { cargar() }, [slug])
 
   const setResp = (key, v) => setRespuestas(p => ({ ...p, [key]: v }))
   const totalPreg = dominios.reduce((a, d) => a + d.preguntas.length, 0)
-  const respondidas = Object.keys(respuestas).length
+  const respondidas = Object.keys(respuestas).filter(k => k !== 'tamano').length
 
   async function guardar() {
     if (!slug) return
@@ -73,6 +74,18 @@ export default function DiagnosticoPage() {
       <div style={{ background: `linear-gradient(120deg, ${NAVY}, ${PURPLE})`, borderRadius: 14, padding: '22px 26px', color: '#fff', marginBottom: 20 }}>
         <div style={{ fontSize: 22, fontWeight: 800 }}>🩺 Diagnóstico de Madurez</div>
         <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{empresaActiva?.name} · cuestionario interno · {respondidas}/{totalPreg} respondidas</div>
+      </div>
+
+      {/* Tamaño de la empresa → plan recomendado */}
+      <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: '14px 18px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A' }}>Tamaño de la empresa</span>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {tamanos.map(t => (
+            <button key={t.id} onClick={() => setResp('tamano', t.id)}
+              style={{ padding: '7px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: respuestas.tamano === t.id ? PURPLE : '#f8f7f4', color: respuestas.tamano === t.id ? '#fff' : '#888780' }}>{t.label}</button>
+          ))}
+        </div>
+        <span style={{ fontSize: 12, color: '#888780', marginLeft: 'auto' }}>Define el plan recomendado</span>
       </div>
 
       {/* Cuestionario */}
@@ -143,9 +156,13 @@ export default function DiagnosticoPage() {
             ))}
           </div>
 
-          {resultado.servicios?.length > 0 && (
+          <div style={{ background: '#EEEDFE', border: '1px solid #CECBF6', borderRadius: 10, padding: '12px 14px', marginBottom: 12, fontSize: 13, color: '#3C3489' }}>
+            <b>Plan recomendado:</b> {resultado.plan} <span style={{ color: '#7C7AA8' }}>(según el tamaño seleccionado)</span>
+          </div>
+
+          {resultado.proyectos?.length > 0 && (
             <div style={{ fontSize: 12.5, color: '#6A675E', background: '#f8f7f4', borderRadius: 8, padding: '10px 12px' }}>
-              <b>Brechas detectadas</b> → servicios recomendados: {resultado.servicios.join(' · ')}. Usa <b>Generar cotización</b> para crear el borrador con estos servicios.
+              <b>Proyectos sugeridos</b> para cerrar brechas: {resultado.proyectos.join(' · ')}. Usa <b>Generar cotización</b> para crear el borrador con el plan + estos proyectos.
             </div>
           )}
 
