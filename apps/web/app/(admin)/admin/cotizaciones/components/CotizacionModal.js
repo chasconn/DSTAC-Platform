@@ -25,6 +25,9 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
     forma_pago:       cotizacion?.forma_pago ?? '',
     plazo_ejecucion:  cotizacion?.plazo_ejecucion ?? '',
     notas:            cotizacion?.notas ?? '',
+    descuento_tipo:   cotizacion?.descuento_tipo ?? '',
+    descuento_valor:  cotizacion?.descuento_valor ?? '',
+    descuento_motivo: cotizacion?.descuento_motivo ?? '',
   })
   const [items, setItems] = useState(
     (cotizacion?.items || []).map(it => ({ servicio: it.servicio, detalle: it.detalle || '', tipo: it.tipo, cantidad: it.cantidad, precio_unitario: it.precio_unitario }))
@@ -34,7 +37,7 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
   const [error, setError] = useState('')
 
   const set = (k, v) => setF(p => ({ ...p, [k]: v }))
-  const t = totales(items)
+  const t = totales(items, { tipo: f.descuento_tipo, valor: f.descuento_valor })
   // Catálogo agrupado por nivel → selección más cómoda.
   const cats = {}; catalogo.forEach(c => { const k = c.nivel || 'Otros'; (cats[k] = cats[k] || []).push(c) })
 
@@ -84,7 +87,12 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
     if (!f.cliente_empresa.trim() && !f.company_id && !f.lead_id) { setError('Indica el cliente'); return }
     if (items.length === 0) { setError('Agrega al menos una línea'); return }
     setSaving(true); setError('')
-    const body = { ...f, company_id: f.company_id || null, lead_id: f.lead_id || null, validez_dias: Number(f.validez_dias) || 15, items }
+    const body = {
+      ...f, company_id: f.company_id || null, lead_id: f.lead_id || null, validez_dias: Number(f.validez_dias) || 15, items,
+      descuento_tipo: f.descuento_tipo || null,
+      descuento_valor: f.descuento_tipo ? (Number(f.descuento_valor) || 0) : 0,
+      descuento_motivo: f.descuento_tipo ? (f.descuento_motivo || null) : null,
+    }
     try {
       if (ed) await apiFetch(`/api/admin/cotizaciones/${cotizacion.id}`, { method: 'PUT', body: JSON.stringify(body) })
       else    await apiFetch('/api/admin/cotizaciones', { method: 'POST', body: JSON.stringify(body) })
@@ -173,11 +181,44 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
               )
             })}
 
+            {/* Descuento — porcentaje o monto fijo, aplicado sobre el neto antes de IVA */}
+            <div style={{ background: '#FAFAF8', border: '1px solid #ECEAE3', borderRadius: 10, padding: 14, marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', marginBottom: 10 }}>Descuento</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '140px 140px 1fr', gap: 12, alignItems: 'end' }}>
+                <div>
+                  <label style={lbl}>Tipo</label>
+                  <select value={f.descuento_tipo} onChange={e => set('descuento_tipo', e.target.value)} style={inp}>
+                    <option value="">Sin descuento</option>
+                    <option value="porcentaje">Porcentaje (%)</option>
+                    <option value="monto">Monto fijo (CLP)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={lbl}>Valor</label>
+                  <input type="number" min="0" max={f.descuento_tipo === 'porcentaje' ? 100 : undefined}
+                    value={f.descuento_valor} onChange={e => set('descuento_valor', e.target.value)}
+                    disabled={!f.descuento_tipo} placeholder="0" style={{ ...inp, opacity: f.descuento_tipo ? 1 : 0.5 }} />
+                </div>
+                <div>
+                  <label style={lbl}>Motivo (opcional)</label>
+                  <input value={f.descuento_motivo} onChange={e => set('descuento_motivo', e.target.value)}
+                    disabled={!f.descuento_tipo} placeholder="Ej. cliente referido, cierre de año…" style={{ ...inp, opacity: f.descuento_tipo ? 1 : 0.5 }} />
+                </div>
+              </div>
+              {t.descuentoMonto > 0 && (
+                <div style={{ marginTop: 8, fontSize: 12.5, color: '#27500A' }}>
+                  Descuento aplicado: <b>{clp(t.descuentoMonto)}</b> sobre un neto bruto de {clp(t.netoBruto)}.
+                </div>
+              )}
+            </div>
+
             {/* Totales — separados: pago único vs. mensual recurrente (evita mezclar ambos en una sola cifra) */}
             <div style={{ display: 'flex', gap: 16, marginLeft: 'auto', marginTop: 14, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {t.netoUnico > 0 && (
                 <div style={{ width: 240, background: '#FAFAF8', border: '1px solid #ECEAE3', borderRadius: 10, padding: '10px 14px' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 4 }}>Pago único</div>
+                  {t.descUnico > 0 && <Row l="Neto bruto" v={clp(t.netoUnicoBruto)} />}
+                  {t.descUnico > 0 && <Row l="Descuento" v={`− ${clp(t.descUnico)}`} />}
                   <Row l="Neto" v={clp(t.netoUnico)} />
                   <Row l="IVA (19%)" v={clp(t.ivaUnico)} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 6, fontSize: 15, fontWeight: 700, color: '#3C3489' }}>
@@ -188,6 +229,8 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
               {t.netoMensual > 0 && (
                 <div style={{ width: 240, background: '#F4F2FB', border: '1px solid #DAD6F2', borderRadius: 10, padding: '10px 14px' }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#3C3489', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 4 }}>Mensual recurrente</div>
+                  {t.descMensual > 0 && <Row l="Neto bruto" v={clp(t.netoMensualBruto)} />}
+                  {t.descMensual > 0 && <Row l="Descuento" v={`− ${clp(t.descMensual)}`} />}
                   <Row l="Neto" v={clp(t.netoMensual)} />
                   <Row l="IVA (19%)" v={clp(t.ivaMensual)} />
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 6, fontSize: 15, fontWeight: 700, color: '#3C3489' }}>

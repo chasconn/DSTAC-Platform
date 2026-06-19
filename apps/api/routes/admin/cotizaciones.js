@@ -48,11 +48,20 @@ const uid = (req) => req.user.id || req.user.user_id
 const ESTADOS = ['borrador', 'enviada', 'aceptada', 'rechazada', 'vencida']
 const IVA_RATE = 0.19
 
-// Calcula neto/iva/total a partir de las líneas (CLP, enteros).
-function calcularTotales(items = []) {
-  const neto = items.reduce((s, it) => s + (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0), 0)
+// Calcula neto/iva/total a partir de las líneas (CLP, enteros), aplicando un
+// descuento opcional sobre el neto bruto antes de IVA (porcentaje 0-100 o monto fijo en CLP).
+function calcularTotales(items = [], descuento = {}) {
+  const netoBruto = items.reduce((s, it) => s + (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0), 0)
+  const valor = Number(descuento?.valor) || 0
+  let descuentoMonto = 0
+  if (valor > 0) {
+    descuentoMonto = descuento?.tipo === 'monto'
+      ? Math.min(valor, netoBruto)
+      : Math.round(netoBruto * (Math.min(valor, 100) / 100))
+  }
+  const neto = netoBruto - descuentoMonto
   const iva = Math.round(neto * IVA_RATE)
-  return { neto, iva, total: neto + iva }
+  return { netoBruto, descuentoMonto, neto, iva, total: neto + iva }
 }
 
 // Genera el siguiente número COT-AAAA-NNN del año en curso.
@@ -196,14 +205,16 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Indica el cliente (empresa o datos manuales)' })
     }
     const numero = await siguienteNumero()
-    const { neto, iva, total } = calcularTotales(b.items)
+    const descuentoTipo = ['porcentaje', 'monto'].includes(b.descuento_tipo) ? b.descuento_tipo : null
+    const descuentoValor = descuentoTipo ? (Number(b.descuento_valor) || 0) : 0
+    const { neto, iva, total } = calcularTotales(b.items, { tipo: descuentoTipo, valor: descuentoValor })
 
     const [r] = await centralDB.execute(`
       INSERT INTO cotizaciones
         (numero, estado, company_id, lead_id, cliente_empresa, cliente_rut, cliente_contacto,
          cliente_email, cliente_telefono, fecha, validez_dias, forma_pago, plazo_ejecucion,
-         notas, neto, iva, total, created_by)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+         notas, descuento_tipo, descuento_valor, descuento_motivo, neto, iva, total, created_by)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `, [
       numero, ESTADOS.includes(b.estado) ? b.estado : 'borrador',
       b.company_id || null, b.lead_id || null,
@@ -211,7 +222,7 @@ router.post('/', async (req, res, next) => {
       b.cliente_email ?? null, b.cliente_telefono ?? null,
       b.fecha || new Date().toISOString().slice(0, 10),
       Number(b.validez_dias) || 15, b.forma_pago ?? null, b.plazo_ejecucion ?? null,
-      b.notas ?? null, neto, iva, total, uid(req),
+      b.notas ?? null, descuentoTipo, descuentoValor, b.descuento_motivo ?? null, neto, iva, total, uid(req),
     ])
 
     await guardarItems(r.insertId, b.items)
@@ -231,12 +242,15 @@ router.put('/:id', async (req, res, next) => {
     const [[prev]] = await centralDB.execute('SELECT numero FROM cotizaciones WHERE id = ?', [req.params.id])
     if (!prev) return res.status(404).json({ error: 'Cotización no encontrada' })
 
-    const { neto, iva, total } = calcularTotales(b.items)
+    const descuentoTipo = ['porcentaje', 'monto'].includes(b.descuento_tipo) ? b.descuento_tipo : null
+    const descuentoValor = descuentoTipo ? (Number(b.descuento_valor) || 0) : 0
+    const { neto, iva, total } = calcularTotales(b.items, { tipo: descuentoTipo, valor: descuentoValor })
     await centralDB.execute(`
       UPDATE cotizaciones SET
         estado = ?, company_id = ?, lead_id = ?, cliente_empresa = ?, cliente_rut = ?,
         cliente_contacto = ?, cliente_email = ?, cliente_telefono = ?, fecha = ?,
         validez_dias = ?, forma_pago = ?, plazo_ejecucion = ?, notas = ?,
+        descuento_tipo = ?, descuento_valor = ?, descuento_motivo = ?,
         neto = ?, iva = ?, total = ?
       WHERE id = ?
     `, [
@@ -245,6 +259,7 @@ router.put('/:id', async (req, res, next) => {
       b.cliente_contacto ?? null, b.cliente_email ?? null, b.cliente_telefono ?? null,
       b.fecha || new Date().toISOString().slice(0, 10),
       Number(b.validez_dias) || 15, b.forma_pago ?? null, b.plazo_ejecucion ?? null, b.notas ?? null,
+      descuentoTipo, descuentoValor, b.descuento_motivo ?? null,
       neto, iva, total, req.params.id,
     ])
     // Reemplazar líneas

@@ -1,5 +1,6 @@
 // Construye el HTML branded de la cotización y lo muestra en una vista previa
 // con zoom + "Guardar PDF" (impresión del navegador). 100% cliente.
+import { totales } from './format'
 
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const clp = (n) => '$' + new Intl.NumberFormat('es-CL').format(Number(n) || 0)
@@ -7,10 +8,7 @@ const fecha = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00
 
 function buildQuoteHtml(c) {
   const items = c.items || []
-  const sub = (it) => (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
-  const netoUnico = items.filter(it => it.tipo !== 'mensual').reduce((s, it) => s + sub(it), 0)
-  const netoMensual = items.filter(it => it.tipo === 'mensual').reduce((s, it) => s + sub(it), 0)
-  const ivaUnico = Math.round(netoUnico * 0.19), ivaMensual = Math.round(netoMensual * 0.19)
+  const t = totales(items, { tipo: c.descuento_tipo, valor: c.descuento_valor })
   const filas = items.map(it => {
     const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
     return `<tr>
@@ -88,17 +86,21 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
   </table>
 
   <div class="tots">
-    ${netoUnico > 0 ? `<div class="tot">
+    ${t.netoUnico > 0 ? `<div class="tot">
       <h4>Pago único</h4>
-      <div class="l"><span>Neto</span><span>${clp(netoUnico)}</span></div>
-      <div class="l"><span>IVA (19%)</span><span>${clp(ivaUnico)}</span></div>
-      <div class="l g"><span>Total</span><span>${clp(netoUnico + ivaUnico)}</span></div>
+      ${t.descUnico > 0 ? `<div class="l"><span>Neto bruto</span><span>${clp(t.netoUnicoBruto)}</span></div>
+      <div class="l"><span>Descuento</span><span>− ${clp(t.descUnico)}</span></div>` : ''}
+      <div class="l"><span>Neto</span><span>${clp(t.netoUnico)}</span></div>
+      <div class="l"><span>IVA (19%)</span><span>${clp(t.ivaUnico)}</span></div>
+      <div class="l g"><span>Total</span><span>${clp(t.totalUnico)}</span></div>
     </div>` : ''}
-    ${netoMensual > 0 ? `<div class="tot mensual">
+    ${t.netoMensual > 0 ? `<div class="tot mensual">
       <h4>Mensual recurrente</h4>
-      <div class="l"><span>Neto</span><span>${clp(netoMensual)}</span></div>
-      <div class="l"><span>IVA (19%)</span><span>${clp(ivaMensual)}</span></div>
-      <div class="l g"><span>Total / mes</span><span>${clp(netoMensual + ivaMensual)}</span></div>
+      ${t.descMensual > 0 ? `<div class="l"><span>Neto bruto</span><span>${clp(t.netoMensualBruto)}</span></div>
+      <div class="l"><span>Descuento</span><span>− ${clp(t.descMensual)}</span></div>` : ''}
+      <div class="l"><span>Neto</span><span>${clp(t.netoMensual)}</span></div>
+      <div class="l"><span>IVA (19%)</span><span>${clp(t.ivaMensual)}</span></div>
+      <div class="l g"><span>Total / mes</span><span>${clp(t.totalMensual)}</span></div>
     </div>` : ''}
   </div>
 
@@ -106,6 +108,7 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
     ${c.forma_pago ? `<div class="b"><h4>Forma de pago</h4>${esc(c.forma_pago)}</div>` : ''}
     ${c.plazo_ejecucion ? `<div class="b"><h4>Plazo de ejecución</h4>${esc(c.plazo_ejecucion)}</div>` : ''}
     ${c.notas ? `<div class="b"><h4>Notas</h4>${esc(c.notas)}</div>` : ''}
+    ${c.descuento_motivo ? `<div class="b"><h4>Motivo del descuento</h4>${esc(c.descuento_motivo)}</div>` : ''}
   </div>
 
   <div class="foot"><span>DSTAC CIBERSEGURIDAD · contacto@dstac.cl · www.dstac.cl</span><span>Valores en pesos chilenos (CLP)</span></div>

@@ -8,7 +8,7 @@ const fmt = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00')
 
 export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, onCambiarEstado }) {
   const items = cot.items || []
-  const t = totales(items)
+  const t = totales(items, { tipo: cot.descuento_tipo, valor: cot.descuento_valor })
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
@@ -57,6 +57,8 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
             {t.netoUnico > 0 && (
               <div>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 2 }}>Pago único</div>
+                {t.descUnico > 0 && <Row l="Neto bruto" v={clp(t.netoUnicoBruto)} />}
+                {t.descUnico > 0 && <Row l="Descuento" v={`− ${clp(t.descUnico)}`} />}
                 <Row l="Neto" v={clp(t.netoUnico)} />
                 <Row l="IVA (19%)" v={clp(t.ivaUnico)} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 6, fontSize: 15, fontWeight: 700, color: '#3C3489' }}><span>Total</span><span>{clp(t.totalUnico)}</span></div>
@@ -65,6 +67,8 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
             {t.netoMensual > 0 && (
               <div>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: '#3C3489', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 2 }}>Mensual recurrente</div>
+                {t.descMensual > 0 && <Row l="Neto bruto" v={clp(t.netoMensualBruto)} />}
+                {t.descMensual > 0 && <Row l="Descuento" v={`− ${clp(t.descMensual)}`} />}
                 <Row l="Neto" v={clp(t.netoMensual)} />
                 <Row l="IVA (19%)" v={clp(t.ivaMensual)} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 6, fontSize: 15, fontWeight: 700, color: '#3C3489' }}><span>Total / mes</span><span>{clp(t.totalMensual)}</span></div>
@@ -78,6 +82,7 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
             {cot.forma_pago && <div><b style={{ color: '#888780' }}>Pago:</b> {cot.forma_pago}</div>}
             {cot.plazo_ejecucion && <div><b style={{ color: '#888780' }}>Plazo:</b> {cot.plazo_ejecucion}</div>}
             {cot.notas && <div><b style={{ color: '#888780' }}>Notas:</b> {cot.notas}</div>}
+            {cot.descuento_motivo && <div><b style={{ color: '#888780' }}>Motivo del descuento:</b> {cot.descuento_motivo}</div>}
           </div>
         )}
 
