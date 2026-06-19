@@ -28,7 +28,7 @@ router.get('/:reporteId', requireAuth, requireDstacRole, resolveTenant, async (r
     if (!mod) return res.status(404).json({ error: 'Reporte no encontrado' })
 
     const m    = mod()
-    const data = await m.getData(req.tenantDB, centralDB, req.company.id, req.company)
+    const data = await m.getData(req.tenantDB, centralDB, req.company.id, req.company, req.query)
     const html = m.buildHTML(data)
 
     // Vista previa en el navegador (overlay tipo Prospectos): devuelve el HTML.

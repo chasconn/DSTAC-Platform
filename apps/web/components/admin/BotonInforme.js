@@ -39,7 +39,7 @@ function dstacReportPreview(html) {
 }
 
 // Botón reutilizable: abre la vista previa del informe del módulo (tipo) para la empresa (slug).
-export default function BotonInforme({ tipo, slug, label = 'Generar informe' }) {
+export default function BotonInforme({ tipo, slug, label = 'Generar informe', query = {} }) {
   const [loading, setLoading] = useState(false)
 
   async function abrir() {
@@ -51,7 +51,8 @@ export default function BotonInforme({ tipo, slug, label = 'Generar informe' }) 
     if (!sl) { alert('Selecciona una empresa primero'); return }
     setLoading(true)
     try {
-      const res = await fetch(`/api/reports/${tipo}?format=html`, { credentials: 'include', headers: { 'X-Company-Slug': sl } })
+      const qs = new URLSearchParams({ format: 'html', ...query }).toString()
+      const res = await fetch(`/api/reports/${tipo}?${qs}`, { credentials: 'include', headers: { 'X-Company-Slug': sl } })
       if (!res.ok) {
         let msg = 'No se pudo generar el informe'
         try { const j = await res.json(); msg = j.message || j.error || msg } catch {}

@@ -8,10 +8,11 @@ const CLP = (n) => '$' + (Number(n) || 0).toLocaleString('es-CL')
 // Columnas JSON: mysql2 las devuelve ya parseadas (array); tolera string también.
 const asArr = (x) => Array.isArray(x) ? x : (typeof x === 'string' && x ? (() => { try { return JSON.parse(x) || [] } catch { return [] } })() : [])
 
-async function getData(tenantDB, centralDB, companyId, company) {
+async function getData(tenantDB, centralDB, companyId, company, query = {}) {
   const [[emp]] = await centralDB.query(`SELECT name FROM companies WHERE id = ?`, [companyId])
-  const [[d]] = await centralDB.query(
-    `SELECT * FROM diagnosticos WHERE company_id = ? ORDER BY fecha DESC, id DESC LIMIT 1`, [companyId])
+  const [[d]] = query?.id
+    ? await centralDB.query(`SELECT * FROM diagnosticos WHERE id = ? AND company_id = ? LIMIT 1`, [query.id, companyId])
+    : await centralDB.query(`SELECT * FROM diagnosticos WHERE company_id = ? ORDER BY fecha DESC, id DESC LIMIT 1`, [companyId])
 
   let dominios = [], proyectos = [], resp = {}
   if (d) {
@@ -30,7 +31,7 @@ async function getData(tenantDB, centralDB, companyId, company) {
   }
   return {
     company: { name: emp?.name || company?.name || '—' },
-    fecha: new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
+    fecha: (d ? new Date(d.fecha) : new Date()).toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
     d, dominios, servicios, hayDatos: !!d,
   }
 }

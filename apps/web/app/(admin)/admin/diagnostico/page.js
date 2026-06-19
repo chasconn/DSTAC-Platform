@@ -24,6 +24,8 @@ export default function DiagnosticoPage() {
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [toast, setToast] = useState('')
+  const [historial, setHistorial] = useState([])
+  const [showHistorial, setShowHistorial] = useState(false)
 
   useEffect(() => {
     const raw = localStorage.getItem('empresa_activa')
@@ -40,6 +42,13 @@ export default function DiagnosticoPage() {
     catch { showToast('No se pudo cargar el cuestionario') }
   }, [slug])
   useEffect(() => { cargar() }, [slug])
+
+  const cargarHistorial = useCallback(async () => {
+    if (!slug) return
+    try { const r = await api.get('/api/admin/diagnostico', headers); setHistorial(r.diagnosticos ?? []) }
+    catch { showToast('No se pudo cargar el historial') }
+  }, [slug])
+  useEffect(() => { cargarHistorial() }, [slug, resultado])
 
   const setResp = (key, v) => setRespuestas(p => ({ ...p, [key]: v }))
   const totalPreg = dominios.reduce((a, d) => a + d.preguntas.length, 0)
@@ -72,10 +81,52 @@ export default function DiagnosticoPage() {
 
   return (
     <div style={{ padding: 24, maxWidth: 1000 }}>
-      <div style={{ background: `linear-gradient(120deg, ${NAVY}, ${PURPLE})`, borderRadius: 14, padding: '22px 26px', color: '#fff', marginBottom: 20 }}>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>🩺 Diagnóstico de Madurez</div>
-        <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{empresaActiva?.name} · cuestionario interno · {respondidas}/{totalPreg} respondidas</div>
+      <div style={{ background: `linear-gradient(120deg, ${NAVY}, ${PURPLE})`, borderRadius: 14, padding: '22px 26px', color: '#fff', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>🩺 Diagnóstico de Madurez</div>
+          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{empresaActiva?.name} · cuestionario interno · {respondidas}/{totalPreg} respondidas</div>
+        </div>
+        <button onClick={() => setShowHistorial(s => !s)}
+          style={{ background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          🗂 {showHistorial ? 'Ocultar historial' : `Historial (${historial.length})`}
+        </button>
       </div>
+
+      {showHistorial && (
+        <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 18, marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, color: '#2C2C2A', marginBottom: 12 }}>Historial de diagnósticos · {empresaActiva?.name}</div>
+          {historial.length === 0
+            ? <div style={{ fontSize: 13, color: '#888780' }}>Aún no hay diagnósticos guardados para esta empresa.</div>
+            : (
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f8f7f4' }}>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Fecha</th>
+                    <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Madurez</th>
+                    <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Nivel</th>
+                    <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Cotización</th>
+                    <th style={{ textAlign: 'right', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Informe</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historial.map(h => (
+                    <tr key={h.id}>
+                      <td style={{ padding: '8px 10px', fontSize: 13, color: '#2C2C2A', borderBottom: '1px solid #f5f4ef' }}>{new Date(h.fecha).toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                      <td style={{ padding: '8px 10px', fontSize: 13, fontWeight: 700, textAlign: 'center', color: scoreColor(h.score_total), borderBottom: '1px solid #f5f4ef' }}>{h.score_total}%</td>
+                      <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', borderBottom: '1px solid #f5f4ef' }}>
+                        <span style={{ background: '#f1efe8', color: '#444441', borderRadius: 999, padding: '3px 10px', fontWeight: 600 }}>{h.nivel}</span>
+                      </td>
+                      <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', color: h.cotizacion_id ? '#1D9E75' : '#B4B2A9', borderBottom: '1px solid #f5f4ef' }}>{h.cotizacion_id ? '✓ generada' : '—'}</td>
+                      <td style={{ padding: '6px 10px', textAlign: 'right', borderBottom: '1px solid #f5f4ef' }}>
+                        <BotonInforme tipo="diagnostico" slug={slug} label="Ver informe" query={{ id: h.id }} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+        </div>
+      )}
 
       {/* Cantidad de trabajadores → plan recomendado */}
       <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: '14px 18px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
