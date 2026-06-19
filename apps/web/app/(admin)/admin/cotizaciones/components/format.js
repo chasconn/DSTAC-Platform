@@ -16,9 +16,19 @@ export const ESTADO = {
 
 export const TIPO_LINEA = { unico: 'Único', mensual: 'Mensual' }
 
-// Calcula neto / IVA 19% / total a partir de las líneas.
+// Calcula neto / IVA 19% / total a partir de las líneas, separando lo de pago
+// único de lo mensual recurrente (mezclarlos en una sola cifra confunde al cliente).
 export function totales(items = []) {
-  const neto = items.reduce((s, it) => s + (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0), 0)
-  const iva = Math.round(neto * 0.19)
-  return { neto, iva, total: neto + iva }
+  const sub = (it) => (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
+  const netoUnico = items.filter(it => it.tipo !== 'mensual').reduce((s, it) => s + sub(it), 0)
+  const netoMensual = items.filter(it => it.tipo === 'mensual').reduce((s, it) => s + sub(it), 0)
+  const ivaUnico = Math.round(netoUnico * 0.19)
+  const ivaMensual = Math.round(netoMensual * 0.19)
+  const neto = netoUnico + netoMensual
+  const iva = ivaUnico + ivaMensual
+  return {
+    neto, iva, total: neto + iva,
+    netoUnico, ivaUnico, totalUnico: netoUnico + ivaUnico,
+    netoMensual, ivaMensual, totalMensual: netoMensual + ivaMensual,
+  }
 }

@@ -82,8 +82,11 @@ async function guardarItems(cotizacionId, items = []) {
 // ─── CATÁLOGO de servicios ─────────────────────────────────────────────────────
 router.get('/catalogo', async (req, res, next) => {
   try {
+    // ?todos=1 → incluye también los servicios desactivados (gestión del catálogo).
+    // Por defecto solo activos (para armar cotizaciones).
+    const where = req.query.todos ? '' : 'WHERE activo = 1'
     const [rows] = await centralDB.execute(
-      `SELECT * FROM cotizacion_catalogo WHERE activo = 1 ORDER BY orden, id`
+      `SELECT * FROM cotizacion_catalogo ${where} ORDER BY orden, id`
     )
     res.json({ catalogo: rows })
   } catch (err) { next(err) }

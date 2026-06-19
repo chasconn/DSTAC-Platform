@@ -173,13 +173,31 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
               )
             })}
 
-            {/* Totales */}
-            <div style={{ marginLeft: 'auto', width: 300, marginTop: 14 }}>
-              <Row l="Neto" v={clp(t.neto)} />
-              <Row l="IVA (19%)" v={clp(t.iva)} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 8, fontSize: 16, fontWeight: 700, color: '#3C3489' }}>
-                <span>Total</span><span>{clp(t.total)}</span>
-              </div>
+            {/* Totales — separados: pago único vs. mensual recurrente (evita mezclar ambos en una sola cifra) */}
+            <div style={{ display: 'flex', gap: 16, marginLeft: 'auto', marginTop: 14, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {t.netoUnico > 0 && (
+                <div style={{ width: 240, background: '#FAFAF8', border: '1px solid #ECEAE3', borderRadius: 10, padding: '10px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 4 }}>Pago único</div>
+                  <Row l="Neto" v={clp(t.netoUnico)} />
+                  <Row l="IVA (19%)" v={clp(t.ivaUnico)} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 6, fontSize: 15, fontWeight: 700, color: '#3C3489' }}>
+                    <span>Total</span><span>{clp(t.totalUnico)}</span>
+                  </div>
+                </div>
+              )}
+              {t.netoMensual > 0 && (
+                <div style={{ width: 240, background: '#F4F2FB', border: '1px solid #DAD6F2', borderRadius: 10, padding: '10px 14px' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#3C3489', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 4 }}>Mensual recurrente</div>
+                  <Row l="Neto" v={clp(t.netoMensual)} />
+                  <Row l="IVA (19%)" v={clp(t.ivaMensual)} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 6, fontSize: 15, fontWeight: 700, color: '#3C3489' }}>
+                    <span>Total / mes</span><span>{clp(t.totalMensual)}</span>
+                  </div>
+                </div>
+              )}
+              {!t.netoUnico && !t.netoMensual && (
+                <div style={{ fontSize: 12.5, color: '#B4B2A9' }}>Agrega líneas para ver los totales.</div>
+              )}
             </div>
           </div>
 

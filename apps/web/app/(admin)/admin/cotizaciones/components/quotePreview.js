@@ -7,6 +7,10 @@ const fecha = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00
 
 function buildQuoteHtml(c) {
   const items = c.items || []
+  const sub = (it) => (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
+  const netoUnico = items.filter(it => it.tipo !== 'mensual').reduce((s, it) => s + sub(it), 0)
+  const netoMensual = items.filter(it => it.tipo === 'mensual').reduce((s, it) => s + sub(it), 0)
+  const ivaUnico = Math.round(netoUnico * 0.19), ivaMensual = Math.round(netoMensual * 0.19)
   const filas = items.map(it => {
     const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
     return `<tr>
@@ -44,9 +48,12 @@ td{padding:9px 10px;border-bottom:1px solid #ececec;vertical-align:top}
 td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
 .sv{font-weight:600;color:#2C2C2A}
 .dt{font-size:11px;color:#888780;margin-top:2px}
-.tot{margin-left:auto;width:260px}
-.tot .l{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;color:#444441}
-.tot .g{border-top:2px solid #3C3489;margin-top:4px;padding-top:8px;font-size:15px;font-weight:700;color:#3C3489}
+.tots{display:flex;justify-content:flex-end;gap:14px}
+.tot{width:230px;background:#F8F7F4;border:1px solid #e2e0d8;border-radius:8px;padding:10px 14px;margin-bottom:14px}
+.tot h4{margin:0 0 4px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#888780}
+.tot.mensual h4{color:#3C3489}
+.tot .l{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;color:#444441}
+.tot .g{border-top:2px solid #3C3489;margin-top:4px;padding-top:6px;font-size:14px;font-weight:700;color:#3C3489}
 .terms{display:flex;gap:16px;margin-top:20px}
 .terms .b{flex:1;font-size:11px;color:#444441}
 .terms .b h4{margin:0 0 4px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#888780}
@@ -80,10 +87,19 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
     <tbody>${filas || '<tr><td colspan="5" style="text-align:center;color:#888780">Sin líneas</td></tr>'}</tbody>
   </table>
 
-  <div class="tot">
-    <div class="l"><span>Neto</span><span>${clp(c.neto)}</span></div>
-    <div class="l"><span>IVA (19%)</span><span>${clp(c.iva)}</span></div>
-    <div class="l g"><span>Total</span><span>${clp(c.total)}</span></div>
+  <div class="tots">
+    ${netoUnico > 0 ? `<div class="tot">
+      <h4>Pago único</h4>
+      <div class="l"><span>Neto</span><span>${clp(netoUnico)}</span></div>
+      <div class="l"><span>IVA (19%)</span><span>${clp(ivaUnico)}</span></div>
+      <div class="l g"><span>Total</span><span>${clp(netoUnico + ivaUnico)}</span></div>
+    </div>` : ''}
+    ${netoMensual > 0 ? `<div class="tot mensual">
+      <h4>Mensual recurrente</h4>
+      <div class="l"><span>Neto</span><span>${clp(netoMensual)}</span></div>
+      <div class="l"><span>IVA (19%)</span><span>${clp(ivaMensual)}</span></div>
+      <div class="l g"><span>Total / mes</span><span>${clp(netoMensual + ivaMensual)}</span></div>
+    </div>` : ''}
   </div>
 
   <div class="terms">

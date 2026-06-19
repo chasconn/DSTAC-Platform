@@ -1,13 +1,14 @@
 'use client'
 
 // Panel lateral de detalle de una cotización (solo lectura + acciones).
-import { clp, ESTADO, TIPO_LINEA } from './format'
+import { clp, ESTADO, TIPO_LINEA, totales } from './format'
 import { previewCotizacion } from './quotePreview'
 
 const fmt = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
 
 export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, onCambiarEstado }) {
   const items = cot.items || []
+  const t = totales(items)
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
@@ -52,10 +53,23 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
               <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', whiteSpace: 'nowrap' }}>{clp((Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0))}</div>
             </div>
           ))}
-          <div style={{ marginTop: 10, marginLeft: 'auto', width: 220 }}>
-            <Row l="Neto" v={clp(cot.neto)} />
-            <Row l="IVA (19%)" v={clp(cot.iva)} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 8, fontSize: 16, fontWeight: 700, color: '#3C3489' }}><span>Total</span><span>{clp(cot.total)}</span></div>
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 'auto', width: 240 }}>
+            {t.netoUnico > 0 && (
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 2 }}>Pago único</div>
+                <Row l="Neto" v={clp(t.netoUnico)} />
+                <Row l="IVA (19%)" v={clp(t.ivaUnico)} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 6, fontSize: 15, fontWeight: 700, color: '#3C3489' }}><span>Total</span><span>{clp(t.totalUnico)}</span></div>
+              </div>
+            )}
+            {t.netoMensual > 0 && (
+              <div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#3C3489', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 2 }}>Mensual recurrente</div>
+                <Row l="Neto" v={clp(t.netoMensual)} />
+                <Row l="IVA (19%)" v={clp(t.ivaMensual)} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #3C3489', marginTop: 4, paddingTop: 6, fontSize: 15, fontWeight: 700, color: '#3C3489' }}><span>Total / mes</span><span>{clp(t.totalMensual)}</span></div>
+              </div>
+            )}
           </div>
         </div>
 

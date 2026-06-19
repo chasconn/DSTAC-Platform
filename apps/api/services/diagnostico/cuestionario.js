@@ -5,7 +5,7 @@
 const DOMINIOS = [
   {
     id: 'gob', nombre: 'Gobernanza y Cumplimiento',
-    proyectos: ['Ley 21.663', 'Ley 21.719', 'ISO 27001'],
+    proyectos: ['Ley 21.663', 'Ley 21.719', 'ISO 27001', 'Seguridad Estratégica', 'Acompañamiento vCISO'],
     preguntas: [
       'Existe una política de seguridad de la información aprobada y comunicada.',
       'Hay un responsable de seguridad de la información (interno o vCISO) designado.',
@@ -77,7 +77,7 @@ const DOMINIOS = [
   },
   {
     id: 'mon', nombre: 'Monitoreo y Respuesta a Incidentes',
-    proyectos: [],
+    proyectos: ['Gestión de EDR/XDR', 'Gestión continua de vulnerabilidades', 'Respuesta a incidentes', 'Seguridad Gestionada Operacional'],
     preguntas: [
       'Se centralizan y monitorean los logs/eventos de seguridad.',
       'Existe un proceso (o retainer) de respuesta a incidentes.',
@@ -110,8 +110,10 @@ function tamanoPorTrabajadores(n) {
   if (n <= 50) return 'Profesional'
   return 'Empresarial'
 }
+// "tamano" es un override manual (el admin puede corregir la sugerencia automática
+// antes de guardar); si no se envía, se deriva de la cantidad de trabajadores.
 function planDeRespuestas(resp = {}) {
-  const t = tamanoPorTrabajadores(resp.trabajadores) || resp.tamano || 'Profesional'
+  const t = resp.tamano || tamanoPorTrabajadores(resp.trabajadores) || 'Profesional'
   return planDeTamano(t)
 }
 
@@ -121,8 +123,10 @@ const TIER_NUM = { PYMES: 1, Profesional: 2, Empresarial: 3 }
 const MAX_PROY = { PYMES: 3, Profesional: 5, Empresarial: 8 }
 const PROY_TIER = {
   'Endurecimiento de M365': 1, 'Capacitación': 1, 'Ley 21.663': 1, 'Ley 21.719': 1, 'DPO as-a-Service': 1, 'ISO 27001': 1, 'Active Directory': 1,
+  'Gestión de EDR/XDR': 1,
   'Segmentación de red': 2, 'Diseño de infraestructura segura': 2, 'CSPM': 2, 'Pentest': 2, 'BCP/DRP': 2,
-  'Red Team': 3,
+  'Gestión continua de vulnerabilidades': 2, 'Respuesta a incidentes': 2, 'Seguridad Gestionada Operacional': 2, 'Acompañamiento vCISO': 2,
+  'Red Team': 3, 'Seguridad Estratégica': 3,
 }
 
 const VAL = { si: 100, parcial: 50, no: 0 }
@@ -140,7 +144,7 @@ function evaluar(respuestas = {}) {
   })
   const conDatos = dominios.filter(d => d.score != null)
   const scoreTotal = conDatos.length ? Math.round(conDatos.reduce((s, d) => s + d.score, 0) / conDatos.length) : 0
-  const tamano = tamanoPorTrabajadores(respuestas.trabajadores) || respuestas.tamano || 'Profesional'
+  const tamano = respuestas.tamano || tamanoPorTrabajadores(respuestas.trabajadores) || 'Profesional'
   const tierNum = TIER_NUM[tamano] || 2
   const maxProy = MAX_PROY[tamano] || 5
   const brechas = dominios.filter(d => d.score != null && d.score < 70)

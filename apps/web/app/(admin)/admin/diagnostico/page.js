@@ -53,7 +53,10 @@ export default function DiagnosticoPage() {
   const setResp = (key, v) => setRespuestas(p => ({ ...p, [key]: v }))
   const totalPreg = dominios.reduce((a, d) => a + d.preguntas.length, 0)
   const respondidas = Object.keys(respuestas).filter(k => k !== 'tamano' && k !== 'trabajadores').length
-  const planHint = (() => { const n = Number(respuestas.trabajadores) || 0; if (n <= 0) return null; if (n <= 15) return 'Plan PYMES'; if (n <= 50) return 'Plan Profesional'; return 'Plan Empresarial' })()
+  const autoTamano = (() => { const n = Number(respuestas.trabajadores) || 0; if (n <= 0) return null; if (n <= 15) return 'PYMES'; if (n <= 50) return 'Profesional'; return 'Empresarial' })()
+  const tamanoElegido = respuestas.tamano || autoTamano || ''
+  const planElegido = (tamanos.find(t => t.id === tamanoElegido) || {}).plan
+    || { PYMES: 'Plan PYMES', Profesional: 'Plan Profesional', Empresarial: 'Plan Empresarial' }[tamanoElegido]
 
   async function guardar() {
     if (!slug) return
@@ -128,15 +131,23 @@ export default function DiagnosticoPage() {
         </div>
       )}
 
-      {/* Cantidad de trabajadores → plan recomendado */}
+      {/* Cantidad de trabajadores → sugiere un plan, pero el admin puede corregirlo */}
       <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: '14px 18px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A' }}>Cantidad de trabajadores</span>
         <input type="number" min="1" value={respuestas.trabajadores ?? ''} onChange={e => setResp('trabajadores', e.target.value)} placeholder="Ej. 12"
           style={{ width: 130, padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 14, color: '#2C2C2A', outline: 'none' }} />
-        {planHint
-          ? <span style={{ fontSize: 13, fontWeight: 700, color: '#3C3489', background: '#EEEDFE', border: '1px solid #CECBF6', borderRadius: 999, padding: '6px 14px' }}>→ {planHint}</span>
-          : <span style={{ fontSize: 12, color: '#B4B2A9' }}>ingresa el N° para definir el plan</span>}
-        <span style={{ fontSize: 12, color: '#888780', marginLeft: 'auto' }}>1–15 PYME · 16–50 Profesional · +50 Empresarial</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A' }}>Plan</span>
+        <select value={tamanoElegido} onChange={e => setResp('tamano', e.target.value)}
+          style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #CECBF6', background: '#EEEDFE', fontSize: 13, fontWeight: 700, color: '#3C3489', outline: 'none' }}>
+          <option value="" disabled>Selecciona…</option>
+          {(tamanos.length ? tamanos : [{ id: 'PYMES', label: 'PYME', plan: 'Plan PYMES' }, { id: 'Profesional', label: 'Mediana', plan: 'Plan Profesional' }, { id: 'Empresarial', label: 'Grande', plan: 'Plan Empresarial' }])
+            .map(t => <option key={t.id} value={t.id}>{t.plan || t.label}{autoTamano === t.id ? ' (sugerido)' : ''}</option>)}
+        </select>
+        {respuestas.tamano && respuestas.tamano !== autoTamano && (
+          <button onClick={() => setResp('tamano', undefined)} title="Volver a la sugerencia automática"
+            style={{ fontSize: 11.5, color: '#888780', background: 'none', border: '1px solid #e2e0d8', borderRadius: 999, padding: '5px 10px', cursor: 'pointer' }}>↺ usar sugerencia</button>
+        )}
+        <span style={{ fontSize: 12, color: '#888780', marginLeft: 'auto' }}>1–15 PYME · 16–50 Profesional · +50 Empresarial (puedes elegir otro plan manualmente)</span>
       </div>
 
       {/* Cuestionario */}
