@@ -1,7 +1,12 @@
 // Endpoints PÚBLICOS (sin auth de sesión) — captación del funnel del sitio dstac.cl
-// (escáner web, autodiagnóstico, formularios de contacto y autoevaluaciones ISO).
+// (escáner web, autodiagnóstico, formularios de contacto y autoevaluaciones ISO)
+// y seguimiento de las simulaciones de phishing (apertura/clic por token único).
 const router = require('express').Router()
 const centralDB = require('../db/central')
+const { landingHtml } = require('../services/phishing/content')
+
+// 1x1 GIF transparente para el píxel de apertura.
+const PIXEL_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64')
 
 function s(v, n) { return v == null ? null : (String(v).slice(0, n) || null) }
 
@@ -45,6 +50,40 @@ router.post('/leads', async (req, res) => {
     console.error('public/leads error:', e.message)
     res.status(500).json({ ok: false, error: 'No se pudo guardar el prospecto' })
   }
+})
+
+// GET /api/public/phishing/o/:token — píxel de apertura (1x1, sin caché).
+// Responde el GIF siempre, exista o no el token, para no delatar nada al cliente de correo.
+router.get('/phishing/o/:token', async (req, res) => {
+  try {
+    await centralDB.execute(
+      `UPDATE phishing_destinatarios SET abierto_at = NOW() WHERE token = ? AND abierto_at IS NULL`,
+      [req.params.token]
+    )
+  } catch (e) { console.error('public/phishing/o error:', e.message) }
+  res.set({ 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' })
+  res.send(PIXEL_GIF)
+})
+
+// GET /api/public/phishing/c/:token — registra el clic y muestra la página educativa
+// de la simulación (no pide ni guarda ninguna credencial).
+router.get('/phishing/c/:token', async (req, res) => {
+  let empresa = null
+  try {
+    const [[d]] = await centralDB.query(
+      `SELECT c.company_id FROM phishing_destinatarios d
+       JOIN phishing_campanas c ON c.id = d.campana_id WHERE d.token = ?`, [req.params.token]
+    )
+    if (d) {
+      await centralDB.execute(
+        `UPDATE phishing_destinatarios SET clic_at = NOW() WHERE token = ? AND clic_at IS NULL`, [req.params.token]
+      )
+      const [[c]] = await centralDB.query(`SELECT name FROM companies WHERE id = ?`, [d.company_id])
+      empresa = c?.name || null
+    }
+  } catch (e) { console.error('public/phishing/c error:', e.message) }
+  res.set('Cache-Control', 'no-store')
+  res.send(landingHtml({ empresa }))
 })
 
 module.exports = router
