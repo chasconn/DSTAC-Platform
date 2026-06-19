@@ -12,6 +12,7 @@ const NAV = [
   { href: '/admin/prospectos', label: 'Prospectos', icon: IconProspectos },
   { href: '/admin/cotizaciones', label: 'Cotizaciones', icon: IconCotizaciones },
   { href: '/admin/diagnostico', label: 'Diagnóstico', icon: IconDiag },
+  { href: '/admin/gastos',     label: 'Gastos',     icon: IconGastos     },
   { href: '/admin/usuarios',   label: 'Usuarios',   icon: IconUsuarios   },
   { href: '/admin/personal',   label: 'Personal',   icon: IconPersonal   },
   { href: '/admin/activos',    label: 'Activos',    icon: IconActivos    },
@@ -423,6 +424,15 @@ function IconIdentidades({ color }) {
       <rect x="2" y="5" width="20" height="14" rx="2"/>
       <circle cx="8" cy="12" r="2"/>
       <path d="M13 10h5M13 14h3"/>
+    </svg>
+  )
+}
+function IconGastos({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M14.5 9.5a2.5 2.5 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1 2-2.5 2a2.7 2.7 0 0 1-2.5-1.5"/>
+      <line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/>
     </svg>
   )
 }
