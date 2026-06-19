@@ -60,8 +60,9 @@ router.post('/:id/cotizacion', async (req, res, next) => {
       [req.params.id, req.company.id])
     if (!d) return res.status(404).json({ error: 'Diagnóstico no encontrado' })
 
-    let keywords = []
-    try { keywords = JSON.parse(d.servicios) || [] } catch {}
+    // mysql2 devuelve columnas JSON ya parseadas (array); tolera string.
+    const keywords = Array.isArray(d.servicios) ? d.servicios
+      : (typeof d.servicios === 'string' && d.servicios ? (() => { try { return JSON.parse(d.servicios) || [] } catch { return [] } })() : [])
     if (!keywords.length) return res.status(400).json({ error: 'El diagnóstico no detectó brechas con servicios asociados' })
 
     // Buscar en el catálogo los servicios que cierran las brechas (por keyword).

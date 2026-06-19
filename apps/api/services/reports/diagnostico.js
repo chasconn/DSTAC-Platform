@@ -4,6 +4,8 @@
 const { buildHeader, buildFooter, colorFor, wrapDocument } = require('./template')
 
 const CLP = (n) => '$' + (Number(n) || 0).toLocaleString('es-CL')
+// Columnas JSON: mysql2 las devuelve ya parseadas (array); tolera string también.
+const asArr = (x) => Array.isArray(x) ? x : (typeof x === 'string' && x ? (() => { try { return JSON.parse(x) || [] } catch { return [] } })() : [])
 
 async function getData(tenantDB, centralDB, companyId, company) {
   const [[emp]] = await centralDB.query(`SELECT name FROM companies WHERE id = ?`, [companyId])
@@ -11,10 +13,7 @@ async function getData(tenantDB, centralDB, companyId, company) {
     `SELECT * FROM diagnosticos WHERE company_id = ? ORDER BY fecha DESC, id DESC LIMIT 1`, [companyId])
 
   let dominios = [], keywords = []
-  if (d) {
-    try { dominios = JSON.parse(d.dominios) || [] } catch {}
-    try { keywords = JSON.parse(d.servicios) || [] } catch {}
-  }
+  if (d) { dominios = asArr(d.dominios); keywords = asArr(d.servicios) }
   const servicios = []
   for (const kw of keywords) {
     const [rows] = await centralDB.execute(
