@@ -12,18 +12,16 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
   const items = cot.items || []
   const t = totales(items, { tipo: cot.descuento_tipo, valor: cot.descuento_valor })
   const [enviando, setEnviando] = useState(false)
+  const [destinatarios, setDestinatarios] = useState(cot.cliente_email || '')
 
   async function enviarAlCliente() {
-    let to = cot.cliente_email
-    if (!to) {
-      to = prompt('No hay un correo registrado para esta cotización.\nIngresa el correo del cliente:')
-      if (!to?.trim()) return
-    }
-    if (!confirm(`¿Enviar la cotización ${cot.numero} a ${to}?`)) return
+    const lista = destinatarios.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean)
+    if (!lista.length) { alert('Ingresa al menos un correo de destino'); return }
+    if (!confirm(`¿Enviar la cotización ${cot.numero} a ${lista.join(', ')}?`)) return
     setEnviando(true)
     try {
-      await apiFetch(`/api/admin/cotizaciones/${cot.id}/enviar`, { method: 'POST', body: JSON.stringify({ to }) })
-      alert(`Cotización enviada a ${to}`)
+      await apiFetch(`/api/admin/cotizaciones/${cot.id}/enviar`, { method: 'POST', body: JSON.stringify({ to: lista }) })
+      alert(`Cotización enviada a ${lista.join(', ')}`)
       onEnviada?.()
     } catch (err) {
       alert(err.message || 'No se pudo enviar la cotización')
@@ -35,7 +33,7 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(480px, 96vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 24 }}>
+      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(640px, 96vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: '#2C2C2A' }}>{cot.numero}</h2>
@@ -112,8 +110,15 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
         {/* Acciones */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 22, paddingTop: 16, borderTop: '1px solid #f1efe8' }}>
           <button onClick={() => previewCotizacion(cot)} style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#534AB7', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13.5 }}>📄 Ver / Guardar PDF</button>
+
+          <div>
+            <label style={{ fontSize: 11.5, fontWeight: 600, color: '#888780' }}>Enviar a (separa varios correos con coma)</label>
+            <input value={destinatarios} onChange={e => setDestinatarios(e.target.value)}
+              placeholder="cliente@empresa.cl, gerencia@empresa.cl"
+              style={{ width: '100%', boxSizing: 'border-box', marginTop: 5, padding: '9px 12px', border: '1px solid #e2e0d8', borderRadius: 8, fontSize: 13.5 }} />
+          </div>
           <button onClick={enviarAlCliente} disabled={enviando} style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', cursor: enviando ? 'wait' : 'pointer', fontWeight: 600, fontSize: 13.5 }}>
-            {enviando ? 'Enviando…' : `✉ Enviar al cliente${cot.cliente_email ? ` (${cot.cliente_email})` : ''}`}
+            {enviando ? 'Enviando…' : '✉ Enviar al cliente'}
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => onEditar(cot)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid #e2e0d8', background: '#fff', color: '#3C3489', cursor: 'pointer', fontWeight: 600, fontSize: 13.5 }}>Editar</button>

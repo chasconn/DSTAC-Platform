@@ -285,8 +285,10 @@ router.post('/:id/enviar', async (req, res) => {
     const [[co]] = await centralDB.query(`SELECT * FROM cotizaciones WHERE id = ?`, [req.params.id])
     if (!co) return res.status(404).json({ error: 'Cotización no encontrada' })
 
-    const destinatario = String(req.body?.to || co.cliente_email || '').trim()
-    if (!destinatario) {
+    const entrada = req.body?.to ?? co.cliente_email ?? ''
+    const destinatarios = (Array.isArray(entrada) ? entrada : String(entrada).split(/[,;\s]+/))
+      .map(s => String(s).trim()).filter(Boolean)
+    if (!destinatarios.length) {
       return res.status(400).json({ error: 'No hay un correo de destino. Agrega el correo del cliente en la cotización o indícalo al enviar.' })
     }
 
@@ -297,7 +299,7 @@ router.post('/:id/enviar', async (req, res) => {
     const pdf = await htmlToPDF(buildQuoteHtml({ ...co, items }))
     const bodyHtml = buildQuoteEmailHtml({ ...co, items })
 
-    await sendMail(destinatario, `Tu propuesta de DSTAC está lista · ${co.numero}`, bodyHtml, [
+    await sendMail(destinatarios, `Tu propuesta de DSTAC está lista · ${co.numero}`, bodyHtml, [
       { name: `${co.numero}.pdf`, contentType: 'application/pdf', contentBytes: pdf.toString('base64') },
     ])
 
@@ -307,11 +309,11 @@ router.post('/:id/enviar', async (req, res) => {
 
     await registrarActividad({
       req, accion: 'editar', modulo: 'cotizaciones',
-      descripcion: `Envió la cotización ${co.numero} a ${destinatario}`,
+      descripcion: `Envió la cotización ${co.numero} a ${destinatarios.join(', ')}`,
       entidad_id: co.id, company_id: co.company_id,
     })
 
-    res.json({ ok: true, enviado_a: destinatario })
+    res.json({ ok: true, enviado_a: destinatarios })
   } catch (err) {
     res.status(502).json({ error: err.message || 'No se pudo enviar la cotización' })
   }

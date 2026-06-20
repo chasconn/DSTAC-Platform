@@ -34,13 +34,15 @@ async function getToken() {
   return _token
 }
 
+// to: string o array de strings (uno o varios destinatarios).
 // attachments opcional: [{ name, contentType, contentBytes (base64) }]
 async function sendMail(to, subject, html, attachments = []) {
   const token = await getToken()
+  const destinatarios = (Array.isArray(to) ? to : [to]).filter(Boolean)
   const message = {
     subject,
     body: { contentType: 'HTML', content: html },
-    toRecipients: [{ emailAddress: { address: to } }]
+    toRecipients: destinatarios.map(addr => ({ emailAddress: { address: addr } }))
   }
   if (attachments.length) {
     message.attachments = attachments.map(a => ({
