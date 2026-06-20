@@ -17,6 +17,7 @@ const NAV = [
   { href: '/admin/phishing',    label: 'Phishing',    icon: IconPhishing },
   { href: '/admin/gastos',     label: 'Gastos',     icon: IconGastos     },
   { href: '/admin/usuarios',   label: 'Usuarios',   icon: IconUsuarios   },
+  { href: '/admin/changelog',  label: 'Registro de cambios', icon: IconChangelog },
   { href: '/admin/personal',   label: 'Personal',   icon: IconPersonal   },
   { href: '/admin/activos',    label: 'Activos',    icon: IconActivos    },
   { href: '/admin/identidades', label: 'Identidades', icon: IconIdentidades },
@@ -638,6 +639,14 @@ function IconLey21663({ color }) {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="M12 8v4M12 15.5h.01"/>
+    </svg>
+  )
+}
+function IconChangelog({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M9 11l3 3L22 4"/>
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
     </svg>
   )
 }
