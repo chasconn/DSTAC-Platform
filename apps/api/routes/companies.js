@@ -5,6 +5,7 @@ const { getTenantDB, releaseTenantDB } = require('../db/tenant')
 const { requireAuth, requireRole } = require('../middleware/auth')
 const { getOrCreateEvaluation } = require('../services/nistService')
 const { registrarActividad } = require('../utils/activityLogger')
+const { normalizarRut } = require('../utils/rut')
 
 const READERS  = ['super_admin', 'admin_dstac', 'analista_dstac']
 const MANAGERS = ['super_admin', 'admin_dstac']
@@ -52,6 +53,27 @@ router.get('/', requireAuth, requireRole(...READERS), async (req, res) => {
     res.json(rows)
   } catch (err) {
     console.error('Error listando empresas:', err)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// ─── GET /api/companies/buscar-rut/:rut ───────────────────────────────────────
+// Autocompletado al crear una empresa: busca el RUT en la copia local del
+// Registro de Empresas y Sociedades (datos.gob.cl, gratuito). Si no está (RUT
+// anterior a 2018, no registrado vía "Empresa en un Día", o persona natural),
+// devuelve 404 — el formulario simplemente sigue permitiendo llenado manual.
+router.get('/buscar-rut/:rut', requireAuth, requireRole(...READERS), async (req, res) => {
+  try {
+    const rut = normalizarRut(req.params.rut)
+    if (!rut) return res.status(400).json({ error: 'RUT inválido' })
+    const [[reg]] = await centralDB.query(
+      `SELECT rut, razon_social, tipo_sociedad, comuna, region FROM registro_empresas WHERE rut = ? LIMIT 1`,
+      [rut]
+    )
+    if (!reg) return res.status(404).json({ error: 'No encontrado en el Registro de Empresas y Sociedades (gratuito)' })
+    res.json(reg)
+  } catch (err) {
+    console.error('Error buscando RUT:', err)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })

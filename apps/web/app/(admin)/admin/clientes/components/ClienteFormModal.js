@@ -46,6 +46,8 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
   const [slugEditado, setSlugEditado] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [buscandoRut, setBuscandoRut] = useState(false)
+  const [rutInfo, setRutInfo] = useState('')
 
   const dbPreview = form.slug ? `db_dstac_op_${form.slug.replace(/-/g, '_')}` : '—'
 
@@ -60,6 +62,24 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
     const clean = val.toLowerCase().replace(/[^a-z0-9-]/g, '')
     setForm(f => ({ ...f, slug: clean }))
     setSlugEditado(true)
+  }
+
+  // Autocompleta razón social al salir del campo RUT, buscando en la copia
+  // local (gratuita) del Registro de Empresas y Sociedades. Si no aparece, no
+  // pasa nada: el formulario sigue permitiendo llenado manual como siempre.
+  async function buscarPorRut() {
+    const rut = form.rut.trim()
+    if (!rut) { setRutInfo(''); return }
+    setBuscandoRut(true); setRutInfo('')
+    try {
+      const reg = await api.get(`/api/companies/buscar-rut/${encodeURIComponent(rut)}`)
+      if (reg.razon_social && !form.name.trim()) handleNombre(reg.razon_social)
+      setRutInfo(`✓ ${reg.razon_social}${reg.comuna ? ` · ${reg.comuna}` : ''} (Registro de Empresas y Sociedades)`)
+    } catch {
+      setRutInfo('No encontrado en el registro gratuito — puedes completar los datos a mano.')
+    } finally {
+      setBuscandoRut(false)
+    }
   }
 
   async function handleSubmit(e) {
@@ -192,13 +212,18 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
           </Field>
 
           {/* RUT */}
-          <Field label="RUT de la empresa">
+          <Field label="RUT de la empresa" hint="Al salir del campo, busca la razón social en el Registro de Empresas y Sociedades (gratuito)">
             <input
               value={form.rut}
               onChange={e => setForm(f => ({ ...f, rut: e.target.value }))}
+              onBlur={buscarPorRut}
               placeholder="76.543.210-9"
               style={inputStyle}
             />
+            {buscandoRut && <div style={{ fontSize: 11.5, color: '#888780', marginTop: 5 }}>Buscando…</div>}
+            {!buscandoRut && rutInfo && (
+              <div style={{ fontSize: 11.5, color: rutInfo.startsWith('✓') ? '#1D9E75' : '#888780', marginTop: 5 }}>{rutInfo}</div>
+            )}
           </Field>
 
           {/* Contacto */}
