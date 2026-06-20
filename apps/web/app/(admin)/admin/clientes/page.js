@@ -8,6 +8,7 @@ import ClienteFormModal from './components/ClienteFormModal'
 import ClienteDetailPanel from './components/ClienteDetailPanel'
 import ClientesCards from './components/ClientesCards'
 import SuspenderModal from './components/SuspenderModal'
+import EliminarEmpresaModal from './components/EliminarEmpresaModal'
 
 export default function ClientesPage() {
   const [empresas, setEmpresas]           = useState([])
@@ -21,6 +22,7 @@ export default function ClientesPage() {
   const [selectedEmp, setSelectedEmp]     = useState(null)
   const [showFormModal, setShowFormModal]       = useState(false)
   const [suspenderEmp, setSuspenderEmp]         = useState(null)
+  const [eliminarEmp, setEliminarEmp]           = useState(null)
   const [toast, setToast]                       = useState(null)
 
   useEffect(() => { fetchEmpresas() }, [])
@@ -85,6 +87,13 @@ export default function ClientesPage() {
     if (selectedEmp?.slug === empActualizada.slug) setSelectedEmp(empActualizada)
     const accion = empActualizada.status === 'suspended' ? 'suspendida' : 'reactivada'
     showToast(`Empresa "${empActualizada.name}" ${accion} correctamente`, 'success')
+  }
+
+  function handleEliminado(empEliminada) {
+    setEliminarEmp(null)
+    setEmpresas(prev => prev.filter(e => e.slug !== empEliminada.slug))
+    if (selectedEmp?.slug === empEliminada.slug) setSelectedEmp(null)
+    showToast(`Empresa "${empEliminada.name}" eliminada permanentemente`, 'success')
   }
 
   function handleCreated(nuevaEmp) {
@@ -156,6 +165,7 @@ export default function ClientesPage() {
           onClose={() => setSelectedEmp(null)}
           onUpdated={handleUpdated}
           onSuspender={handleSuspender}
+          onEliminar={setEliminarEmp}
         />
       )}
 
@@ -165,6 +175,15 @@ export default function ClientesPage() {
           empresa={suspenderEmp}
           onClose={() => setSuspenderEmp(null)}
           onDone={handleSuspenderDone}
+        />
+      )}
+
+      {/* Modal eliminar (solo super_admin) */}
+      {eliminarEmp && (
+        <EliminarEmpresaModal
+          empresa={eliminarEmp}
+          onClose={() => setEliminarEmp(null)}
+          onDone={handleEliminado}
         />
       )}
 

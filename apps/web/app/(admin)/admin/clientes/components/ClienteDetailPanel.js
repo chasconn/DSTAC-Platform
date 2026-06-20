@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '../../../../../lib/api'
+import { getUser } from '../../../../../lib/auth'
 import { StatusBadge, PlanBadge, getInitials } from './badges'
 
 const THEMES = [
@@ -16,8 +17,9 @@ const THEMES = [
 
 const PLANES  = [{ value: 1, label: 'PYME' }, { value: 2, label: 'Profesional' }, { value: 3, label: 'Enterprise' }]
 const ESTADOS = [{ value: 'active', label: 'Activo' }, { value: 'setup', label: 'Setup' }, { value: 'suspended', label: 'Suspendido' }]
-export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSuspender }) {
+export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSuspender, onEliminar }) {
   const router = useRouter()
+  const esSuperAdmin = getUser()?.role === 'super_admin'
   const [tab, setTab]       = useState('info')
   const [stats, setStats]   = useState(null)
   const [nist, setNist]     = useState(null)
@@ -355,6 +357,15 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
             style={{ padding: '8px 0', background: '#fff', color: '#639922', border: '1px solid #639922', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >
             Reactivar acceso
+          </button>
+        )}
+        {esSuperAdmin && (
+          <button
+            onClick={() => onEliminar(empresa)}
+            title="Solo super admin — elimina la empresa y toda su base de datos de forma permanente"
+            style={{ padding: '8px 0', background: '#fff', color: '#C0392B', border: '1px solid #F0C4C4', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          >
+            🗑️ Eliminar empresa
           </button>
         )}
       </div>
