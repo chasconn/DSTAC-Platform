@@ -237,33 +237,25 @@ export default function EdrPage() {
     )
   }
 
-  // ── Agregaciones para los gráficos ──────────────────────────────────────────
-  const dist = { crit: 0, alto: 0, medio: 0, bajo: 0 }
-  alerts.forEach(a => {
-    if (a.rule_level >= 12) dist.crit++
-    else if (a.rule_level >= 7) dist.alto++
-    else if (a.rule_level >= 4) dist.medio++
-    else dist.bajo++
-  })
+  // ── Agregaciones para los gráficos — vienen del backend (últimas 24h), NO de
+  // la tabla paginada, para que coincidan siempre con las tarjetas KPI. ───────
+  const dist24h = stats?.alertas?.distribucion_24h || { critico: 0, alto: 0, medio: 0, bajo: 0 }
   const donutSegs = [
-    { label: 'Crítico', value: dist.crit,  color: '#D8543F' },
-    { label: 'Alto',    value: dist.alto,  color: '#E0992E' },
-    { label: 'Medio',   value: dist.medio, color: '#E6C34D' },
-    { label: 'Bajo',    value: dist.bajo,  color: '#5DA63A' },
+    { label: 'Crítico', value: dist24h.critico, color: '#D8543F' },
+    { label: 'Alto',    value: dist24h.alto,    color: '#E0992E' },
+    { label: 'Medio',   value: dist24h.medio,   color: '#E6C34D' },
+    { label: 'Bajo',    value: dist24h.bajo,    color: '#5DA63A' },
   ]
-  const donutTotal = alerts.length
+  const donutTotal = donutSegs.reduce((s, d) => s + d.value, 0)
 
-  const tacticCount = {}
-  alerts.forEach(a => parseJsonArr(a.mitre_tactics).forEach(t => { tacticCount[t] = (tacticCount[t] || 0) + 1 }))
-  const topTactics = Object.entries(tacticCount).map(([label, value]) => ({ label, value }))
-    .sort((a, b) => b.value - a.value).slice(0, 6)
+  const topTactics = stats?.mitre_top_24h || []
   const tacticMax = Math.max(...topTactics.map(t => t.value), 1)
 
   const KPIS = stats ? [
     { label: 'Agentes activos', value: `${stats.agentes.activos}/${stats.agentes.total}`, color: '#0F6E56', icon: IconShield },
     { label: 'Alertas 24h',     value: stats.alertas.ultimas_24h, color: '#185FA5', icon: IconPulse },
-    { label: 'Críticas',        value: stats.alertas.criticas,    color: '#D8543F', icon: IconFlame },
-    { label: 'Altas',           value: stats.alertas.altas,       color: '#C98A1E', icon: IconWarn },
+    { label: 'Críticas (24h)',  value: stats.alertas.criticas,    color: '#D8543F', icon: IconFlame },
+    { label: 'Altas (24h)',     value: stats.alertas.altas,       color: '#C98A1E', icon: IconWarn },
     { label: 'Incidentes',      value: stats.alertas.incidentes ?? 0, color: '#534AB7', icon: IconBolt },
     { label: 'Correcciones',    value: stats.correcciones?.total ?? 0, color: '#0F6E56', icon: IconCheck },
   ] : []
@@ -368,7 +360,7 @@ export default function EdrPage() {
       {/* Overview: severidad + MITRE + correcciones */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 14, marginBottom: 18 }}>
         <div className="edr-card" style={cardStyle}>
-          <div style={titleStyle}>Distribución por severidad</div>
+          <div style={titleStyle}>Distribución por severidad (24h)</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 6 }}>
             <Donut segments={donutSegs} total={donutTotal} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -384,7 +376,7 @@ export default function EdrPage() {
         </div>
 
         <div className="edr-card" style={cardStyle}>
-          <div style={titleStyle}>Top tácticas MITRE ATT&CK</div>
+          <div style={titleStyle}>Top tácticas MITRE ATT&CK (24h)</div>
           {topTactics.length === 0 ? (
             <div style={{ color: '#9A988F', fontSize: 12.5, padding: '18px 0' }}>Aún no hay tácticas detectadas en las alertas cargadas.</div>
           ) : (

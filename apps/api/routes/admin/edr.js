@@ -146,12 +146,39 @@ router.get('/stats', async (req, res, next) => {
 
     const [[al]] = await centralDB.query(`
       SELECT COUNT(*) AS total,
-             SUM(rule_level >= 12)                       AS criticas,
-             SUM(rule_level BETWEEN 7 AND 11)            AS altas,
              SUM(incidente_id IS NOT NULL)               AS incidentes,
              SUM(event_time >= (NOW() - INTERVAL 24 HOUR)) AS ultimas_24h
       FROM edr_alerts WHERE company_id = ?
     `, [companyId])
+
+    // Distribución por severidad y top tácticas MITRE — SIEMPRE sobre las
+    // últimas 24h (mismo universo que el donut/barras del panel), para que
+    // las tarjetas KPI y los gráficos cuenten exactamente lo mismo. Antes el
+    // donut se calculaba con las alertas paginadas de la tabla (máx. 20-1000)
+    // mientras las tarjetas mostraban el total histórico → números que no
+    // coincidían entre sí.
+    const [[sev]] = await centralDB.query(`
+      SELECT SUM(rule_level >= 12)              AS critico,
+             SUM(rule_level BETWEEN 7 AND 11)    AS alto,
+             SUM(rule_level BETWEEN 4 AND 6)     AS medio,
+             SUM(rule_level < 4)                 AS bajo
+      FROM edr_alerts
+      WHERE company_id = ? AND event_time >= (NOW() - INTERVAL 24 HOUR)
+    `, [companyId])
+
+    const [mitreRows] = await centralDB.execute(`
+      SELECT mitre_tactics FROM edr_alerts
+      WHERE company_id = ? AND event_time >= (NOW() - INTERVAL 24 HOUR) AND mitre_tactics IS NOT NULL
+    `, [companyId])
+    const tacticCount = {}
+    mitreRows.forEach(r => {
+      let arr = r.mitre_tactics
+      if (typeof arr === 'string') { try { arr = JSON.parse(arr) } catch { arr = [] } }
+      if (Array.isArray(arr)) arr.forEach(t => { tacticCount[t] = (tacticCount[t] || 0) + 1 })
+    })
+    const mitreTop24h = Object.entries(tacticCount)
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value).slice(0, 6)
 
     const [sinAsignar] = await centralDB.execute(
       `SELECT COUNT(*) AS n FROM edr_agents WHERE company_id IS NULL`
@@ -183,11 +210,16 @@ router.get('/stats', async (req, res, next) => {
       },
       alertas: {
         total:       Number(al.total || 0),
-        criticas:    Number(al.criticas || 0),
-        altas:       Number(al.altas || 0),
+        criticas:    Number(sev.critico || 0),
+        altas:       Number(sev.alto || 0),
         incidentes:  Number(al.incidentes || 0),
         ultimas_24h: Number(al.ultimas_24h || 0),
+        distribucion_24h: {
+          critico: Number(sev.critico || 0), alto: Number(sev.alto || 0),
+          medio: Number(sev.medio || 0), bajo: Number(sev.bajo || 0),
+        },
       },
+      mitre_top_24h: mitreTop24h,
       correcciones: { total: Number(corr.total || 0), serie },
       sin_asignar: Number(sinAsignar[0].n || 0),
       proteccion_activa: await proteccionActiva(companyId),
