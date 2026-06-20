@@ -59,6 +59,23 @@ router.get('/agents', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// GET /dispositivos-red — inventario de equipos detectados pasivamente (ARP)
+// por los agentes de la empresa activa, sin necesitar agente propio en cada
+// dispositivo. "Conectado ahora" = visto en los últimos 3 minutos (ventana de
+// 1 min de escaneo + margen).
+router.get('/dispositivos-red', async (req, res, next) => {
+  try {
+    const [rows] = await centralDB.execute(`
+      SELECT id, mac, ip, vendor, tipo, hostname, primera_vez, ultima_vez,
+             (ultima_vez >= (NOW() - INTERVAL 3 MINUTE)) AS conectado
+      FROM edr_network_devices
+      WHERE company_id = ?
+      ORDER BY conectado DESC, ultima_vez DESC
+    `, [req.company.id])
+    res.json({ dispositivos: rows.map(r => ({ ...r, conectado: !!r.conectado })) })
+  } catch (err) { next(err) }
+})
+
 // GET /agents/sin-asignar — agentes que aún no pertenecen a ninguna empresa.
 // Sirve para que un admin DSTAC los vincule al tenant correcto.
 router.get('/agents/sin-asignar', async (req, res, next) => {

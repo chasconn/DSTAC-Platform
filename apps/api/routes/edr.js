@@ -5,6 +5,7 @@ const router = require('express').Router()
 const centralDB = require('../db/central')
 const { getTenantDB } = require('../db/tenant')
 const { sendMail } = require('../services/emailService')
+const { clasificar } = require('../utils/macVendor')
 
 // Nivel mínimo de regla Wazuh para abrir un incidente automáticamente (12 = crítico).
 const INCIDENT_MIN_LEVEL = parseInt(process.env.EDR_INCIDENT_MIN_LEVEL, 10) || 12
@@ -89,6 +90,29 @@ async function escalarIncidente({ companyId, wazuhId, agentName, alertId, rule, 
   )
 }
 
+// Procesa un reporte de descubrimiento de red (lista de IP/MAC vistas en la
+// tabla ARP del agente) y actualiza el inventario de dispositivos del tenant.
+async function ingerirNetscan(companyId, wazuhId, jsonTexto) {
+  if (!companyId) return // agente aún sin asignar a una empresa: no hay dónde mostrarlo
+  let payload
+  try { payload = JSON.parse(jsonTexto) } catch { return }
+  const items = Array.isArray(payload?.items) ? payload.items : []
+  if (!items.length) return
+
+  for (const it of items) {
+    const mac = s(it.mac, 17)?.toUpperCase()
+    if (!mac) continue
+    const { vendor, tipo } = clasificar(mac)
+    await centralDB.execute(`
+      INSERT INTO edr_network_devices (company_id, wazuh_id, mac, ip, vendor, tipo, hostname, primera_vez, ultima_vez)
+      VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        wazuh_id = VALUES(wazuh_id), ip = VALUES(ip), vendor = VALUES(vendor),
+        tipo = VALUES(tipo), hostname = COALESCE(VALUES(hostname), hostname), ultima_vez = NOW()
+    `, [companyId, wazuhId, mac, s(it.ip, 64), vendor, tipo, s(it.hostname, 255)])
+  }
+}
+
 // POST /api/edr/alerts — ingesta de una alerta de Wazuh.
 router.post('/alerts', async (req, res) => {
   try {
@@ -145,6 +169,15 @@ router.post('/alerts', async (req, res) => {
       if (ce[0] && Number(ce[0].edr_enabled) === 0) {
         return res.json({ ok: true, skipped: 'edr_disabled' })
       }
+    }
+
+    // Reporte de descubrimiento de red (tabla ARP, sin agente en cada equipo):
+    // el script en el agente loguea "DSTAC_NETSCAN {json}" cada minuto; no es
+    // una alerta de seguridad, así que se procesa aparte y se corta aquí.
+    if (typeof a.full_log === 'string' && a.full_log.startsWith('DSTAC_NETSCAN ')) {
+      try { await ingerirNetscan(companyId, wazuhId, a.full_log.slice('DSTAC_NETSCAN '.length)) }
+      catch (e) { console.error('edr netscan:', e.message) }
+      return res.json({ ok: true, netscan: true })
     }
 
     // 3) Guardar la alerta — deduplicando repeticiones idénticas (mismo agente+regla+IP)

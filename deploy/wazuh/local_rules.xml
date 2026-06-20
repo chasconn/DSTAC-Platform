@@ -58,4 +58,13 @@
     <group>dstac_tamper,</group>
   </rule>
 
+  <!-- 100140: Reporte de descubrimiento pasivo de red (tabla ARP, wodle
+       dstac_netscan cada 1 min). No es una alerta de seguridad: nivel minimo
+       solo para que el pipeline existente (integrator -> portal) lo reenvie. -->
+  <rule id="100140" level="3">
+    <match>DSTAC_NETSCAN</match>
+    <description>DSTAC: reporte de inventario de red (ARP)</description>
+    <group>dstac_netscan,</group>
+  </rule>
+
 </group>

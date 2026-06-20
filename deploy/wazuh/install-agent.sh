@@ -191,6 +191,47 @@ ARBLOCK
   c_inf "   respuestas activas habilitadas en el agente"
 }
 
+# Descubrimiento pasivo de red: instala el script que lee la tabla ARP local
+# (sin generar tráfico) y el wodle que lo corre cada minuto. Así el panel EDR
+# muestra TODOS los dispositivos de la red (router, impresoras, celulares…),
+# no solo los que tienen agente Wazuh instalado. Idempotente.
+set_network_scan() {
+  mkdir -p /var/ossec/active-response/bin
+  cat > /var/ossec/active-response/bin/dstac-network-scan.sh <<'NETSCAN'
+#!/bin/sh
+OUT=$( (ip neighbor show 2>/dev/null || arp -an 2>/dev/null) | while read -r line; do
+  ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+  mac=$(echo "$line" | grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}')
+  if [ -n "$ip" ] && [ -n "$mac" ]; then
+    printf '{"ip":"%s","mac":"%s"},' "$ip" "$mac"
+  fi
+done)
+OUT=$(echo "$OUT" | sed 's/,$//')
+echo "DSTAC_NETSCAN {\"items\":[$OUT]}"
+NETSCAN
+  chmod 750 /var/ossec/active-response/bin/dstac-network-scan.sh
+  chown root:wazuh /var/ossec/active-response/bin/dstac-network-scan.sh
+
+  local conf=/var/ossec/etc/ossec.conf
+  [ -f "$conf" ] || return 0
+  grep -q "dstac_netscan" "$conf" && return 0
+  cat > /tmp/dstac-netscan.xml <<'WODLE'
+  <!-- DSTAC-EDR: descubrimiento pasivo de red (tabla ARP) cada minuto -->
+  <wodle name="command">
+    <disabled>no</disabled>
+    <tag>dstac_netscan</tag>
+    <command>/var/ossec/active-response/bin/dstac-network-scan.sh</command>
+    <interval>1m</interval>
+    <ignore_output>no</ignore_output>
+    <run_on_start>yes</run_on_start>
+    <timeout>20</timeout>
+  </wodle>
+WODLE
+  awk '/<\/ossec_config>/ && !d {while((getline line < "/tmp/dstac-netscan.xml")>0) print line; d=1} {print}' "$conf" > "${conf}.dstac" && mv "${conf}.dstac" "$conf"
+  rm -f /tmp/dstac-netscan.xml
+  c_inf "   descubrimiento de red (ARP) habilitado, cada 1 minuto"
+}
+
 # ── ¿Ya está instalado? → solo (re)enrolar y reiniciar ────────────────
 if [ -d /var/ossec ] && command -v /var/ossec/bin/wazuh-control >/dev/null 2>&1; then
   c_inf "wazuh-agent ya está instalado → reconfigurando…"
@@ -204,6 +245,7 @@ if [ -d /var/ossec ] && command -v /var/ossec/bin/wazuh-control >/dev/null 2>&1;
   /var/ossec/bin/agent-auth -m "$WAZUH_MANAGER_IP" -P "$WAZUH_ENROLL_PASSWORD" -A "$AGENT_NAME" $GROUP_ARG
   set_company_label
   set_response_config
+  set_network_scan
   /var/ossec/bin/wazuh-control start >/dev/null 2>&1 || true
   systemctl restart wazuh-agent >/dev/null 2>&1 || true
   c_ok "✓ Reconfigurado como '$AGENT_NAME' y reiniciado."
@@ -286,6 +328,7 @@ fi
 # ── Etiqueta de empresa + respuestas activas antes de arrancar ────────
 set_company_label
 set_response_config
+set_network_scan
 
 # ── Arrancar y verificar ──────────────────────────────────────────────
 systemctl daemon-reload >/dev/null 2>&1 || true

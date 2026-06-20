@@ -5,6 +5,11 @@ import { api } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
 
 // ── Helpers de estilo / datos ─────────────────────────────────────────────────
+function iconoPorTipo(tipo) {
+  return { router: IconRouter, impresora: IconPrinter, movil: IconPhone, computador: IconDesktop,
+    virtual: IconDesktop, iot: IconIot, camara: IconCamera }[tipo] || IconDeviceUnknown
+}
+
 function nivelStyle(lvl) {
   if (lvl >= 12) return { label: 'Crítico', color: '#791F1F', bg: '#FCEBEB' }
   if (lvl >= 7)  return { label: 'Alto',    color: '#854F0B', bg: '#FAEEDA' }
@@ -76,6 +81,7 @@ export default function EdrPage() {
   const [agents,  setAgents]  = useState([])
   const [sinAsig, setSinAsig] = useState([])
   const [sca,     setSca]     = useState([])
+  const [dispositivosRed, setDispositivosRed] = useState([])
   const [empresas, setEmpresas] = useState([])
   const [alerts,  setAlerts]  = useState([])
   const [totalAlertas, setTotalAlertas] = useState(0)
@@ -126,6 +132,20 @@ export default function EdrPage() {
   }, [slug, nivelMin, busca, limite])
 
   useEffect(() => { cargar() }, [slug, limite])
+
+  // Equipos en la red (detección pasiva por ARP, sin agente propio): se
+  // refresca solo, cada minuto, igual que la frecuencia del escaneo en el
+  // agente — da la sensación de "tiempo real" sin recargar todo el panel.
+  const cargarRed = useCallback(async () => {
+    if (!slug) return
+    try { const d = await api.get('/api/admin/edr/dispositivos-red', headers); setDispositivosRed(d.dispositivos ?? []) }
+    catch { /* silencioso: no interrumpe el resto del panel */ }
+  }, [slug])
+  useEffect(() => {
+    cargarRed()
+    const id = setInterval(cargarRed, 60000)
+    return () => clearInterval(id)
+  }, [cargarRed])
 
   async function cargarMas() {
     if (!slug) return
@@ -503,6 +523,48 @@ export default function EdrPage() {
         )}
       </div>
 
+      {/* Dispositivos en la red (detección pasiva por ARP, sin agente propio) */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '4px 2px 4px' }}>
+          <div style={{ ...titleStyle, fontSize: 15 }}>Equipos en la red</div>
+          <span style={{ fontSize: 11, color: '#9A988F' }}>{dispositivosRed.filter(d => d.conectado).length} conectados ahora · se actualiza cada minuto</span>
+        </div>
+        <p style={{ fontSize: 12, color: '#9A988F', margin: '0 2px 12px' }}>
+          Detectados pasivamente desde la tabla ARP de los agentes ya instalados — incluye routers, impresoras, celulares y otros dispositivos sin necesidad de instalarles nada.
+        </p>
+        {dispositivosRed.length === 0 ? (
+          <div className="edr-card" style={{ ...cardStyle, textAlign: 'center', color: '#9A988F', fontSize: 13, padding: 28 }}>
+            Aún no hay dispositivos detectados. Aparecerán apenas un agente con el escaneo de red habilitado reporte su primera lectura.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 12 }}>
+            {dispositivosRed.map(d => {
+              const Icon = iconoPorTipo(d.tipo)
+              return (
+                <div key={d.id} className="edr-card edr-lift" style={{ ...cardStyle, padding: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: d.conectado ? '#EAF6F1' : '#F1EFE8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon color={d.conectado ? '#0F6E56' : '#9A988F'} />
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#2C2C2A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.hostname || d.ip || d.mac}</div>
+                      <div style={{ fontSize: 10.5, color: '#9A988F' }}>{d.vendor || 'Fabricante desconocido'}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 9, borderTop: '1px solid #F1EFE8' }}>
+                    <span style={{ fontSize: 10.5, color: '#9A988F', fontFamily: 'monospace' }}>{d.ip || '—'}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, fontWeight: 700, color: d.conectado ? '#0F6E56' : '#9A988F' }}>
+                      <span className={d.conectado ? 'edr-dot-live' : ''} style={{ width: 6, height: 6, borderRadius: '50%', background: d.conectado ? '#1D9E75' : '#C8C6BC' }} />
+                      {d.conectado ? 'En línea' : 'Inactivo'}
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Alertas */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ ...titleStyle, fontSize: 15, margin: '0 2px' }}>Alertas recientes</div>
@@ -624,3 +686,10 @@ function IconWarn({ color }) { return (<svg width="18" height="18" viewBox="0 0 
 function IconBolt({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>) }
 function IconRefresh({ color }) { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>) }
 function IconCheck({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>) }
+function IconRouter({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="14" width="20" height="7" rx="1.5" /><line x1="6.5" y1="17.5" x2="6.5" y2="17.5" /><line x1="10" y1="17.5" x2="10" y2="17.5" /><path d="M7 14V8a2 2 0 0 1 2-2h0a2 2 0 0 0 2-2" /><path d="M17 14V10a2 2 0 0 0-2-2h0a2 2 0 0 1-2-2" /></svg>) }
+function IconPrinter({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9" /><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>) }
+function IconPhone({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="7" y="2" width="10" height="20" rx="2" /><line x1="11" y1="18" x2="13" y2="18" /></svg>) }
+function IconDesktop({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>) }
+function IconIot({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></svg>) }
+function IconCamera({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>) }
+function IconDeviceUnknown({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 4" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>) }
