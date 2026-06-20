@@ -296,15 +296,16 @@ router.post('/:id/enviar', async (req, res) => {
       `SELECT * FROM cotizacion_items WHERE cotizacion_id = ? ORDER BY orden, id`, [co.id]
     )
 
+    const incluyeMuestraEdr = !!req.body?.adjuntar_muestra_edr
     const pdf = await htmlToPDF(buildQuoteHtml({ ...co, items }))
-    const bodyHtml = buildQuoteEmailHtml({ ...co, items })
+    const bodyHtml = buildQuoteEmailHtml({ ...co, items }, { incluyeMuestraEdr })
 
     const adjuntos = [
       { name: `${co.numero}.pdf`, contentType: 'application/pdf', contentBytes: pdf.toString('base64') },
     ]
     // Muestra comercial del informe EDR (datos ilustrativos, no reales) — útil
     // para prospectos que aún no tienen el servicio, para que vean qué recibirían.
-    if (req.body?.adjuntar_muestra_edr) {
+    if (incluyeMuestraEdr) {
       const { getDemoData, buildHTML: buildEdrClienteHTML } = require('../../services/reports/edr-cliente')
       const pdfMuestra = await htmlToPDF(buildEdrClienteHTML(getDemoData()))
       adjuntos.push({ name: 'Muestra_Informe_EDR_DSTAC.pdf', contentType: 'application/pdf', contentBytes: pdfMuestra.toString('base64') })

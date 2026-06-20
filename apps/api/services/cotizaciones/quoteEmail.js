@@ -16,7 +16,8 @@ const fecha = (d) => {
 
 const NAVY = '#13112B', PURPLE = '#3C3489', GREEN = '#1D9E75', INK = '#2C2C2A', MUTED = '#888780', BORDER = '#E8E6DE', BG = '#F4F3EF'
 
-function buildQuoteEmailHtml(c) {
+function buildQuoteEmailHtml(c, opciones = {}) {
+  const { incluyeMuestraEdr = false } = opciones
   const items = c.items || []
   const t = totales(items, { tipo: c.descuento_tipo, valor: c.descuento_valor })
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : 'tiempo limitado'
@@ -124,6 +125,10 @@ function buildQuoteEmailHtml(c) {
           <p style="font-size:12px;color:${MUTED};margin:14px 0 0;line-height:1.5">
             Valores netos + IVA. Revisa el desglose completo en el PDF adjunto. Esta propuesta tiene una validez de ${validezTxt}.
           </p>
+          ${incluyeMuestraEdr ? `
+          <p style="font-size:12px;color:${MUTED};margin:8px 0 0;line-height:1.5">
+            También adjuntamos una muestra de cómo se ve el informe de tu protección EDR — para que veas, con un ejemplo, qué tipo de reportes recibirías.
+          </p>` : ''}
         </td></tr>
 
         <!-- CTA / cierre -->
