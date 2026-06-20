@@ -375,17 +375,76 @@ router.put('/:slug/nist', requireAuth, requireRole(...MANAGERS), async (req, res
 })
 
 // ─── DELETE /api/companies/:slug ─────────────────────────────────────────────
-// Eliminar empresa y su BD — solo super_admin
+// Eliminar empresa y su BD — solo super_admin.
+// Además de la BD del tenant, la empresa deja filas propias en muchas tablas
+// de la BD central (users, iso_*, nist_*, cotizaciones, phishing, EDR, MDM,
+// etc.) — hay que limpiarlas todas antes del DELETE de companies o falla por
+// llaves foráneas (como ocurrió la primera vez: iso_evaluations y users).
 router.delete('/:slug', requireAuth, requireRole('super_admin'), async (req, res) => {
+  const conn = await centralDB.getConnection()
   try {
-    const [rows] = await centralDB.execute(
+    const [rows] = await conn.execute(
       'SELECT id FROM companies WHERE slug = ?', [req.params.slug]
     )
-    if (rows.length === 0) return res.status(404).json({ error: 'Empresa no encontrada' })
+    if (rows.length === 0) { conn.release(); return res.status(404).json({ error: 'Empresa no encontrada' }) }
+    const companyId = rows[0].id
+
+    await conn.beginTransaction()
+
+    // Hijos de evaluaciones (no tienen company_id propio, dependen de iso/nist_evaluations)
+    await conn.execute(
+      `DELETE ica FROM iso_control_assessments ica
+       JOIN iso_evaluations e ON e.id = ica.evaluation_id WHERE e.company_id = ?`, [companyId])
+    await conn.execute(
+      `DELETE nca FROM nist_control_assessments nca
+       JOIN nist_evaluations e ON e.id = nca.evaluation_id WHERE e.company_id = ?`, [companyId])
+
+    // Tablas hijas con company_id directo (deben ir antes de iso/nist_evaluations)
+    for (const tabla of ['iso_evidences', 'iso_history', 'iso_risks', 'iso_action_plans']) {
+      await conn.execute(`DELETE FROM ${tabla} WHERE company_id = ?`, [companyId])
+    }
+    await conn.execute('DELETE FROM iso_evaluations WHERE company_id = ?', [companyId])
+
+    for (const tabla of ['nist_evidences', 'nist_history', 'nist_action_plans']) {
+      await conn.execute(`DELETE FROM ${tabla} WHERE company_id = ?`, [companyId])
+    }
+    await conn.execute('DELETE FROM nist_evaluations WHERE company_id = ?', [companyId])
+
+    // Cotizaciones y phishing (items/destinatarios dependen del id padre, no de company_id)
+    await conn.execute(
+      `DELETE ci FROM cotizacion_items ci
+       JOIN cotizaciones c ON c.id = ci.cotizacion_id WHERE c.company_id = ?`, [companyId])
+    await conn.execute('DELETE FROM cotizaciones WHERE company_id = ?', [companyId])
+
+    await conn.execute(
+      `DELETE pd FROM phishing_destinatarios pd
+       JOIN phishing_campanas pc ON pc.id = pd.campana_id WHERE pc.company_id = ?`, [companyId])
+    await conn.execute('DELETE FROM phishing_campanas WHERE company_id = ?', [companyId])
+
+    // Resto de tablas con company_id directo, sin tablas hijas propias
+    for (const tabla of [
+      'pending_tasks', 'activity_log', 'calendario_eventos', 'diagnosticos',
+      'edr_agents', 'edr_alerts', 'edr_network_devices', 'edr_responses',
+      'leads', 'ley21663_evaluaciones', 'mdm_commands', 'mdm_devices', 'mdm_enrollment_tokens',
+      'sessions',
+    ]) {
+      await conn.execute(`DELETE FROM ${tabla} WHERE company_id = ?`, [companyId])
+    }
+
+    // Usuarios de la empresa (y lo que dependa de ellos)
+    await conn.execute(
+      `DELETE mc FROM mfa_codes mc JOIN users u ON u.id = mc.user_id WHERE u.company_id = ?`, [companyId])
+    await conn.execute(
+      `DELETE dl FROM dashboard_layouts dl JOIN users u ON u.id = dl.user_id WHERE u.company_id = ?`, [companyId])
+    await conn.execute(
+      `DELETE s FROM sessions s JOIN users u ON u.id = s.user_id WHERE u.company_id = ?`, [companyId])
+    await conn.execute('DELETE FROM users WHERE company_id = ?', [companyId])
+
+    await conn.execute('DELETE FROM companies WHERE id = ?', [companyId])
+    await conn.commit()
 
     releaseTenantDB(req.params.slug)
     await dropTenantDB(req.params.slug)
-    await centralDB.execute('DELETE FROM companies WHERE slug = ?', [req.params.slug])
 
     await registrarActividad({
       req, accion: 'eliminar', modulo: 'clientes',
@@ -394,8 +453,11 @@ router.delete('/:slug', requireAuth, requireRole('super_admin'), async (req, res
 
     res.json({ message: 'Empresa y BD eliminadas' })
   } catch (err) {
+    await conn.rollback()
     console.error('Error eliminando empresa:', err)
     res.status(500).json({ error: 'Error interno del servidor' })
+  } finally {
+    conn.release()
   }
 })
 
