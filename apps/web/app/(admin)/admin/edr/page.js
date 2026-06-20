@@ -4,6 +4,29 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
 
+// ── Instaladores de agente — comandos listos para copiar/pegar. La clave de
+// enrolamiento NO se expone aquí (vive en /var/ossec/etc/authd.pass del
+// manager); se reemplaza el placeholder <CLAVE> al pegarla.
+const RAW_BASE = 'https://raw.githubusercontent.com/chasconn/DSTAC-Platform/main/deploy/wazuh'
+const INSTALADORES = [
+  {
+    id: 'linux', label: 'Linux',
+    cmd: `curl -sSL ${RAW_BASE}/install-agent.sh -o /tmp/dstac-edr.sh && sudo WAZUH_ENROLL_PASSWORD="<CLAVE>" bash /tmp/dstac-edr.sh -n "NOMBRE-EQUIPO" -c "slug-empresa"`,
+  },
+  {
+    id: 'windows', label: 'Windows',
+    cmd: `$env:WAZUH_ENROLL_PASSWORD="<CLAVE>"; iwr ${RAW_BASE}/install-agent-windows.ps1 -OutFile $env:TEMP\\dstac-edr.ps1; powershell -ExecutionPolicy Bypass -File $env:TEMP\\dstac-edr.ps1 -Empresa "slug-empresa"`,
+  },
+  {
+    id: 'windows-server', label: 'Windows Server',
+    cmd: `$env:WAZUH_ENROLL_PASSWORD="<CLAVE>"; iwr ${RAW_BASE}/install-agent-windows-server.ps1 -OutFile $env:TEMP\\dstac-edr.ps1; powershell -ExecutionPolicy Bypass -File $env:TEMP\\dstac-edr.ps1 -Nombre "NOMBRE-EQUIPO" -Empresa "slug-empresa"`,
+  },
+  {
+    id: 'macos', label: 'macOS',
+    cmd: `curl -sSL ${RAW_BASE}/install-agent-macos.sh -o /tmp/dstac-edr.sh && sudo WAZUH_ENROLL_PASSWORD="<CLAVE>" bash /tmp/dstac-edr.sh -n "NOMBRE-EQUIPO" -c "slug-empresa"`,
+  },
+]
+
 // ── Helpers de estilo / datos ─────────────────────────────────────────────────
 function iconoPorTipo(tipo) {
   return { router: IconRouter, impresora: IconPrinter, movil: IconPhone, computador: IconDesktop,
@@ -91,6 +114,8 @@ export default function EdrPage() {
   const [busca,    setBusca]    = useState('')
   const [limite,   setLimite]   = useState('20')
   const [toast,    setToast]    = useState(null)
+  const [showInstaladores, setShowInstaladores] = useState(false)
+  const [copiado, setCopiado] = useState('')
 
   useEffect(() => {
     const raw = localStorage.getItem('empresa_activa')
@@ -237,6 +262,13 @@ export default function EdrPage() {
     } catch (err) { showToast(err.message || 'Error al dar de baja', 'error') }
   }
 
+  function copiarComando(id, cmd) {
+    navigator.clipboard?.writeText(cmd).then(() => {
+      setCopiado(id)
+      setTimeout(() => setCopiado(''), 2000)
+    }).catch(() => showToast('No se pudo copiar — selecciona el texto a mano', 'error'))
+  }
+
   async function asignar(wazuhId) {
     try {
       await api.post(`/api/admin/edr/agents/${wazuhId}/asignar`, {}, headers)
@@ -323,9 +355,41 @@ export default function EdrPage() {
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 10, border: '1px solid #e2e0d8', background: '#fff', color: '#444441', cursor: loading ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 600 }}>
             <IconRefresh color="#534AB7" /> {loading ? 'Cargando…' : 'Actualizar'}
           </button>
+          <button onClick={() => setShowInstaladores(s => !s)} title="Comandos para instalar el agente en un equipo nuevo"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 10, border: '1px solid #c8c4f0', background: showInstaladores ? '#EEEDFE' : '#fff', color: '#3C3489', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
+            <IconDownload color="#3C3489" /> Instalar agente
+          </button>
           <BotonInforme tipo="edr" slug={slug} />
         </div>
       </div>
+
+      {showInstaladores && (
+        <div className="edr-card" style={{ ...cardStyle, marginBottom: 18 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#2C2C2A' }}>Instalar el agente en un equipo nuevo</div>
+            <button onClick={() => setShowInstaladores(false)} style={{ border: 'none', background: 'none', color: '#9A988F', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+          </div>
+          <p style={{ fontSize: 12, color: '#9A988F', margin: '0 0 14px' }}>
+            Reemplaza <code style={{ background: '#F1EFE8', padding: '1px 5px', borderRadius: 4 }}>&lt;CLAVE&gt;</code> por la clave de enrolamiento
+            (<code style={{ background: '#F1EFE8', padding: '1px 5px', borderRadius: 4 }}>/var/ossec/etc/authd.pass</code> del manager) y <code style={{ background: '#F1EFE8', padding: '1px 5px', borderRadius: 4 }}>slug-empresa</code> por
+            el slug del cliente para que se auto-asigne. Incluye descubrimiento pasivo de red (ARP) desde el primer minuto.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+            {INSTALADORES.map(inst => (
+              <div key={inst.id} style={{ background: '#FAFAF7', border: '1px solid #ECEAE3', borderRadius: 10, padding: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#2C2C2A' }}>{inst.label}</span>
+                  <button onClick={() => copiarComando(inst.id, inst.cmd)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, background: copiado === inst.id ? '#EAF6F1' : '#EEEDFE', color: copiado === inst.id ? '#0F6E56' : '#3C3489' }}>
+                    {copiado === inst.id ? '✓ Copiado' : 'Copiar'}
+                  </button>
+                </div>
+                <code style={{ display: 'block', fontSize: 10.5, color: '#444441', wordBreak: 'break-all', lineHeight: 1.5, fontFamily: 'monospace' }}>{inst.cmd}</code>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div style={{ marginBottom: 16, background: toast.type === 'error' ? '#FCEBEB' : '#EAF6F1', borderRadius: 10, padding: '10px 15px', fontSize: 13, color: toast.type === 'error' ? '#791F1F' : '#0F6E56', fontWeight: 600, animation: 'edrFade .3s ease' }}>
@@ -693,3 +757,4 @@ function IconDesktop({ color }) { return (<svg width="18" height="18" viewBox="0
 function IconIot({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></svg>) }
 function IconCamera({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>) }
 function IconDeviceUnknown({ color }) { return (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 4" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>) }
+function IconDownload({ color }) { return (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>) }
