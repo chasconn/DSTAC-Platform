@@ -88,6 +88,14 @@ export default function Ley21663Page() {
     finally { setEmitiendo(false) }
   }
 
+  async function emitirDesdeHistorial(id) {
+    try {
+      await api.post(`/api/admin/ley21663/${id}/certificado`, {}, headers)
+      showToast('Certificado de cumplimiento emitido')
+      cargarHistorial()
+    } catch (e) { showToast(e.message || 'No se pudo emitir el certificado') }
+  }
+
   async function descargarDocumento() {
     if (!slug) return
     setDescargando(true)
@@ -156,9 +164,17 @@ export default function Ley21663Page() {
                       </td>
                       <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', color: h.cotizacion_id ? '#1D9E75' : '#B4B2A9', borderBottom: '1px solid #f5f4ef' }}>{h.cotizacion_id ? '✓ generada' : '—'}</td>
                       <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', borderBottom: '1px solid #f5f4ef' }}>
-                        {h.certificado_codigo
-                          ? <BotonInforme tipo="certificado" slug={slug} label="Ver" query={{ evaluacionId: h.id, ley: '21663' }} />
-                          : <span style={{ color: '#B4B2A9' }}>—</span>}
+                        {h.certificado_codigo ? (
+                          <BotonInforme tipo="certificado" slug={slug} label="Ver" query={{ evaluacionId: h.id, ley: '21663' }} />
+                        ) : h.nivel === 'Alto' ? (
+                          <div style={{ display: 'inline-flex', gap: 6 }}>
+                            <BotonInforme tipo="certificado" slug={slug} label="Vista previa" query={{ evaluacionId: h.id, ley: '21663', preview: 1 }} />
+                            <button onClick={() => emitirDesdeHistorial(h.id)}
+                              style={{ padding: '9px 14px', borderRadius: 8, border: 'none', background: PURPLE, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                              Emitir
+                            </button>
+                          </div>
+                        ) : <span style={{ color: '#B4B2A9' }}>—</span>}
                       </td>
                     </tr>
                   ))}
@@ -210,10 +226,13 @@ export default function Ley21663Page() {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {resultado.nivel === 'Alto' && !certResult?.codigo && (
-                <button onClick={emitirCertificado} disabled={emitiendo}
-                  style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 700, cursor: 'pointer' }}>
-                  {emitiendo ? 'Emitiendo…' : '🏅 Emitir certificado'}
-                </button>
+                <>
+                  <BotonInforme tipo="certificado" slug={slug} label="👁 Vista previa" query={{ evaluacionId: resultado.id, ley: '21663', preview: 1 }} />
+                  <button onClick={emitirCertificado} disabled={emitiendo}
+                    style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 700, cursor: 'pointer' }}>
+                    {emitiendo ? 'Emitiendo…' : '🏅 Emitir certificado'}
+                  </button>
+                </>
               )}
               {certResult?.codigo && (
                 <BotonInforme tipo="certificado" slug={slug} label="Ver certificado" query={{ evaluacionId: resultado.id, ley: '21663' }} />

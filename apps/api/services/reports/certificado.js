@@ -29,11 +29,17 @@ async function getData(tenantDB, centralDB, companyId, company, query = {}) {
     `SELECT * FROM ${leyInfo.tabla} WHERE id = ? AND company_id = ? LIMIT 1`,
     [query.evaluacionId, companyId])
   if (!ev) throw new Error('Evaluación no encontrada')
-  if (!ev.certificado_codigo) throw new Error('Esta evaluación no tiene un certificado emitido')
 
-  const verifyUrl = `${APP_URL}/verificar/${ev.certificado_codigo}`
+  // Vista previa (solo DSTAC, antes de emitir): permite revisar el diseño
+  // exacto con los datos reales sin generar ni persistir un código real.
+  const esVistaPrevia = !ev.certificado_codigo
+  if (esVistaPrevia && !query.preview) throw new Error('Esta evaluación no tiene un certificado emitido')
+
+  const codigo = ev.certificado_codigo || 'VISTA-PREVIA'
+  const fechaBase = ev.certificado_emitido_at ? new Date(ev.certificado_emitido_at) : new Date()
+  const verifyUrl = `${APP_URL}/verificar/${codigo}`
   let qrDataUrl = ''
-  if (QRCode) {
+  if (QRCode && !esVistaPrevia) {
     try { qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 240, margin: 1, color: { dark: INK, light: '#ffffff' } }) } catch {}
   }
 
@@ -41,16 +47,18 @@ async function getData(tenantDB, centralDB, companyId, company, query = {}) {
     company,
     ev,
     leyInfo,
+    codigo,
+    esVistaPrevia,
     verifyUrl,
     qrDataUrl,
     logo: fileToDataURI('logo-dstac.png'),
     isotipo: fileToDataURI('isotipo-dstac.png'),
-    fechaEmision: new Date(ev.certificado_emitido_at).toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
+    fechaEmision: fechaBase.toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
   }
 }
 
 function buildHTML(data) {
-  const { company, ev, leyInfo, qrDataUrl, logo, isotipo, fechaEmision } = data
+  const { company, ev, leyInfo, codigo, esVistaPrevia, qrDataUrl, logo, isotipo, fechaEmision } = data
 
   return `<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
@@ -82,12 +90,14 @@ function buildHTML(data) {
   .firma .linea { width:150px; border-top:1px solid #c9c7d1; padding-top:5px; margin:0 auto; }
   .firma .nombre { font-size:10.5px; color:#3a3942; font-weight:600; }
   .firma .cargo { font-size:9px; color:${MUTED}; }
+  .marca-previa { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-22deg); font-size:62px; font-weight:900; letter-spacing:6px; color:rgba(192,57,43,0.10); text-transform:uppercase; white-space:nowrap; pointer-events:none; }
 </style></head>
 <body>
   <div class="sheet">
     <div class="frame-outer"></div>
     <div class="frame-inner"></div>
     ${isotipo ? `<img class="watermark" src="${isotipo}" style="width:140mm;" />` : ''}
+    ${esVistaPrevia ? `<div class="marca-previa">Vista previa</div>` : ''}
 
     <div class="content">
       <div class="brand">
@@ -111,7 +121,7 @@ function buildHTML(data) {
       <div class="footer">
         <div class="qr-block">
           ${qrDataUrl ? `<img src="${qrDataUrl}" />` : ''}
-          <span class="codigo">COD. VERIF. ${ev.certificado_codigo}</span>
+          <span class="codigo">${esVistaPrevia ? 'SIN EMITIR · SOLO VISTA PREVIA' : `COD. VERIF. ${codigo}`}</span>
         </div>
         <div class="fechas">
           <div class="emitido">Emitido el ${fechaEmision}</div>

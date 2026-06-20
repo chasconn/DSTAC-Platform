@@ -11,6 +11,7 @@ const REPORT_PLAN = {
   identidades: null,
   incidentes:  'profesional',
   riesgos:     'profesional',
+  certificado: null,
 }
 
 const PLAN_RANK = { pyme: 0, profesional: 1, enterprise: 2 }
@@ -27,6 +28,7 @@ const REPORT_MODULES = {
   identidades: () => require('../../services/reports/identidades'),
   incidentes:  () => require('../../services/reports/incidentes'),
   riesgos:     () => require('../../services/reports/riesgos'),
+  certificado: () => require('../../services/reports/certificado'),
 }
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -58,9 +60,14 @@ router.get('/:reporteId', requireAuth, requireClientRole, resolveTenant, async (
       })
     }
 
-    // Load module and generate PDF
+    // Load module and generate PDF. Nota: para 'certificado' nunca se reenvía
+    // ?preview — el cliente solo puede ver/descargar certificados ya emitidos
+    // (aprobados por DSTAC), nunca una vista previa de uno sin emitir.
     const mod = REPORT_MODULES[reporteId]()
-    const data = await mod.getData(req.tenantDB, centralDB, req.company.id, req.company)
+    const query = reporteId === 'certificado'
+      ? { evaluacionId: req.query.evaluacionId, ley: req.query.ley }
+      : req.query
+    const data = await mod.getData(req.tenantDB, centralDB, req.company.id, req.company, query)
     const html = mod.buildHTML(data)
     const pdf  = await htmlToPDF(html)
 
