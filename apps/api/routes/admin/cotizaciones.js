@@ -10,6 +10,7 @@ const { generarPlantillaCotizacionLineas } = require('../../utils/plantillas')
 const { htmlToPDF } = require('../../services/reportService')
 const { sendMail } = require('../../services/emailService')
 const { buildQuoteHtml } = require('../../services/cotizaciones/quoteHtml')
+const { buildQuoteEmailHtml } = require('../../services/cotizaciones/quoteEmail')
 
 router.use(requireAuth, requireDstacRole)
 
@@ -293,20 +294,10 @@ router.post('/:id/enviar', async (req, res) => {
       `SELECT * FROM cotizacion_items WHERE cotizacion_id = ? ORDER BY orden, id`, [co.id]
     )
 
-    const html = buildQuoteHtml({ ...co, items })
-    const pdf = await htmlToPDF(html)
+    const pdf = await htmlToPDF(buildQuoteHtml({ ...co, items }))
+    const bodyHtml = buildQuoteEmailHtml({ ...co, items })
 
-    const mensaje = String(req.body?.mensaje || '').trim()
-    const bodyHtml = `
-      <div style="font-family:Arial,sans-serif;font-size:14px;color:#2C2C2A;line-height:1.5">
-        <p>Hola${co.cliente_contacto ? ' ' + co.cliente_contacto : ''},</p>
-        <p>Adjuntamos la cotización <b>${co.numero}</b>${co.cliente_empresa ? ` para ${co.cliente_empresa}` : ''}.</p>
-        ${mensaje ? `<p>${mensaje}</p>` : ''}
-        <p>Quedamos atentos a cualquier consulta.</p>
-        <p style="color:#888780;font-size:12px;margin-top:18px">DSTAC Ciberseguridad · contacto@dstac.cl · www.dstac.cl</p>
-      </div>`
-
-    await sendMail(destinatario, `Cotización ${co.numero} · DSTAC Ciberseguridad`, bodyHtml, [
+    await sendMail(destinatario, `Tu propuesta de DSTAC está lista · ${co.numero}`, bodyHtml, [
       { name: `${co.numero}.pdf`, contentType: 'application/pdf', contentBytes: pdf.toString('base64') },
     ])
 

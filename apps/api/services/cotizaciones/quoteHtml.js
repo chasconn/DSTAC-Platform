@@ -4,7 +4,12 @@
 
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const clp = (n) => '$' + new Intl.NumberFormat('es-CL').format(Number(n) || 0)
-const fecha = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
+const fecha = (d) => {
+  try {
+    const iso = d instanceof Date ? d.toISOString() : String(d)
+    return new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
+  } catch { return d }
+}
 
 // Calcula neto/IVA separando pago único de mensual, con descuento proporcional
 // (idéntico a apps/web/.../cotizaciones/components/format.js#totales).
