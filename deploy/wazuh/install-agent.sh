@@ -199,11 +199,27 @@ set_network_scan() {
   mkdir -p /var/ossec/active-response/bin
   cat > /var/ossec/active-response/bin/dstac-network-scan.sh <<'NETSCAN'
 #!/bin/sh
+resolver_nombre() {
+  ip="$1"
+  name=""
+  if command -v getent >/dev/null 2>&1; then
+    name=$(getent hosts "$ip" 2>/dev/null | awk '{print $2}' | head -1)
+  fi
+  if [ -z "$name" ] && command -v nslookup >/dev/null 2>&1; then
+    name=$(nslookup "$ip" 2>/dev/null | awk -F'= ' '/name =/{print $2}' | sed 's/\.$//' | head -1)
+  fi
+  echo "$name"
+}
 OUT=$( (ip neighbor show 2>/dev/null || arp -an 2>/dev/null) | while read -r line; do
   ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
   mac=$(echo "$line" | grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}')
   if [ -n "$ip" ] && [ -n "$mac" ]; then
-    printf '{"ip":"%s","mac":"%s"},' "$ip" "$mac"
+    host=$(resolver_nombre "$ip")
+    if [ -n "$host" ]; then
+      printf '{"ip":"%s","mac":"%s","hostname":"%s"},' "$ip" "$mac" "$host"
+    else
+      printf '{"ip":"%s","mac":"%s"},' "$ip" "$mac"
+    fi
   fi
 done)
 OUT=$(echo "$OUT" | sed 's/,$//')
@@ -224,7 +240,7 @@ NETSCAN
     <interval>1m</interval>
     <ignore_output>no</ignore_output>
     <run_on_start>yes</run_on_start>
-    <timeout>20</timeout>
+    <timeout>45</timeout>
   </wodle>
 WODLE
   awk '/<\/ossec_config>/ && !d {while((getline line < "/tmp/dstac-netscan.xml")>0) print line; d=1} {print}' "$conf" > "${conf}.dstac" && mv "${conf}.dstac" "$conf"

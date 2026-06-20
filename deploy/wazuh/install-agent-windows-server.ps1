@@ -71,17 +71,26 @@ $scanDir = "C:\Program Files (x86)\ossec-agent\active-response\bin"
 New-Item -ItemType Directory -Force -Path $scanDir | Out-Null
 $scanScript = Join-Path $scanDir "dstac-network-scan.ps1"
 @'
+function Resolver-Nombre($ip) {
+  try { return ([System.Net.Dns]::GetHostEntry($ip)).HostName } catch { return $null }
+}
 $items = @()
 try {
   Get-NetNeighbor -AddressFamily IPv4 -ErrorAction Stop | Where-Object { $_.LinkLayerAddress -match "^[0-9a-fA-F]{2}(-[0-9a-fA-F]{2}){5}$" } | ForEach-Object {
     $mac = ($_.LinkLayerAddress -replace "-", ":").ToUpper()
-    $items += [PSCustomObject]@{ ip = $_.IPAddress; mac = $mac }
+    $obj = [PSCustomObject]@{ ip = $_.IPAddress; mac = $mac }
+    $host_ = Resolver-Nombre $_.IPAddress
+    if ($host_) { $obj | Add-Member -NotePropertyName hostname -NotePropertyValue $host_ }
+    $items += $obj
   }
 } catch {
   arp -a | Select-String "(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+([0-9a-fA-F-]{17})" | ForEach-Object {
     $ip = $_.Matches[0].Groups[1].Value
     $mac = ($_.Matches[0].Groups[2].Value -replace "-", ":").ToUpper()
-    $items += [PSCustomObject]@{ ip = $ip; mac = $mac }
+    $obj = [PSCustomObject]@{ ip = $ip; mac = $mac }
+    $host_ = Resolver-Nombre $ip
+    if ($host_) { $obj | Add-Member -NotePropertyName hostname -NotePropertyValue $host_ }
+    $items += $obj
   }
 }
 $json = if ($items) { ($items | ConvertTo-Json -Compress) } else { "[]" }
@@ -91,7 +100,7 @@ Write-Output "DSTAC_NETSCAN {`"items`":$json}"
 if (Test-Path $conf) {
   $c = Get-Content $conf -Raw
   if ($c -notmatch "dstac_netscan") {
-    $wodle = "  <wodle name=""command"">`r`n    <disabled>no</disabled>`r`n    <tag>dstac_netscan</tag>`r`n    <command>powershell.exe -ExecutionPolicy Bypass -File `"$scanScript`"</command>`r`n    <interval>1m</interval>`r`n    <ignore_output>no</ignore_output>`r`n    <run_on_start>yes</run_on_start>`r`n    <timeout>20</timeout>`r`n  </wodle>`r`n</ossec_config>"
+    $wodle = "  <wodle name=""command"">`r`n    <disabled>no</disabled>`r`n    <tag>dstac_netscan</tag>`r`n    <command>powershell.exe -ExecutionPolicy Bypass -File `"$scanScript`"</command>`r`n    <interval>1m</interval>`r`n    <ignore_output>no</ignore_output>`r`n    <run_on_start>yes</run_on_start>`r`n    <timeout>45</timeout>`r`n  </wodle>`r`n</ossec_config>"
     $c = $c -replace "</ossec_config>", $wodle
     Set-Content -Path $conf -Value $c -Encoding ASCII
   }
