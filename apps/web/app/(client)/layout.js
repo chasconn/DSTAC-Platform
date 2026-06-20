@@ -27,6 +27,8 @@ export default async function ClientLayout({ children }) {
     <ClientShell
       user={{ email: user.email, role: user.role, first_name: user.first_name || null }}
       theme={theme}
+      suplantando={!!user.impersonado_por}
+      empresaSlug={user.company_slug || null}
     >
       {children}
     </ClientShell>

@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid')
 const centralDB = require('../db/central')
 const { sendMFACode } = require('../services/emailService')
 const { loginLimiter, mfaLimiter } = require('../middleware/rateLimit')
-const { requireAuth } = require('../middleware/auth')
+const { requireAuth, requireDstacRole } = require('../middleware/auth')
 const { DSTAC_ROLES } = require('../../../shared/roles')
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -272,6 +272,77 @@ router.post('/logout', async (req, res) => {
     res.json({ success: true })
   } catch (error) {
     console.error('Error en logout:', error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// ─── POST /api/auth/ver-como-cliente ─────────────────────────────────────────
+// Un admin DSTAC entra al portal cliente de una empresa, para probar que todo
+// funcione bien, sin perder su sesión: emite un token de cliente real
+// (mismo shape que un login normal) y guarda la sesión admin para volver.
+router.post('/ver-como-cliente', requireAuth, requireDstacRole, async (req, res) => {
+  try {
+    const { company_slug } = req.body || {}
+    if (!company_slug) return res.status(400).json({ error: 'Falta company_slug' })
+
+    const [[company]] = await centralDB.query(`
+      SELECT c.id, c.slug, c.status, p.name AS plan_name
+      FROM companies c JOIN plans p ON c.plan_id = p.id
+      WHERE c.slug = ? AND c.status = 'active'
+    `, [company_slug])
+    if (!company) return res.status(404).json({ error: 'Empresa no encontrada o inactiva' })
+
+    const jti = uuidv4()
+    const token = jwt.sign(
+      {
+        jti,
+        user_id: req.user.user_id || req.user.id,
+        id: req.user.user_id || req.user.id,
+        email: req.user.email,
+        role: 'cliente_lectura',
+        company_id: company.id,
+        company_slug: company.slug,
+        plan: company.plan_name || null,
+        first_name: req.user.first_name,
+        impersonado_por: req.user.user_id || req.user.id,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '2h' }
+    )
+
+    const sessionExpires = new Date(Date.now() + 2 * 60 * 60 * 1000)
+    await centralDB.execute(
+      'INSERT INTO sessions (id, user_id, company_id, expires_at) VALUES (?, ?, ?, ?)',
+      [jti, req.user.user_id || req.user.id, company.id, sessionExpires]
+    )
+
+    // Guarda la sesión admin original para "Volver al panel admin" (si ya había
+    // una vista de cliente abierta, no la pisa: conserva la admin real).
+    if (!req.cookies?.dstac_admin_token) {
+      res.cookie('dstac_admin_token', req.cookies.dstac_token, cookieOptions())
+    }
+    res.cookie('dstac_token', token, { ...cookieOptions(), maxAge: 2 * 60 * 60 * 1000 })
+    res.json({ success: true, company_slug: company.slug })
+  } catch (error) {
+    console.error('Error en ver-como-cliente:', error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+})
+
+// ─── POST /api/auth/volver-admin ──────────────────────────────────────────────
+// Restaura la sesión admin guardada al entrar en "ver como cliente".
+router.post('/volver-admin', async (req, res) => {
+  try {
+    const adminToken = req.cookies?.dstac_admin_token
+    if (!adminToken) return res.status(400).json({ error: 'No hay una sesión admin guardada' })
+    try { jwt.verify(adminToken, process.env.JWT_SECRET) }
+    catch { res.clearCookie('dstac_admin_token', { path: '/' }); return res.status(400).json({ error: 'La sesión admin guardada ya expiró' }) }
+
+    res.cookie('dstac_token', adminToken, cookieOptions())
+    res.clearCookie('dstac_admin_token', { path: '/' })
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Error en volver-admin:', error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 })

@@ -43,12 +43,25 @@ function hexToRgbStr(hex) {
   }
 }
 
-export default function ClientShell({ user, theme, children }) {
+export default function ClientShell({ user, theme, children, suplantando, empresaSlug }) {
   const [collapsed, setCollapsed] = useState(false)
+  const [volviendo, setVolviendo] = useState(false)
 
   const bg       = dashboardBg(theme.theme_color)
   const sidebar  = sidebarBg(theme.theme_color)
   const midRgb   = hexToRgbStr(theme.theme_mid)
+
+  async function volverAlPanel() {
+    setVolviendo(true)
+    try {
+      const r = await fetch('/api/auth/volver-admin', { method: 'POST', credentials: 'include' })
+      if (!r.ok) throw new Error((await r.json()).error || 'No se pudo volver')
+      window.location.href = '/admin/dashboard'
+    } catch (e) {
+      alert(e.message || 'No se pudo volver al panel admin')
+      setVolviendo(false)
+    }
+  }
 
   return (
     <div
@@ -60,18 +73,30 @@ export default function ClientShell({ user, theme, children }) {
         '--dash-bg':       bg,
         '--sidebar-bg':    sidebar,
         display: 'flex',
+        flexDirection: 'column',
         height: '100vh',
         overflow: 'hidden',
       }}
     >
-      <ClientSidebar
-        user={user}
-        collapsed={collapsed}
-        onToggle={() => setCollapsed(c => !c)}
-      />
-      <main style={{ flex: 1, overflowY: 'auto', background: 'var(--dash-bg)' }}>
-        {children}
-      </main>
+      {suplantando && (
+        <div style={{ background: '#26215C', color: '#fff', padding: '8px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12.5, flexShrink: 0, zIndex: 10 }}>
+          <span>👁 Estás viendo el portal como cliente{empresaSlug ? ` de "${empresaSlug}"` : ''} — modo prueba, no es tu sesión real.</span>
+          <button onClick={volverAlPanel} disabled={volviendo}
+            style={{ background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.35)', color: '#fff', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: volviendo ? 'wait' : 'pointer' }}>
+            {volviendo ? 'Volviendo…' : '← Volver al panel admin'}
+          </button>
+        </div>
+      )}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <ClientSidebar
+          user={user}
+          collapsed={collapsed}
+          onToggle={() => setCollapsed(c => !c)}
+        />
+        <main style={{ flex: 1, overflowY: 'auto', background: 'var(--dash-bg)' }}>
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

@@ -38,8 +38,27 @@ export default function Sidebar() {
   const [isMobile, setIsMobile]           = useState(false)
   const [mobileOpen, setMobileOpen]       = useState(false)
   const [theme, setTheme]                 = useState('light')
+  const [viendoComoCliente, setViendoComoCliente] = useState(false)
   const pathname = usePathname()
   const router   = useRouter()
+
+  async function verComoCliente() {
+    if (!empresaActiva?.slug) return
+    setViendoComoCliente(true)
+    try {
+      const r = await fetch('/api/auth/ver-como-cliente', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company_slug: empresaActiva.slug }),
+      })
+      const d = await r.json()
+      if (!r.ok) throw new Error(d.error || 'No se pudo entrar al portal cliente')
+      window.location.href = '/client/dashboard'
+    } catch (e) {
+      alert(e.message || 'No se pudo entrar al portal cliente')
+      setViendoComoCliente(false)
+    }
+  }
 
   // Tema (claro/oscuro): se persiste en localStorage y se refleja en <html data-theme>.
   // El script en el layout raíz ya lo aplicó antes del paint; aquí solo sincronizamos el estado.
@@ -239,6 +258,22 @@ export default function Sidebar() {
             </div>
           </div>
         )
+      )}
+
+      {empresaActiva && !empresaActiva.interno && !collapsed && (
+        <button
+          onClick={verComoCliente}
+          disabled={viendoComoCliente}
+          title="Entra al portal cliente de esta empresa para probar que todo funcione bien (vuelves con un clic desde allí)"
+          style={{
+            margin: '0 8px 8px', padding: '7px 10px', borderRadius: 8,
+            background: 'rgba(29,158,117,0.12)', border: '0.5px solid rgba(29,158,117,0.4)',
+            color: '#5DCAA5', fontSize: 11.5, fontWeight: 600, cursor: viendoComoCliente ? 'wait' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: 'calc(100% - 16px)',
+          }}
+        >
+          👁 {viendoComoCliente ? 'Abriendo…' : 'Ver como cliente'}
+        </button>
       )}
 
       {/* Modal selector — montado fuera del aside para no quedar cortado por overflow:hidden */}
