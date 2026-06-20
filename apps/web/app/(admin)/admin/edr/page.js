@@ -360,6 +360,7 @@ export default function EdrPage() {
             <IconDownload color="#3C3489" /> Instalar agente
           </button>
           <BotonInforme tipo="edr" slug={slug} />
+          <BotonInforme tipo="edr_cliente" slug={slug} label="Informe para cliente" />
         </div>
       </div>
 

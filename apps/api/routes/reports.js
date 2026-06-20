@@ -17,6 +17,7 @@ const REPORT_MODULES = {
   soa:         () => require('../services/reports/soa'),
   nist:        () => require('../services/reports/nist'),
   edr:         () => require('../services/reports/edr'),
+  edr_cliente: () => require('../services/reports/edr-cliente'),
   diagnostico: () => require('../services/reports/diagnostico'),
   brochure:    () => require('../services/reports/brochure'),
   propuesta:   () => require('../services/reports/propuesta'),
