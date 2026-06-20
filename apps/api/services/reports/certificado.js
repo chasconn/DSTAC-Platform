@@ -30,6 +30,11 @@ async function getData(tenantDB, centralDB, companyId, company, query = {}) {
     [query.evaluacionId, companyId])
   if (!ev) throw new Error('Evaluación no encontrada')
 
+  // req.company (resolveTenant) solo trae id/slug/plan_id/status — el nombre
+  // y RUT para mostrar en el certificado se consultan aparte.
+  const [[emp]] = await centralDB.query(`SELECT name, rut FROM companies WHERE id = ?`, [companyId])
+  company = { ...company, name: emp?.name || company?.name, rut: emp?.rut || company?.rut }
+
   // Vista previa (solo DSTAC, antes de emitir): permite revisar el diseño
   // exacto con los datos reales sin generar ni persistir un código real.
   const esVistaPrevia = !ev.certificado_codigo

@@ -38,8 +38,11 @@ function dstacReportPreview(html) {
     ifr.style.height = baseH + 'px'
     apply()
   }
-  const fit = () => { measure(); zoom = Math.max(0.5, Math.min(2, (box.clientWidth - 28) / (baseW || 794))); apply() }
-  const setZ = (z) => { zoom = Math.max(0.4, Math.min(3, Math.round(z * 100) / 100)); apply() }
+  // Piso de zoom bajo (0.15): un documento horizontal (ej. certificado A4
+  // apaisado) en una pantalla angosta de celular puede necesitar <50% para
+  // verse completo sin recortarse — un piso de 0.5 lo cortaba sin avisar.
+  const fit = () => { measure(); zoom = Math.max(0.15, Math.min(2, (box.clientWidth - 28) / (baseW || 794))); apply() }
+  const setZ = (z) => { zoom = Math.max(0.15, Math.min(3, Math.round(z * 100) / 100)); apply() }
   ifr.onload = () => { measure(); try { ifr.contentWindow.document.fonts?.ready?.then(fit) } catch {} ; setTimeout(fit, 200) }
   setTimeout(fit, 500)
   zin.onclick = () => setZ(zoom + 0.1); zout.onclick = () => setZ(zoom - 0.1); zlbl.onclick = fit
