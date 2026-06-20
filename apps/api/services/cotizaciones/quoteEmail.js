@@ -59,7 +59,7 @@ function buildQuoteEmailHtml(c) {
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
 
         <!-- Header -->
-        <tr><td bgcolor="${NAVY}" style="background-color:${NAVY};border-radius:14px 14px 0 0;padding:28px 30px">
+        <tr><td bgcolor="${NAVY}" background="https://portal.dstac.cl/email-bg-navy.png" style="background-color:${NAVY};background-image:url('https://portal.dstac.cl/email-bg-navy.png');background-repeat:repeat;border-radius:14px 14px 0 0;padding:28px 30px">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
             <td><img src="https://portal.dstac.cl/logo-dstac.png" alt="DSTAC" height="30" style="display:block"></td>
             <td align="right" style="color:#CECBF6;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700">Propuesta de servicios</td>
@@ -137,7 +137,7 @@ function buildQuoteEmailHtml(c) {
         </td></tr>
 
         <!-- Footer -->
-        <tr><td bgcolor="${NAVY}" style="background-color:${NAVY};border-radius:0 0 14px 14px;padding:18px 30px;text-align:center">
+        <tr><td bgcolor="${NAVY}" background="https://portal.dstac.cl/email-bg-navy.png" style="background-color:${NAVY};background-image:url('https://portal.dstac.cl/email-bg-navy.png');background-repeat:repeat;border-radius:0 0 14px 14px;padding:18px 30px;text-align:center">
           <div style="color:#CECBF6;font-size:11.5px;font-weight:700;letter-spacing:.05em">DSTAC CIBERSEGURIDAD</div>
           <div style="color:#7F77DD;font-size:11px;margin-top:4px">contacto@dstac.cl · www.dstac.cl</div>
         </td></tr>
