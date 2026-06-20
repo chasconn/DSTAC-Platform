@@ -13,6 +13,7 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
   const t = totales(items, { tipo: cot.descuento_tipo, valor: cot.descuento_valor })
   const [enviando, setEnviando] = useState(false)
   const [destinatarios, setDestinatarios] = useState(cot.cliente_email || '')
+  const [adjuntarMuestraEdr, setAdjuntarMuestraEdr] = useState(false)
 
   async function enviarAlCliente() {
     const lista = destinatarios.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean)
@@ -20,7 +21,10 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
     if (!confirm(`¿Enviar la cotización ${cot.numero} a ${lista.join(', ')}?`)) return
     setEnviando(true)
     try {
-      await apiFetch(`/api/admin/cotizaciones/${cot.id}/enviar`, { method: 'POST', body: JSON.stringify({ to: lista }) })
+      await apiFetch(`/api/admin/cotizaciones/${cot.id}/enviar`, {
+        method: 'POST',
+        body: JSON.stringify({ to: lista, adjuntar_muestra_edr: adjuntarMuestraEdr }),
+      })
       alert(`Cotización enviada a ${lista.join(', ')}`)
       onEnviada?.()
     } catch (err) {
@@ -117,6 +121,10 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
               placeholder="cliente@empresa.cl, gerencia@empresa.cl"
               style={{ width: '100%', boxSizing: 'border-box', marginTop: 5, padding: '9px 12px', border: '1px solid #e2e0d8', borderRadius: 8, fontSize: 13.5 }} />
           </div>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: '#444441', cursor: 'pointer', padding: '2px 0' }}>
+            <input type="checkbox" checked={adjuntarMuestraEdr} onChange={e => setAdjuntarMuestraEdr(e.target.checked)} style={{ marginTop: 2 }} />
+            <span>Adjuntar también una muestra del informe EDR (datos ilustrativos, para que vean qué recibirían)</span>
+          </label>
           <button onClick={enviarAlCliente} disabled={enviando} style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#1D9E75', color: '#fff', cursor: enviando ? 'wait' : 'pointer', fontWeight: 600, fontSize: 13.5 }}>
             {enviando ? 'Enviando…' : '✉ Enviar al cliente'}
           </button>

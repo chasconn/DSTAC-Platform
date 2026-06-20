@@ -53,6 +53,25 @@ async function getData(tenantDB, centralDB, companyId, company) {
   }
 }
 
+// Datos ilustrativos para usar como muestra comercial (ej. adjunta a una
+// cotización de un prospecto que aún no tiene el EDR instalado) — números de
+// ejemplo, nunca se presentan como reales (ver bandera esMuestra en buildHTML).
+function getDemoData() {
+  return {
+    company: { name: 'Tu empresa' },
+    fecha: new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
+    ag: { activos: 8, total: 8 },
+    revisadas: 1284,
+    intentosAcceso: 14,
+    archivosCriticos: 2,
+    correccionesAuto: 6,
+    correccionesTotal: 9,
+    cisPromedio: 82,
+    red: { total: 11, conectados: 9 },
+    esMuestra: true,
+  }
+}
+
 function buildHTML(data) {
   const { company, fecha, ag } = data
   const cisColor = data.cisPromedio != null ? colorFor(data.cisPromedio) : '#B4B2A9'
@@ -102,8 +121,13 @@ function buildHTML(data) {
 <div class="page">
   ${buildHeader('Protección EDR · Resumen')}
   <div class="page-body">
-    <div class="title">¿Qué hace tu protección EDR?</div>
-    <div class="subtitle">Resumen simple para ${esc(company.name)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div class="title">¿Qué hace tu protección EDR?</div>
+        <div class="subtitle">Resumen simple para ${esc(company.name)}</div>
+      </div>
+      ${data.esMuestra ? `<span style="background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;white-space:nowrap;margin-top:4px;">Muestra ilustrativa</span>` : ''}
+    </div>
 
     <div class="card" style="margin-bottom:22px;">
       <div style="font-size:12.5px;color:#444441;line-height:1.6;">
@@ -161,7 +185,9 @@ function buildHTML(data) {
     </div>
 
     <div style="margin-top:16px;font-size:10px;color:#B4B2A9;line-height:1.5;">
-      Informe generado automáticamente el ${fecha} con los datos actuales de tu protección EDR (Wazuh), administrada por DSTAC Ciberseguridad.
+      ${data.esMuestra
+        ? 'Esta es una muestra ilustrativa del informe que recibirías — los números son de ejemplo, no corresponden a datos reales de ningún cliente. El informe real se genera con los datos de tu propia protección EDR (Wazuh), administrada por DSTAC Ciberseguridad.'
+        : `Informe generado automáticamente el ${fecha} con los datos actuales de tu protección EDR (Wazuh), administrada por DSTAC Ciberseguridad.`}
     </div>
   </div>
   ${buildFooter(2, 2)}
@@ -170,4 +196,4 @@ function buildHTML(data) {
   return wrapDocument(page1 + page2)
 }
 
-module.exports = { getData, buildHTML }
+module.exports = { getData, getDemoData, buildHTML }

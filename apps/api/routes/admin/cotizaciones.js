@@ -299,9 +299,18 @@ router.post('/:id/enviar', async (req, res) => {
     const pdf = await htmlToPDF(buildQuoteHtml({ ...co, items }))
     const bodyHtml = buildQuoteEmailHtml({ ...co, items })
 
-    await sendMail(destinatarios, `Tu propuesta de DSTAC está lista · ${co.numero}`, bodyHtml, [
+    const adjuntos = [
       { name: `${co.numero}.pdf`, contentType: 'application/pdf', contentBytes: pdf.toString('base64') },
-    ])
+    ]
+    // Muestra comercial del informe EDR (datos ilustrativos, no reales) — útil
+    // para prospectos que aún no tienen el servicio, para que vean qué recibirían.
+    if (req.body?.adjuntar_muestra_edr) {
+      const { getDemoData, buildHTML: buildEdrClienteHTML } = require('../../services/reports/edr-cliente')
+      const pdfMuestra = await htmlToPDF(buildEdrClienteHTML(getDemoData()))
+      adjuntos.push({ name: 'Muestra_Informe_EDR_DSTAC.pdf', contentType: 'application/pdf', contentBytes: pdfMuestra.toString('base64') })
+    }
+
+    await sendMail(destinatarios, `Tu propuesta de DSTAC está lista · ${co.numero}`, bodyHtml, adjuntos)
 
     if (co.estado === 'borrador') {
       await centralDB.execute(`UPDATE cotizaciones SET estado = 'enviada' WHERE id = ?`, [co.id])
