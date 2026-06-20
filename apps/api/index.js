@@ -73,6 +73,7 @@ app.use('/api/admin/edr',          require('./routes/admin/edr'))
 app.use('/api/admin/mdm',          require('./routes/admin/mdm'))
 app.use('/api/admin/diagnostico',  require('./routes/admin/diagnostico'))
 app.use('/api/admin/ley21663',     require('./routes/admin/ley21663'))
+app.use('/api/admin/ley21719',     require('./routes/admin/ley21719'))
 app.use('/api/admin/gastos',       require('./routes/admin/gastos'))
 app.use('/api/admin/phishing',     require('./routes/admin/phishing'))
 

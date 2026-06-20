@@ -1,7 +1,8 @@
-// Certificado de Cumplimiento — Ley N° 21.663 (Ley Marco de Ciberseguridad).
-// Página única horizontal, estilo formal/minimalista (a diferencia del resto
-// de informes, que son oscuros y técnicos). Solo existe si la evaluación ya
-// tiene certificado_codigo emitido (ver routes/admin/ley21663.js).
+// Certificado de Cumplimiento — Ley N° 21.663 (Ciberseguridad) o
+// Ley N° 21.719 (Protección de Datos), según query.ley. Página única
+// horizontal, estilo formal/minimalista (a diferencia del resto de
+// informes, que son oscuros y técnicos). Solo existe si la evaluación ya
+// tiene certificado_codigo emitido (ver routes/admin/ley21663.js y ley21719.js).
 const fs = require('fs')
 const path = require('path')
 let QRCode = null
@@ -12,14 +13,20 @@ const INK    = '#1c1c22'
 const MUTED  = '#9b99a6'
 const APP_URL = process.env.APP_URL || 'https://portal.dstac.cl'
 
+const LEYES = {
+  '21663': { tabla: 'ley21663_evaluaciones', titulo: 'Ley N° 21.663 · Ley Marco de Ciberseguridad', norma: 'Ley N° 21.663', descripcion: 'la evaluación de madurez en ciberseguridad' },
+  '21719': { tabla: 'ley21719_evaluaciones', titulo: 'Ley N° 21.719 · Protección de Datos Personales', norma: 'Ley N° 21.719', descripcion: 'la evaluación de cumplimiento en protección de datos personales' },
+}
+
 function fileToDataURI(rel) {
   try { return 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, '../../assets', rel)).toString('base64') }
   catch { return '' }
 }
 
 async function getData(tenantDB, centralDB, companyId, company, query = {}) {
+  const leyInfo = LEYES[query.ley] || LEYES['21663']
   const [[ev]] = await centralDB.query(
-    `SELECT * FROM ley21663_evaluaciones WHERE id = ? AND company_id = ? LIMIT 1`,
+    `SELECT * FROM ${leyInfo.tabla} WHERE id = ? AND company_id = ? LIMIT 1`,
     [query.evaluacionId, companyId])
   if (!ev) throw new Error('Evaluación no encontrada')
   if (!ev.certificado_codigo) throw new Error('Esta evaluación no tiene un certificado emitido')
@@ -33,6 +40,7 @@ async function getData(tenantDB, centralDB, companyId, company, query = {}) {
   return {
     company,
     ev,
+    leyInfo,
     verifyUrl,
     qrDataUrl,
     logo: fileToDataURI('logo-dstac.png'),
@@ -42,7 +50,7 @@ async function getData(tenantDB, centralDB, companyId, company, query = {}) {
 }
 
 function buildHTML(data) {
-  const { company, ev, qrDataUrl, logo, isotipo, fechaEmision } = data
+  const { company, ev, leyInfo, qrDataUrl, logo, isotipo, fechaEmision } = data
 
   return `<!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8">
@@ -87,15 +95,15 @@ function buildHTML(data) {
       </div>
 
       <div class="label">Certificado de Cumplimiento</div>
-      <div class="ley">Ley N° 21.663 · Ley Marco de Ciberseguridad</div>
+      <div class="ley">${leyInfo.titulo}</div>
 
       <div class="pretexto">Se certifica que</div>
       <div class="empresa">${company.name}</div>
       ${company.rut ? `<div class="rut">RUT ${company.rut}</div>` : '<div style="margin-bottom:20px"></div>'}
 
       <div class="cuerpo">
-        ha sido evaluada conforme a los lineamientos de la <strong>Ley N° 21.663</strong>, alcanzando un nivel de cumplimiento
-        <strong style="color:${PURPLE};">${ev.nivel}</strong>, de acuerdo a la evaluación de madurez en ciberseguridad realizada por DSTAC Security.
+        ha sido evaluada conforme a los lineamientos de la <strong>${leyInfo.norma}</strong>, alcanzando un nivel de cumplimiento
+        <strong style="color:${PURPLE};">${ev.nivel}</strong>, de acuerdo a ${leyInfo.descripcion} realizada por DSTAC Security.
       </div>
 
       <div class="badge"><span>${ev.score_total}</span></div>

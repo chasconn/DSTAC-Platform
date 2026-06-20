@@ -14,7 +14,7 @@ const OPTS = [
 const scoreColor = (s) => (s == null ? '#B4B2A9' : s >= 80 ? '#1D9E75' : s >= 50 ? '#C98A1E' : '#D8543F')
 const CLP = (n) => '$' + (Number(n) || 0).toLocaleString('es-CL')
 
-export default function Ley21663Page() {
+export default function Ley21719Page() {
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [preguntas, setPreguntas] = useState([])
   const [respuestas, setRespuestas] = useState({})
@@ -40,14 +40,14 @@ export default function Ley21663Page() {
 
   const cargar = useCallback(async () => {
     if (!slug) return
-    try { const d = await api.get('/api/admin/ley21663/cuestionario', headers); setPreguntas(d.preguntas ?? []) }
+    try { const d = await api.get('/api/admin/ley21719/cuestionario', headers); setPreguntas(d.preguntas ?? []) }
     catch { showToast('No se pudo cargar el cuestionario') }
   }, [slug])
   useEffect(() => { cargar() }, [cargar])
 
   const cargarHistorial = useCallback(async () => {
     if (!slug) return
-    try { const r = await api.get('/api/admin/ley21663', headers); setHistorial(r.evaluaciones ?? []) }
+    try { const r = await api.get('/api/admin/ley21719', headers); setHistorial(r.evaluaciones ?? []) }
     catch { showToast('No se pudo cargar el historial') }
   }, [slug])
   useEffect(() => { cargarHistorial() }, [slug, resultado])
@@ -59,7 +59,7 @@ export default function Ley21663Page() {
     if (!slug) return
     setSaving(true); setCotResult(null); setCertResult(null)
     try {
-      const r = await api.post('/api/admin/ley21663', { respuestas }, headers)
+      const r = await api.post('/api/admin/ley21719', { respuestas }, headers)
       setResultado(r)
       showToast(`Evaluación guardada · cumplimiento ${r.scoreTotal}% (${r.nivel})`)
     } catch (e) { showToast(e.message || 'Error al guardar') }
@@ -70,7 +70,7 @@ export default function Ley21663Page() {
     if (!resultado?.id) return
     setGenerating(true)
     try {
-      const r = await api.post(`/api/admin/ley21663/${resultado.id}/cotizacion`, {}, headers)
+      const r = await api.post(`/api/admin/ley21719/${resultado.id}/cotizacion`, {}, headers)
       setCotResult(r)
       showToast(`Cotización ${r.numero} creada (borrador)`)
     } catch (e) { showToast(e.message || 'No se pudo generar la cotización') }
@@ -81,7 +81,7 @@ export default function Ley21663Page() {
     if (!resultado?.id) return
     setEmitiendo(true)
     try {
-      const r = await api.post(`/api/admin/ley21663/${resultado.id}/certificado`, {}, headers)
+      const r = await api.post(`/api/admin/ley21719/${resultado.id}/certificado`, {}, headers)
       setCertResult(r)
       showToast('Certificado de cumplimiento emitido')
     } catch (e) { showToast(e.message || 'No se pudo emitir el certificado') }
@@ -92,12 +92,12 @@ export default function Ley21663Page() {
     if (!slug) return
     setDescargando(true)
     try {
-      const res = await fetch('/api/admin/ley21663/documento', { credentials: 'include', headers })
+      const res = await fetch('/api/admin/ley21719/documento', { credentials: 'include', headers })
       if (!res.ok) { let msg = 'No se pudo descargar el documento'; try { msg = (await res.json()).error || msg } catch {}; throw new Error(msg) }
       const blob = await res.blob()
       const cd = res.headers.get('Content-Disposition') || ''
       const match = cd.match(/filename="?([^"]+)"?/)
-      const name = match ? match[1] : `Politica_Ciberseguridad_Ley21663_${slug}.docx`
+      const name = match ? match[1] : `Politica_Proteccion_Datos_Ley21719_${slug}.docx`
       const link = document.createElement('a')
       link.href = URL.createObjectURL(blob)
       link.download = name
@@ -115,8 +115,8 @@ export default function Ley21663Page() {
     <div style={{ padding: 24, maxWidth: 1000 }}>
       <div style={{ background: `linear-gradient(120deg, ${NAVY}, ${PURPLE})`, borderRadius: 14, padding: '22px 26px', color: '#fff', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 22, fontWeight: 800 }}>🛡️ Ley N° 21.663 · Ciberseguridad</div>
-          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{empresaActiva?.name} · Ley Marco de Ciberseguridad · {respondidas}/{preguntas.length} respondidas</div>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>🔒 Ley N° 21.719 · Protección de Datos</div>
+          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{empresaActiva?.name} · Protección de Datos Personales · {respondidas}/{preguntas.length} respondidas</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={descargarDocumento} disabled={descargando}
@@ -157,7 +157,7 @@ export default function Ley21663Page() {
                       <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', color: h.cotizacion_id ? '#1D9E75' : '#B4B2A9', borderBottom: '1px solid #f5f4ef' }}>{h.cotizacion_id ? '✓ generada' : '—'}</td>
                       <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', borderBottom: '1px solid #f5f4ef' }}>
                         {h.certificado_codigo
-                          ? <BotonInforme tipo="certificado" slug={slug} label="Ver" query={{ evaluacionId: h.id, ley: '21663' }} />
+                          ? <BotonInforme tipo="certificado" slug={slug} label="Ver" query={{ evaluacionId: h.id, ley: '21719' }} />
                           : <span style={{ color: '#B4B2A9' }}>—</span>}
                       </td>
                     </tr>
@@ -216,7 +216,7 @@ export default function Ley21663Page() {
                 </button>
               )}
               {certResult?.codigo && (
-                <BotonInforme tipo="certificado" slug={slug} label="Ver certificado" query={{ evaluacionId: resultado.id, ley: '21663' }} />
+                <BotonInforme tipo="certificado" slug={slug} label="Ver certificado" query={{ evaluacionId: resultado.id, ley: '21719' }} />
               )}
               <button onClick={generarCotizacion} disabled={generating}
                 style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 700, cursor: 'pointer' }}>

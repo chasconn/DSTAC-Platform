@@ -23,7 +23,7 @@ export default async function VerificarPage({ params }) {
               ✓
             </div>
             <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1c1c22', margin: '0 0 6px' }}>Certificado válido</h1>
-            <p style={{ fontSize: 13, color: '#8b8997', margin: '0 0 24px' }}>Ley N° 21.663 · Ley Marco de Ciberseguridad</p>
+            <p style={{ fontSize: 13, color: '#8b8997', margin: '0 0 24px' }}>{data.ley}</p>
 
             <div style={{ textAlign: 'left', background: '#faf9f6', borderRadius: 10, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               <Row label="Empresa" value={data.empresa} />

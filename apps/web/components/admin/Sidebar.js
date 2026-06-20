@@ -13,6 +13,7 @@ const NAV = [
   { href: '/admin/cotizaciones', label: 'Cotizaciones', icon: IconCotizaciones },
   { href: '/admin/diagnostico', label: 'Diagnóstico', icon: IconDiag },
   { href: '/admin/ley21663',    label: 'Ley 21.663',  icon: IconLey21663 },
+  { href: '/admin/ley21719',    label: 'Ley 21.719',  icon: IconLey21719 },
   { href: '/admin/phishing',    label: 'Phishing',    icon: IconPhishing },
   { href: '/admin/gastos',     label: 'Gastos',     icon: IconGastos     },
   { href: '/admin/usuarios',   label: 'Usuarios',   icon: IconUsuarios   },
@@ -637,6 +638,14 @@ function IconLey21663({ color }) {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="M12 8v4M12 15.5h.01"/>
+    </svg>
+  )
+}
+function IconLey21719({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <rect x="4" y="11" width="16" height="9" rx="2"/>
+      <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
     </svg>
   )
 }

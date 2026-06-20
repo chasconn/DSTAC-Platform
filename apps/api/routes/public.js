@@ -125,23 +125,32 @@ router.post('/phishing/quiz/:token', async (req, res) => {
 })
 
 // GET /api/public/verificar/:codigo — confirma la validez de un certificado
-// de cumplimiento Ley 21.663 emitido (sin exponer datos sensibles, solo lo
-// necesario para validar: empresa, nivel, fecha).
+// de cumplimiento (Ley 21.663 o Ley 21.719) emitido, sin exponer datos
+// sensibles, solo lo necesario para validar: empresa, ley, nivel, fecha.
+const TABLAS_CERTIFICADO = [
+  { tabla: 'ley21663_evaluaciones', ley: '21663', norma: 'Ley N° 21.663 · Ciberseguridad' },
+  { tabla: 'ley21719_evaluaciones', ley: '21719', norma: 'Ley N° 21.719 · Protección de Datos Personales' },
+]
 router.get('/verificar/:codigo', async (req, res) => {
   try {
-    const [[ev]] = await centralDB.query(
-      `SELECT e.nivel, e.score_total, e.certificado_emitido_at, c.name AS empresa
-         FROM ley21663_evaluaciones e JOIN companies c ON c.id = e.company_id
-        WHERE e.certificado_codigo = ? LIMIT 1`,
-      [req.params.codigo])
-    if (!ev) return res.json({ valido: false })
-    res.json({
-      valido: true,
-      empresa: ev.empresa,
-      nivel: ev.nivel,
-      score: ev.score_total,
-      emitido_at: ev.certificado_emitido_at,
-    })
+    for (const t of TABLAS_CERTIFICADO) {
+      const [[ev]] = await centralDB.query(
+        `SELECT e.nivel, e.score_total, e.certificado_emitido_at, c.name AS empresa
+           FROM ${t.tabla} e JOIN companies c ON c.id = e.company_id
+          WHERE e.certificado_codigo = ? LIMIT 1`,
+        [req.params.codigo])
+      if (ev) {
+        return res.json({
+          valido: true,
+          empresa: ev.empresa,
+          ley: t.norma,
+          nivel: ev.nivel,
+          score: ev.score_total,
+          emitido_at: ev.certificado_emitido_at,
+        })
+      }
+    }
+    res.json({ valido: false })
   } catch (e) {
     console.error('public/verificar error:', e.message)
     res.status(500).json({ valido: false })
