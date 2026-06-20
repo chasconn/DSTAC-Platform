@@ -36,7 +36,10 @@ async function getToken() {
 
 // to: string o array de strings (uno o varios destinatarios).
 // attachments opcional: [{ name, contentType, contentBytes (base64) }]
-async function sendMail(to, subject, html, attachments = []) {
+// mailbox opcional: buzón emisor distinto a MAIL_FROM (necesita permiso "Enviar
+// como" sobre ese buzón) — se usa para que el phishing no salga siempre desde
+// la casilla personal del usuario.
+async function sendMail(to, subject, html, attachments = [], mailbox = null) {
   const token = await getToken()
   const destinatarios = (Array.isArray(to) ? to : [to]).filter(Boolean)
   const message = {
@@ -52,8 +55,9 @@ async function sendMail(to, subject, html, attachments = []) {
       contentBytes: a.contentBytes,
     }))
   }
+  const buzon = mailbox || MAIL_FROM
   const r = await fetch(
-    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(MAIL_FROM)}/sendMail`,
+    `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(buzon)}/sendMail`,
     {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },

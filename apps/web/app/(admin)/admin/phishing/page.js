@@ -87,6 +87,20 @@ export default function PhishingPage() {
 
   if (!slug) return <div style={{ padding: 24 }}>Selecciona una empresa para gestionar sus simulaciones de phishing.</div>
 
+  // Resumen acumulado de todas las campañas (KPIs arriba, como en el panel EDR).
+  const sumaEnviados = campanas.reduce((s, c) => s + Number(c.enviados || 0), 0)
+  const sumaClics = campanas.reduce((s, c) => s + Number(c.clics || 0), 0)
+  const sumaReportados = campanas.reduce((s, c) => s + Number(c.reportados || 0), 0)
+  const sumaQuiz = campanas.reduce((s, c) => s + Number(c.quiz_completados || 0), 0)
+  const tasaClicGlobal = sumaEnviados ? Math.round((sumaClics / sumaEnviados) * 100) : 0
+  const KPIS = [
+    { label: 'Campañas', valor: campanas.length, color: '#534AB7' },
+    { label: 'Correos enviados', valor: sumaEnviados, color: '#185FA5' },
+    { label: 'Tasa de clic', valor: `${tasaClicGlobal}%`, color: tasaClicGlobal > 20 ? '#C0392B' : '#C98A1E' },
+    { label: 'Reportados a tiempo', valor: sumaReportados, color: '#1D9E75' },
+    { label: 'Quiz completados', valor: sumaQuiz, color: '#534AB7' },
+  ]
+
   return (
     <div style={{ padding: 24, maxWidth: 1100 }}>
       <div style={{ background: `linear-gradient(120deg, ${NAVY}, ${PURPLE})`, borderRadius: 14, padding: '22px 26px', color: '#fff', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
@@ -99,6 +113,17 @@ export default function PhishingPage() {
           {showNueva ? 'Cancelar' : '+ Nueva campaña'}
         </button>
       </div>
+
+      {campanas.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
+          {KPIS.map(k => (
+            <div key={k.label} style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: k.color, lineHeight: 1 }}>{k.valor}</div>
+              <div style={{ fontSize: 11.5, color: '#888780', marginTop: 4 }}>{k.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showNueva && (
         <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 18, marginBottom: 20 }}>
@@ -178,6 +203,7 @@ export default function PhishingPage() {
                   <th style={{ ...th, textAlign: 'center' }}>Enviados</th>
                   <th style={{ ...th, textAlign: 'center' }}>Abiertos</th>
                   <th style={{ ...th, textAlign: 'center' }}>Clics</th>
+                  <th style={{ ...th, textAlign: 'center' }}>% Clic</th>
                   <th style={{ ...th, textAlign: 'center' }}>Reportados</th>
                   <th style={th}>Creada</th>
                   <th style={th}></th>
@@ -194,6 +220,7 @@ export default function PhishingPage() {
                     <td style={{ ...td, textAlign: 'center' }}>{c.enviados}/{c.total}</td>
                     <td style={{ ...td, textAlign: 'center', color: c.abiertos > 0 ? '#C98A1E' : '#B4B2A9', fontWeight: 600 }}>{c.abiertos}</td>
                     <td style={{ ...td, textAlign: 'center', color: c.clics > 0 ? '#C0392B' : '#B4B2A9', fontWeight: 700 }}>{c.clics}</td>
+                    <td style={{ ...td, textAlign: 'center', color: '#888780' }}>{c.enviados > 0 ? `${Math.round((c.clics / c.enviados) * 100)}%` : '—'}</td>
                     <td style={{ ...td, textAlign: 'center', color: c.reportados > 0 ? '#1D9E75' : '#B4B2A9', fontWeight: 700 }}>{c.reportados}</td>
                     <td style={td}>{fmt(c.created_at)}</td>
                     <td style={td} onClick={e => e.stopPropagation()}>

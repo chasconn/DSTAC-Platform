@@ -7,7 +7,7 @@ const { resolveTenant } = require('../../middleware/tenant')
 const centralDB = require('../../db/central')
 const { registrarActividad } = require('../../utils/activityLogger')
 const { sendMail } = require('../../services/emailService')
-const { PLANTILLAS, porId } = require('../../services/phishing/content')
+const { PLANTILLAS, porId, resolverAsunto } = require('../../services/phishing/content')
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
 const uid = (req) => req.user.id || req.user.user_id
@@ -15,9 +15,13 @@ const uid = (req) => req.user.id || req.user.user_id
 // (inalcanzable para el destinatario real) — se usa el dominio de producción
 // como respaldo en vez de localhost, que nunca es correcto fuera de dev local.
 const APP_URL = process.env.APP_URL || 'https://portal.dstac.cl'
+// Buzón compartido dedicado al phishing (ej. soporte-ti@dstac.cl), para no
+// enviar siempre desde la casilla personal del admin. Necesita permiso
+// "Enviar como" en M365. Sin configurar, cae al buzón general (MAIL_FROM).
+const PHISHING_MAIL_FROM = process.env.PHISHING_MAIL_FROM || null
 
 router.get('/plantillas', (req, res) => {
-  res.json({ plantillas: PLANTILLAS.map(p => ({ id: p.id, nombre: p.nombre, asunto: p.asunto })) })
+  res.json({ plantillas: PLANTILLAS.map(p => ({ id: p.id, nombre: p.nombre, asunto: resolverAsunto(p, '') })) })
 })
 
 // Campañas de la empresa activa, con conteo de enviados/abiertos/clics/reportes/quiz.
@@ -139,10 +143,10 @@ router.post('/:id/enviar', async (req, res, next) => {
     for (const d of pendientes) {
       const link = `${APP_URL}/api/public/phishing/c/${d.token}`
       const reportLink = `${APP_URL}/api/public/phishing/r/${d.token}`
-      const html = plantilla.render({ nombre: d.nombre, empresa: empresa?.name, link, reportLink })
+      const html = plantilla.render({ nombre: d.nombre, empresa: empresa?.name, link, reportLink, correo: d.correo })
         + `<img src="${APP_URL}/api/public/phishing/o/${d.token}" width="1" height="1" style="display:none" alt="">`
       try {
-        await sendMail(d.correo, plantilla.asunto, html)
+        await sendMail(d.correo, resolverAsunto(plantilla, d.nombre), html, [], PHISHING_MAIL_FROM)
         await centralDB.execute(`UPDATE phishing_destinatarios SET enviado_at = NOW(), error = NULL WHERE id = ?`, [d.id])
         enviados++
       } catch (e) {

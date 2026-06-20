@@ -13,11 +13,24 @@ function fechaCorta() {
   return new Date().toLocaleDateString('es-CL', { day: '2-digit', month: 'short' })
 }
 
+// Línea superior "ver en el navegador" (presente en casi todo correo
+// transaccional/marketing real) — reutiliza el mismo link de seguimiento,
+// agrega un pretexto adicional para el clic sin verse fuera de lugar.
+function verEnNavegador(link) {
+  return `<div style="max-width:560px;text-align:right;font-size:10.5px;color:#999;padding:0 2px 6px;font-family:Arial,sans-serif">¿No se ve bien este mensaje? <a href="${link}" style="color:#999;text-decoration:underline">Ábrelo en tu navegador</a></div>`
+}
+
+// Pie con la dirección del destinatario, como en correos reales — refuerza
+// que "esto me llegó a mí específicamente", reduciendo la sospecha.
+function pieDestinatario(correo) {
+  return correo ? `Este mensaje fue enviado a ${correo}.` : ''
+}
+
 // Layout estilo Microsoft 365 (header con barra de color + logo de texto,
 // cuerpo blanco, tipografía Segoe UI) — el patrón más reconocible y más
 // clicado en campañas reales de concientización.
-function layoutMicrosoft(cuerpo, { barra = '#0078D4', marca = 'Microsoft 365' } = {}) {
-  return `<div style="font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.5;max-width:560px;border:1px solid #e1e1e1">
+function layoutMicrosoft(cuerpo, { barra = '#0078D4', marca = 'Microsoft 365', correo = '', link = '' } = {}) {
+  return `${link ? verEnNavegador(link) : ''}<div style="font-family:'Segoe UI',Arial,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.5;max-width:560px;border:1px solid #e1e1e1">
     <div style="background:${barra};padding:14px 22px;display:flex;align-items:center;gap:10px">
       <span style="display:inline-block;width:18px;height:18px;background:
         linear-gradient(90deg,#f25022 0 49%,transparent 49%),
@@ -26,15 +39,19 @@ function layoutMicrosoft(cuerpo, { barra = '#0078D4', marca = 'Microsoft 365' } 
       <span style="color:#fff;font-size:15px;font-weight:600">${marca}</span>
     </div>
     <div style="padding:24px 26px;background:#fff">${cuerpo}</div>
-    <div style="background:#f3f2f1;padding:14px 26px;font-size:11px;color:#666">Este es un mensaje automático del sistema. © Microsoft Corporation. Todos los derechos reservados.</div>
+    <div style="background:#f3f2f1;padding:14px 26px;font-size:11px;color:#666;line-height:1.6">
+      Este es un mensaje automático del sistema. © Microsoft Corporation. Todos los derechos reservados.<br>
+      ${pieDestinatario(correo)} Microsoft Corporation, One Microsoft Way, Redmond, WA 98052
+    </div>
   </div>`
 }
 
 // Layout neutro tipo notificación corporativa interna (RRHH/Firma/Facturación).
-function layoutCorp(cuerpo, { acento = '#1d9e75' } = {}) {
-  return `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.55;max-width:560px;border:1px solid #e6e6e6;border-radius:8px;overflow:hidden">
+function layoutCorp(cuerpo, { acento = '#1d9e75', correo = '', link = '' } = {}) {
+  return `${link ? verEnNavegador(link) : ''}<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a;line-height:1.55;max-width:560px;border:1px solid #e6e6e6;border-radius:8px;overflow:hidden">
     <div style="border-top:4px solid ${acento};padding:20px 24px 4px"></div>
     <div style="padding:8px 24px 22px">${cuerpo}</div>
+    <div style="background:#fafafa;border-top:1px solid #eee;padding:10px 24px;font-size:10.5px;color:#999">${pieDestinatario(correo)}</div>
   </div>`
 }
 
@@ -42,26 +59,26 @@ const PLANTILLAS = [
   {
     id: 'reset_password',
     nombre: 'Microsoft 365 — Tu contraseña expira hoy',
-    asunto: 'Acción requerida: tu contraseña expira hoy',
+    asunto: (nombre) => nombre ? `${nombre.split(' ')[0]}, tu contraseña expira hoy` : 'Acción requerida: tu contraseña expira hoy',
     remitenteNombre: 'Microsoft 365 Security',
-    render: ({ nombre, empresa, link, reportLink }) => layoutMicrosoft(`
+    render: ({ nombre, empresa, link, reportLink, correo }) => layoutMicrosoft(`
       <p style="margin:0 0 14px">Hola ${nombre || ''},</p>
       <p style="margin:0 0 14px">La contraseña de tu cuenta <b>${empresa || 'corporativa'}</b> vence hoy según la política de seguridad de tu organización. Para mantener el acceso sin interrupciones, actualízala antes de las 23:59.</p>
       <table role="presentation" style="background:#faf9f8;border:1px solid #edebe9;border-radius:6px;width:100%;margin:0 0 18px"><tr><td style="padding:12px 16px;font-size:13px;color:#444">
-        <b>Cuenta:</b> ${nombre ? `${nombre.toLowerCase().replace(/\s+/g,'.')}` : 'usuario'}@${(empresa||'tuempresa').toLowerCase().replace(/\s+/g,'')}.cl<br>
+        <b>Cuenta:</b> ${correo || (nombre ? `${nombre.toLowerCase().replace(/\s+/g,'.')}@${(empresa||'tuempresa').toLowerCase().replace(/\s+/g,'')}.cl` : 'usuario@tuempresa.cl')}<br>
         <b>Vence:</b> Hoy, ${fechaCorta()} · 23:59
       </td></tr></table>
       <p style="margin:0 0 22px"><a href="${link}" style="background:#0078D4;color:#fff;padding:11px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Actualizar contraseña ahora</a></p>
       <p style="color:#666;font-size:12px;margin:0">O copia este enlace en tu navegador: <span style="color:#0078D4">https://login.microsoftonline.com/common/reset?ref=${(empresa||'org').toLowerCase().replace(/\s+/g,'')}</span></p>
       <p style="color:#888;font-size:11px;margin:18px 0 0">¿No reconoces esta solicitud? <a href="${reportLink}" style="color:#0078D4">Repórtala aquí</a>.</p>
-    `),
+    `, { correo, link }),
   },
   {
     id: 'documento_firma',
     nombre: 'RRHH — Documento pendiente de firma',
-    asunto: 'Documento de Recursos Humanos pendiente de tu firma',
+    asunto: (nombre) => nombre ? `${nombre.split(' ')[0]}, tienes un documento pendiente de firma` : 'Documento de Recursos Humanos pendiente de tu firma',
     remitenteNombre: 'Recursos Humanos',
-    render: ({ nombre, empresa, link, reportLink }) => layoutCorp(`
+    render: ({ nombre, empresa, link, reportLink, correo }) => layoutCorp(`
       <p style="margin:0 0 6px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#888">Recursos Humanos · ${empresa || 'tu empresa'}</p>
       <p style="margin:0 0 14px;font-size:15px;font-weight:700">Tienes un documento pendiente de firma</p>
       <p style="margin:0 0 14px">Hola ${nombre || ''}, se generó un documento que requiere tu firma electrónica antes del cierre de este proceso (actualización de datos contractuales / convenio interno).</p>
@@ -71,14 +88,14 @@ const PLANTILLAS = [
       </td></tr></table>
       <p style="margin:0 0 22px"><a href="${link}" style="background:#1d9e75;color:#fff;padding:11px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Revisar y firmar documento</a></p>
       <p style="color:#888;font-size:12px;margin:0">Si no reconoces este trámite, contacta directamente a Recursos Humanos antes de firmar — o <a href="${reportLink}" style="color:#1d9e75">repórtalo aquí</a>.</p>
-    `, { acento: '#1d9e75' }),
+    `, { acento: '#1d9e75', correo, link }),
   },
   {
     id: 'alerta_seguridad',
     nombre: 'Microsoft 365 — Inicio de sesión inusual',
-    asunto: 'Alerta de seguridad: nuevo inicio de sesión',
+    asunto: (nombre) => nombre ? `${nombre.split(' ')[0]}, detectamos un inicio de sesión inusual` : 'Alerta de seguridad: nuevo inicio de sesión',
     remitenteNombre: 'Microsoft 365 Security',
-    render: ({ nombre, empresa, link, reportLink }) => layoutMicrosoft(`
+    render: ({ nombre, empresa, link, reportLink, correo }) => layoutMicrosoft(`
       <p style="margin:0 0 14px">Hola ${nombre || ''},</p>
       <p style="margin:0 0 14px">Detectamos un inicio de sesión en tu cuenta de <b>${empresa || 'tu organización'}</b> desde un dispositivo no reconocido. Si fuiste tú, puedes ignorar este mensaje.</p>
       <table role="presentation" style="background:#faf9f8;border:1px solid #edebe9;border-radius:6px;width:100%;margin:0 0 18px"><tr><td style="padding:12px 16px;font-size:13px;color:#444">
@@ -89,14 +106,14 @@ const PLANTILLAS = [
       <p style="margin:0 0 22px"><a href="${link}" style="background:#0078D4;color:#fff;padding:11px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Esto no fui yo — revisar actividad</a></p>
       <p style="color:#666;font-size:12px;margin:0">https://account.microsoft.com/security/activity</p>
       <p style="color:#888;font-size:11px;margin:18px 0 0">¿Esta actividad no eres tú y no quieres usar el botón? <a href="${reportLink}" style="color:#0078D4">Reportar directamente</a>.</p>
-    `, { barra: '#c0392b' }),
+    `, { barra: '#c0392b', correo, link }),
   },
   {
     id: 'factura_pendiente',
     nombre: 'Finanzas — Factura pendiente de aprobación',
-    asunto: 'Factura pendiente de aprobación — vence hoy',
+    asunto: (nombre) => nombre ? `${nombre.split(' ')[0]}, tienes una factura pendiente de aprobación` : 'Factura pendiente de aprobación — vence hoy',
     remitenteNombre: 'Finanzas',
-    render: ({ nombre, empresa, link, reportLink }) => layoutCorp(`
+    render: ({ nombre, empresa, link, reportLink, correo }) => layoutCorp(`
       <p style="margin:0 0 6px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#888">Finanzas · ${empresa || 'tu empresa'}</p>
       <p style="margin:0 0 14px;font-size:15px;font-weight:700">Factura pendiente de tu aprobación</p>
       <p style="margin:0 0 14px">Hola ${nombre || ''}, hay una factura de proveedor a tu nombre esperando aprobación antes del cierre contable de hoy.</p>
@@ -107,11 +124,18 @@ const PLANTILLAS = [
       </td></tr></table>
       <p style="margin:0 0 22px"><a href="${link}" style="background:#b8860b;color:#fff;padding:11px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Revisar y aprobar factura</a></p>
       <p style="color:#888;font-size:12px;margin:0">Si no gestionas aprobaciones de pago, reenvía este correo al área de Finanzas — o <a href="${reportLink}" style="color:#b8860b">repórtalo aquí</a>.</p>
-    `, { acento: '#b8860b' }),
+    `, { acento: '#b8860b', correo, link }),
   },
 ]
 
 function porId(id) { return PLANTILLAS.find(p => p.id === id) }
+
+// El asunto puede ser texto fijo o una función(nombre) para personalizarlo
+// (ej. "Diego, tu contraseña expira hoy") — varía el asunto entre
+// destinatarios, lo que también ayuda a no verse como un envío masivo idéntico.
+function resolverAsunto(plantilla, nombre) {
+  return typeof plantilla.asunto === 'function' ? plantilla.asunto(nombre) : plantilla.asunto
+}
 
 // Pregunta + opciones del mini-quiz post-clic (2 preguntas, multiple choice).
 const QUIZ_PREGUNTAS = [
@@ -214,4 +238,4 @@ h1{color:#1D9E75;font-size:22px;margin:0 0 10px}
 </body></html>`
 }
 
-module.exports = { PLANTILLAS, porId, landingHtml, reportadoHtml, QUIZ_PREGUNTAS }
+module.exports = { PLANTILLAS, porId, resolverAsunto, landingHtml, reportadoHtml, QUIZ_PREGUNTAS }

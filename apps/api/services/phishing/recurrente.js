@@ -6,10 +6,11 @@
 const { v4: uuidv4 } = require('uuid')
 const centralDB = require('../../db/central')
 const { getTenantDB } = require('../../db/tenant')
-const { PLANTILLAS } = require('./content')
+const { PLANTILLAS, resolverAsunto } = require('./content')
 const { sendMail } = require('../emailService')
 
 const APP_URL = process.env.APP_URL || 'https://portal.dstac.cl'
+const PHISHING_MAIL_FROM = process.env.PHISHING_MAIL_FROM || null
 const DIAS_CICLO = 30
 
 function plantillaAlAzar() {
@@ -55,10 +56,10 @@ async function ejecutarCampana(origen) {
   for (const d of destinatarios) {
     const link = `${APP_URL}/api/public/phishing/c/${d.token}`
     const reportLink = `${APP_URL}/api/public/phishing/r/${d.token}`
-    const html = plantilla.render({ nombre: d.nombre, empresa: company.name, link, reportLink })
+    const html = plantilla.render({ nombre: d.nombre, empresa: company.name, link, reportLink, correo: d.correo })
       + `<img src="${APP_URL}/api/public/phishing/o/${d.token}" width="1" height="1" style="display:none" alt="">`
     try {
-      await sendMail(d.correo, plantilla.asunto, html)
+      await sendMail(d.correo, resolverAsunto(plantilla, d.nombre), html, [], PHISHING_MAIL_FROM)
       await centralDB.execute(`UPDATE phishing_destinatarios SET enviado_at = NOW() WHERE campana_id = ? AND token = ?`, [campanaId, d.token])
       enviados++
     } catch (e) {
