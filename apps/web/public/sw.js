@@ -2,8 +2,10 @@
 // shell estático. Los datos (API) siempre van a la red — nunca a caché,
 // porque la info de seguridad de un cliente no puede mostrarse desatualizada
 // sin avisar.
-const CACHE = 'dstac-shell-v1'
-const SHELL_ASSETS = ['/', '/manifest.webmanifest', '/logo-dstac.png']
+const CACHE = 'dstac-shell-v2'
+// El manifest nunca se cachea: si cambia (ej. orientación, íconos), la app
+// instalada debe verlo apenas se actualice, no quedarse con una copia vieja.
+const SHELL_ASSETS = ['/', '/logo-dstac.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -26,8 +28,8 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return
 
   const url = new URL(request.url)
-  // Nunca cachear llamadas a la API: siempre red.
-  if (url.pathname.startsWith('/api/')) return
+  // Nunca cachear llamadas a la API ni el manifest: siempre red.
+  if (url.pathname.startsWith('/api/') || url.pathname === '/manifest.webmanifest') return
 
   event.respondWith(
     caches.match(request).then((cached) => {
