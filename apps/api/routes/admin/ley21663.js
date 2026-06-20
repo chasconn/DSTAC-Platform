@@ -8,6 +8,8 @@ const { resolveTenant }                  = require('../../middleware/tenant')
 const centralDB = require('../../db/central')
 const { POLITICA, PREGUNTAS, evaluar } = require('../../services/ley21663/content')
 const { helpers } = require('./cotizaciones')
+const { registrarActividad } = require('../../utils/activityLogger')
+const crypto = require('crypto')
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
 const uid = (req) => req.user.id || req.user.user_id
@@ -21,7 +23,7 @@ router.get('/cuestionario', (req, res) => {
 router.get('/', async (req, res, next) => {
   try {
     const [rows] = await centralDB.execute(
-      `SELECT id, fecha, score_total, nivel, cotizacion_id, created_at
+      `SELECT id, fecha, score_total, nivel, cotizacion_id, certificado_codigo, created_at
          FROM ley21663_evaluaciones WHERE company_id = ? ORDER BY fecha DESC, id DESC LIMIT 20`,
       [req.company.id])
     res.json({ evaluaciones: rows })
@@ -117,6 +119,39 @@ router.post('/:id/cotizacion', async (req, res, next) => {
     await centralDB.execute(`UPDATE ley21663_evaluaciones SET cotizacion_id = ? WHERE id = ?`, [cotizacionId, d.id])
 
     res.json({ cotizacion_id: cotizacionId, numero, items: items.length, neto, total })
+  } catch (err) { next(err) }
+})
+
+// Emitir (o recuperar, si ya existe) el certificado de cumplimiento de una
+// evaluación. Solo se emite si el nivel alcanzado es "Alto" — no se certifica
+// a una empresa que no cumple. El código queda fijo a esa evaluación, sin
+// vencimiento.
+router.post('/:id/certificado', async (req, res, next) => {
+  try {
+    const [[d]] = await centralDB.query(
+      `SELECT * FROM ley21663_evaluaciones WHERE id = ? AND company_id = ? LIMIT 1`,
+      [req.params.id, req.company.id])
+    if (!d) return res.status(404).json({ error: 'Evaluación no encontrada' })
+    if (d.nivel !== 'Alto') {
+      return res.status(400).json({ error: 'Solo se puede emitir el certificado cuando el nivel de cumplimiento es Alto' })
+    }
+
+    if (d.certificado_codigo) {
+      return res.json({ codigo: d.certificado_codigo, emitido_at: d.certificado_emitido_at })
+    }
+
+    const codigo = `DSTAC-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
+    await centralDB.execute(
+      `UPDATE ley21663_evaluaciones SET certificado_codigo = ?, certificado_emitido_at = NOW() WHERE id = ?`,
+      [codigo, d.id])
+
+    await registrarActividad({
+      req, accion: 'crear', modulo: 'ley21663',
+      descripcion: `Emitió el certificado de cumplimiento Ley 21.663 (${codigo}) — nivel ${d.nivel}`,
+      entidad_id: d.id, company_id: req.company.id,
+    })
+
+    res.json({ codigo, emitido_at: new Date() })
   } catch (err) { next(err) }
 })
 

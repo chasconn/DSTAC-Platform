@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
+import BotonInforme from '../../../../components/admin/BotonInforme'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 const OPTS = [
@@ -19,8 +20,10 @@ export default function Ley21663Page() {
   const [respuestas, setRespuestas] = useState({})
   const [resultado, setResultado] = useState(null)
   const [cotResult, setCotResult] = useState(null)
+  const [certResult, setCertResult] = useState(null)
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [emitiendo, setEmitiendo] = useState(false)
   const [descargando, setDescargando] = useState(false)
   const [toast, setToast] = useState('')
   const [historial, setHistorial] = useState([])
@@ -54,7 +57,7 @@ export default function Ley21663Page() {
 
   async function guardar() {
     if (!slug) return
-    setSaving(true); setCotResult(null)
+    setSaving(true); setCotResult(null); setCertResult(null)
     try {
       const r = await api.post('/api/admin/ley21663', { respuestas }, headers)
       setResultado(r)
@@ -72,6 +75,17 @@ export default function Ley21663Page() {
       showToast(`Cotización ${r.numero} creada (borrador)`)
     } catch (e) { showToast(e.message || 'No se pudo generar la cotización') }
     finally { setGenerating(false) }
+  }
+
+  async function emitirCertificado() {
+    if (!resultado?.id) return
+    setEmitiendo(true)
+    try {
+      const r = await api.post(`/api/admin/ley21663/${resultado.id}/certificado`, {}, headers)
+      setCertResult(r)
+      showToast('Certificado de cumplimiento emitido')
+    } catch (e) { showToast(e.message || 'No se pudo emitir el certificado') }
+    finally { setEmitiendo(false) }
   }
 
   async function descargarDocumento() {
@@ -129,6 +143,7 @@ export default function Ley21663Page() {
                     <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Cumplimiento</th>
                     <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Nivel</th>
                     <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Cotización</th>
+                    <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Certificado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -140,6 +155,11 @@ export default function Ley21663Page() {
                         <span style={{ background: '#f1efe8', color: '#444441', borderRadius: 999, padding: '3px 10px', fontWeight: 600 }}>{h.nivel}</span>
                       </td>
                       <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', color: h.cotizacion_id ? '#1D9E75' : '#B4B2A9', borderBottom: '1px solid #f5f4ef' }}>{h.cotizacion_id ? '✓ generada' : '—'}</td>
+                      <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', borderBottom: '1px solid #f5f4ef' }}>
+                        {h.certificado_codigo
+                          ? <BotonInforme tipo="certificado" slug={slug} label="Ver" query={{ evaluacionId: h.id }} />
+                          : <span style={{ color: '#B4B2A9' }}>—</span>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -188,10 +208,21 @@ export default function Ley21663Page() {
                 <div style={{ fontSize: 18, fontWeight: 800, color: scoreColor(resultado.scoreTotal) }}>Nivel {resultado.nivel}</div>
               </div>
             </div>
-            <button onClick={generarCotizacion} disabled={generating}
-              style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 700, cursor: 'pointer' }}>
-              {generating ? 'Generando…' : '💰 Generar cotización'}
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {resultado.nivel === 'Alto' && !certResult?.codigo && (
+                <button onClick={emitirCertificado} disabled={emitiendo}
+                  style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 700, cursor: 'pointer' }}>
+                  {emitiendo ? 'Emitiendo…' : '🏅 Emitir certificado'}
+                </button>
+              )}
+              {certResult?.codigo && (
+                <BotonInforme tipo="certificado" slug={slug} label="Ver certificado" query={{ evaluacionId: resultado.id }} />
+              )}
+              <button onClick={generarCotizacion} disabled={generating}
+                style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 700, cursor: 'pointer' }}>
+                {generating ? 'Generando…' : '💰 Generar cotización'}
+              </button>
+            </div>
           </div>
 
           {resultado.brechas?.length > 0 && (
@@ -206,6 +237,12 @@ export default function Ley21663Page() {
           {cotResult && (
             <div style={{ marginTop: 14, background: '#EAF3DE', border: '1px solid #C0DD97', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#27500A' }}>
               ✓ Cotización <b>{cotResult.numero}</b> creada como borrador para {empresaActiva?.name} ({cotResult.items} ítems · neto {CLP(cotResult.neto)}). Ábrela en <b>Cotizaciones</b> para revisarla y enviarla.
+            </div>
+          )}
+
+          {certResult?.codigo && (
+            <div style={{ marginTop: 14, background: '#EEEDFE', border: '1px solid #C9C3F2', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#3C3489' }}>
+              ✓ Certificado <b>{certResult.codigo}</b> emitido para {empresaActiva?.name}. Verificable en <b>portal.dstac.cl/verificar/{certResult.codigo}</b>.
             </div>
           )}
         </div>

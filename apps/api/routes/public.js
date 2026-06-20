@@ -124,4 +124,28 @@ router.post('/phishing/quiz/:token', async (req, res) => {
   }
 })
 
+// GET /api/public/verificar/:codigo — confirma la validez de un certificado
+// de cumplimiento Ley 21.663 emitido (sin exponer datos sensibles, solo lo
+// necesario para validar: empresa, nivel, fecha).
+router.get('/verificar/:codigo', async (req, res) => {
+  try {
+    const [[ev]] = await centralDB.query(
+      `SELECT e.nivel, e.score_total, e.certificado_emitido_at, c.name AS empresa
+         FROM ley21663_evaluaciones e JOIN companies c ON c.id = e.company_id
+        WHERE e.certificado_codigo = ? LIMIT 1`,
+      [req.params.codigo])
+    if (!ev) return res.json({ valido: false })
+    res.json({
+      valido: true,
+      empresa: ev.empresa,
+      nivel: ev.nivel,
+      score: ev.score_total,
+      emitido_at: ev.certificado_emitido_at,
+    })
+  } catch (e) {
+    console.error('public/verificar error:', e.message)
+    res.status(500).json({ valido: false })
+  }
+})
+
 module.exports = router

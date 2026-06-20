@@ -20,6 +20,7 @@ const REPORT_MODULES = {
   edr_cliente: () => require('../services/reports/edr-cliente'),
   diagnostico: () => require('../services/reports/diagnostico'),
   brochure:    () => require('../services/reports/brochure'),
+  certificado: () => require('../services/reports/certificado'),
   propuesta:   () => require('../services/reports/propuesta'),
 }
 
