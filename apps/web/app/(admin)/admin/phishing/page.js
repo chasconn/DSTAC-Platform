@@ -18,7 +18,8 @@ export default function PhishingPage() {
   const [enviando, setEnviando] = useState(null)
   const [creando, setCreando] = useState(false)
 
-  const [f, setF] = useState({ nombre: '', plantilla_id: '', personal_ids: [] })
+  const [f, setF] = useState({ nombre: '', plantilla_id: '', personal_ids: [], recurrente: false })
+  const [areas, setAreas] = useState([])
 
   useEffect(() => {
     const raw = localStorage.getItem('empresa_activa')
@@ -40,6 +41,7 @@ export default function PhishingPage() {
     if (!slug) return
     api.get('/api/admin/phishing/plantillas', headers).then(r => setPlantillas(r.plantillas ?? [])).catch(() => {})
     api.get('/api/admin/personal?estado=activo&limit=500', headers).then(r => setPersonal(r.personal ?? [])).catch(() => {})
+    api.get('/api/admin/phishing/ranking-areas', headers).then(r => setAreas(r.areas ?? [])).catch(() => {})
   }, [slug])
 
   function togglePersona(id) {
@@ -53,8 +55,8 @@ export default function PhishingPage() {
     setCreando(true)
     try {
       await api.post('/api/admin/phishing', f, headers)
-      showToast('Campaña creada como borrador')
-      setShowNueva(false); setF({ nombre: '', plantilla_id: '', personal_ids: [] })
+      showToast(f.recurrente ? 'Campaña creada — envíala ahora y se repetirá sola cada ~30 días' : 'Campaña creada como borrador')
+      setShowNueva(false); setF({ nombre: '', plantilla_id: '', personal_ids: [], recurrente: false })
       cargarCampanas()
     } catch (e) { showToast(e.message || 'Error al crear la campaña') }
     finally { setCreando(false) }
@@ -66,6 +68,7 @@ export default function PhishingPage() {
       const r = await api.post(`/api/admin/phishing/${id}/enviar`, {}, headers)
       showToast(`Enviada: ${r.enviados} correo(s)${r.errores ? ` · ${r.errores} con error` : ''}`)
       cargarCampanas()
+      api.get('/api/admin/phishing/ranking-areas', headers).then(rr => setAreas(rr.areas ?? [])).catch(() => {})
       if (detalle?.id === id) abrirDetalle(id)
     } catch (e) { showToast(e.message || 'Error al enviar') }
     finally { setEnviando(null) }
@@ -132,10 +135,33 @@ export default function PhishingPage() {
             ))}
           </div>
 
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 12.5, color: '#444441', cursor: 'pointer' }}>
+            <input type="checkbox" checked={f.recurrente} onChange={e => setF(p => ({ ...p, recurrente: e.target.checked }))} />
+            <span>🔁 Repetir sola cada ~30 días (cambia la plantilla al azar en cada tanda)</span>
+          </label>
+
           <button onClick={crearCampana} disabled={creando}
             style={{ marginTop: 14, background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontWeight: 700, cursor: 'pointer' }}>
             {creando ? 'Creando…' : 'Crear campaña (borrador)'}
           </button>
+        </div>
+      )}
+
+      {areas.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 18, marginBottom: 20 }}>
+          <div style={{ fontWeight: 700, color: '#2C2C2A', marginBottom: 4 }}>Ranking por área/cargo</div>
+          <div style={{ fontSize: 12, color: '#888780', marginBottom: 12 }}>Acumulado de todas las campañas — para saber dónde reforzar la capacitación.</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {areas.map(a => (
+              <div key={a.cargo} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 160, fontSize: 12.5, color: '#2C2C2A', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={a.cargo}>{a.cargo}</div>
+                <div style={{ flex: 1, height: 8, background: '#F1EFE8', borderRadius: 6, overflow: 'hidden' }}>
+                  <div style={{ width: `${a.tasa_clic}%`, height: '100%', background: a.tasa_clic > 30 ? '#C0392B' : a.tasa_clic > 0 ? '#C98A1E' : '#1D9E75', borderRadius: 6 }} />
+                </div>
+                <div style={{ width: 110, fontSize: 11.5, color: '#888780', flexShrink: 0, textAlign: 'right' }}>{a.tasa_clic}% clic · {a.reportados} reportó</div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -152,6 +178,7 @@ export default function PhishingPage() {
                   <th style={{ ...th, textAlign: 'center' }}>Enviados</th>
                   <th style={{ ...th, textAlign: 'center' }}>Abiertos</th>
                   <th style={{ ...th, textAlign: 'center' }}>Clics</th>
+                  <th style={{ ...th, textAlign: 'center' }}>Reportados</th>
                   <th style={th}>Creada</th>
                   <th style={th}></th>
                 </tr>
@@ -159,11 +186,15 @@ export default function PhishingPage() {
               <tbody>
                 {campanas.map(c => (
                   <tr key={c.id} onClick={() => abrirDetalle(c.id)} style={{ cursor: 'pointer' }}>
-                    <td style={td}>{c.nombre}</td>
+                    <td style={td}>
+                      {c.nombre}
+                      {!!c.recurrente && <span title={`Próxima tanda: ${c.proxima_ejecucion || '—'}`} style={{ marginLeft: 6, fontSize: 10.5 }}>🔁</span>}
+                    </td>
                     <td style={td}><span style={{ background: ESTADO[c.estado]?.bg, color: ESTADO[c.estado]?.text, borderRadius: 999, padding: '3px 10px', fontWeight: 600, fontSize: 11.5 }}>{ESTADO[c.estado]?.label}</span></td>
                     <td style={{ ...td, textAlign: 'center' }}>{c.enviados}/{c.total}</td>
                     <td style={{ ...td, textAlign: 'center', color: c.abiertos > 0 ? '#C98A1E' : '#B4B2A9', fontWeight: 600 }}>{c.abiertos}</td>
                     <td style={{ ...td, textAlign: 'center', color: c.clics > 0 ? '#C0392B' : '#B4B2A9', fontWeight: 700 }}>{c.clics}</td>
+                    <td style={{ ...td, textAlign: 'center', color: c.reportados > 0 ? '#1D9E75' : '#B4B2A9', fontWeight: 700 }}>{c.reportados}</td>
                     <td style={td}>{fmt(c.created_at)}</td>
                     <td style={td} onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: 6 }}>
@@ -200,11 +231,13 @@ export default function PhishingPage() {
             {detalle.destinatarios.map(d => (
               <div key={d.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1efe8' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#2C2C2A' }}>{d.nombre || d.correo}</div>
-                <div style={{ fontSize: 11.5, color: '#888780' }}>{d.correo}</div>
-                <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 11 }}>
+                <div style={{ fontSize: 11.5, color: '#888780' }}>{d.correo}{d.cargo ? ` · ${d.cargo}` : ''}</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4, fontSize: 11, flexWrap: 'wrap' }}>
                   <span style={{ color: d.enviado_at ? '#1D9E75' : '#B4B2A9' }}>{d.enviado_at ? '✓ Enviado' : 'Pendiente'}</span>
                   <span style={{ color: d.abierto_at ? '#C98A1E' : '#B4B2A9' }}>{d.abierto_at ? '✓ Abierto' : 'No abierto'}</span>
                   <span style={{ color: d.clic_at ? '#C0392B' : '#B4B2A9', fontWeight: d.clic_at ? 700 : 400 }}>{d.clic_at ? '✓ Clic' : 'Sin clic'}</span>
+                  {d.reportado_at && <span style={{ color: '#1D9E75', fontWeight: 700 }}>✓ Reportó como sospechoso</span>}
+                  {d.quiz_completado_at && <span style={{ color: '#534AB7' }}>✓ Completó el quiz</span>}
                 </div>
                 {d.error && <div style={{ fontSize: 11, color: '#C0392B', marginTop: 2 }}>Error: {d.error}</div>}
               </div>

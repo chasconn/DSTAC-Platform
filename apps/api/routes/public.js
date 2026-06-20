@@ -3,7 +3,7 @@
 // y seguimiento de las simulaciones de phishing (apertura/clic por token único).
 const router = require('express').Router()
 const centralDB = require('../db/central')
-const { landingHtml } = require('../services/phishing/content')
+const { landingHtml, reportadoHtml } = require('../services/phishing/content')
 
 // 1x1 GIF transparente para el píxel de apertura.
 const PIXEL_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64')
@@ -83,7 +83,45 @@ router.get('/phishing/c/:token', async (req, res) => {
     }
   } catch (e) { console.error('public/phishing/c error:', e.message) }
   res.set('Cache-Control', 'no-store')
-  res.send(landingHtml({ empresa }))
+  res.send(landingHtml({ empresa, token: req.params.token }))
+})
+
+// GET /api/public/phishing/r/:token — el destinatario reporta el correo como
+// sospechoso (en vez de hacer clic) — refuerza la conducta correcta y la mide.
+router.get('/phishing/r/:token', async (req, res) => {
+  let empresa = null
+  try {
+    const [[d]] = await centralDB.query(
+      `SELECT c.company_id FROM phishing_destinatarios d
+       JOIN phishing_campanas c ON c.id = d.campana_id WHERE d.token = ?`, [req.params.token]
+    )
+    if (d) {
+      await centralDB.execute(
+        `UPDATE phishing_destinatarios SET reportado_at = NOW() WHERE token = ? AND reportado_at IS NULL`, [req.params.token]
+      )
+      const [[c]] = await centralDB.query(`SELECT name FROM companies WHERE id = ?`, [d.company_id])
+      empresa = c?.name || null
+    }
+  } catch (e) { console.error('public/phishing/r error:', e.message) }
+  res.set('Cache-Control', 'no-store')
+  res.send(reportadoHtml({ empresa }))
+})
+
+// POST /api/public/phishing/quiz/:token — respuestas del mini-quiz educativo
+// mostrado tras el clic (no son datos sensibles, solo aprendizaje del ejercicio).
+router.post('/phishing/quiz/:token', async (req, res) => {
+  try {
+    const respuestas = req.body?.respuestas
+    await centralDB.execute(
+      `UPDATE phishing_destinatarios SET quiz_respuestas = ?, quiz_completado_at = NOW()
+       WHERE token = ? AND quiz_completado_at IS NULL`,
+      [respuestas ? JSON.stringify(respuestas) : null, req.params.token]
+    )
+    res.json({ ok: true })
+  } catch (e) {
+    console.error('public/phishing/quiz error:', e.message)
+    res.status(500).json({ ok: false })
+  }
 })
 
 module.exports = router

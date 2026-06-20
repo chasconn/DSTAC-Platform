@@ -84,6 +84,12 @@ app.get('/api/health', (req, res) => {
 // Manejador de errores global — debe ir al final, después de todas las rutas
 app.use(errorHandler)
 
+// Campañas de phishing recurrentes: revisa cada 6h si alguna ya debe
+// volver a dispararse sola (sin que un admin la cree a mano cada vez).
+const { verificarRecurrentes } = require('./services/phishing/recurrente')
+setInterval(() => verificarRecurrentes(), 6 * 60 * 60 * 1000)
+setTimeout(() => verificarRecurrentes(), 30 * 1000) // primera pasada poco después de arrancar
+
 const PORT = process.env.API_PORT || 3001
 app.listen(PORT, () => {
   console.log(`DSTAC API corriendo en puerto ${PORT} [${process.env.NODE_ENV}]`)

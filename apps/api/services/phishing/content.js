@@ -44,7 +44,7 @@ const PLANTILLAS = [
     nombre: 'Microsoft 365 — Tu contraseña expira hoy',
     asunto: 'Acción requerida: tu contraseña expira hoy',
     remitenteNombre: 'Microsoft 365 Security',
-    render: ({ nombre, empresa, link }) => layoutMicrosoft(`
+    render: ({ nombre, empresa, link, reportLink }) => layoutMicrosoft(`
       <p style="margin:0 0 14px">Hola ${nombre || ''},</p>
       <p style="margin:0 0 14px">La contraseña de tu cuenta <b>${empresa || 'corporativa'}</b> vence hoy según la política de seguridad de tu organización. Para mantener el acceso sin interrupciones, actualízala antes de las 23:59.</p>
       <table role="presentation" style="background:#faf9f8;border:1px solid #edebe9;border-radius:6px;width:100%;margin:0 0 18px"><tr><td style="padding:12px 16px;font-size:13px;color:#444">
@@ -53,6 +53,7 @@ const PLANTILLAS = [
       </td></tr></table>
       <p style="margin:0 0 22px"><a href="${link}" style="background:#0078D4;color:#fff;padding:11px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Actualizar contraseña ahora</a></p>
       <p style="color:#666;font-size:12px;margin:0">O copia este enlace en tu navegador: <span style="color:#0078D4">https://login.microsoftonline.com/common/reset?ref=${(empresa||'org').toLowerCase().replace(/\s+/g,'')}</span></p>
+      <p style="color:#888;font-size:11px;margin:18px 0 0">¿No reconoces esta solicitud? <a href="${reportLink}" style="color:#0078D4">Repórtala aquí</a>.</p>
     `),
   },
   {
@@ -60,7 +61,7 @@ const PLANTILLAS = [
     nombre: 'RRHH — Documento pendiente de firma',
     asunto: 'Documento de Recursos Humanos pendiente de tu firma',
     remitenteNombre: 'Recursos Humanos',
-    render: ({ nombre, empresa, link }) => layoutCorp(`
+    render: ({ nombre, empresa, link, reportLink }) => layoutCorp(`
       <p style="margin:0 0 6px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#888">Recursos Humanos · ${empresa || 'tu empresa'}</p>
       <p style="margin:0 0 14px;font-size:15px;font-weight:700">Tienes un documento pendiente de firma</p>
       <p style="margin:0 0 14px">Hola ${nombre || ''}, se generó un documento que requiere tu firma electrónica antes del cierre de este proceso (actualización de datos contractuales / convenio interno).</p>
@@ -69,7 +70,7 @@ const PLANTILLAS = [
         <b>Plazo de firma:</b> 48 horas
       </td></tr></table>
       <p style="margin:0 0 22px"><a href="${link}" style="background:#1d9e75;color:#fff;padding:11px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Revisar y firmar documento</a></p>
-      <p style="color:#888;font-size:12px;margin:0">Si no reconoces este trámite, contacta directamente a Recursos Humanos antes de firmar.</p>
+      <p style="color:#888;font-size:12px;margin:0">Si no reconoces este trámite, contacta directamente a Recursos Humanos antes de firmar — o <a href="${reportLink}" style="color:#1d9e75">repórtalo aquí</a>.</p>
     `, { acento: '#1d9e75' }),
   },
   {
@@ -77,7 +78,7 @@ const PLANTILLAS = [
     nombre: 'Microsoft 365 — Inicio de sesión inusual',
     asunto: 'Alerta de seguridad: nuevo inicio de sesión',
     remitenteNombre: 'Microsoft 365 Security',
-    render: ({ nombre, empresa, link }) => layoutMicrosoft(`
+    render: ({ nombre, empresa, link, reportLink }) => layoutMicrosoft(`
       <p style="margin:0 0 14px">Hola ${nombre || ''},</p>
       <p style="margin:0 0 14px">Detectamos un inicio de sesión en tu cuenta de <b>${empresa || 'tu organización'}</b> desde un dispositivo no reconocido. Si fuiste tú, puedes ignorar este mensaje.</p>
       <table role="presentation" style="background:#faf9f8;border:1px solid #edebe9;border-radius:6px;width:100%;margin:0 0 18px"><tr><td style="padding:12px 16px;font-size:13px;color:#444">
@@ -87,6 +88,7 @@ const PLANTILLAS = [
       </td></tr></table>
       <p style="margin:0 0 22px"><a href="${link}" style="background:#0078D4;color:#fff;padding:11px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Esto no fui yo — revisar actividad</a></p>
       <p style="color:#666;font-size:12px;margin:0">https://account.microsoft.com/security/activity</p>
+      <p style="color:#888;font-size:11px;margin:18px 0 0">¿Esta actividad no eres tú y no quieres usar el botón? <a href="${reportLink}" style="color:#0078D4">Reportar directamente</a>.</p>
     `, { barra: '#c0392b' }),
   },
   {
@@ -94,7 +96,7 @@ const PLANTILLAS = [
     nombre: 'Finanzas — Factura pendiente de aprobación',
     asunto: 'Factura pendiente de aprobación — vence hoy',
     remitenteNombre: 'Finanzas',
-    render: ({ nombre, empresa, link }) => layoutCorp(`
+    render: ({ nombre, empresa, link, reportLink }) => layoutCorp(`
       <p style="margin:0 0 6px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#888">Finanzas · ${empresa || 'tu empresa'}</p>
       <p style="margin:0 0 14px;font-size:15px;font-weight:700">Factura pendiente de tu aprobación</p>
       <p style="margin:0 0 14px">Hola ${nombre || ''}, hay una factura de proveedor a tu nombre esperando aprobación antes del cierre contable de hoy.</p>
@@ -104,15 +106,41 @@ const PLANTILLAS = [
         <b>Vence:</b> Hoy
       </td></tr></table>
       <p style="margin:0 0 22px"><a href="${link}" style="background:#b8860b;color:#fff;padding:11px 28px;border-radius:4px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Revisar y aprobar factura</a></p>
-      <p style="color:#888;font-size:12px;margin:0">Si no gestionas aprobaciones de pago, reenvía este correo al área de Finanzas.</p>
+      <p style="color:#888;font-size:12px;margin:0">Si no gestionas aprobaciones de pago, reenvía este correo al área de Finanzas — o <a href="${reportLink}" style="color:#b8860b">repórtalo aquí</a>.</p>
     `, { acento: '#b8860b' }),
   },
 ]
 
 function porId(id) { return PLANTILLAS.find(p => p.id === id) }
 
-// HTML de la página educativa mostrada tras el clic (sin formularios ni captura de datos).
-function landingHtml({ empresa }) {
+// Pregunta + opciones del mini-quiz post-clic (2 preguntas, multiple choice).
+const QUIZ_PREGUNTAS = [
+  {
+    id: 'q1',
+    texto: '¿Qué detalle de este correo debería haberte hecho dudar?',
+    opciones: ['La urgencia o amenaza ("vence hoy", "se bloqueará")', 'El remitente no coincide del todo con el real', 'El enlace, al pasar el mouse, no va al dominio esperado', 'Nada — me pareció normal'],
+  },
+  {
+    id: 'q2',
+    texto: 'La próxima vez que dudes de un correo así, ¿qué deberías hacer?',
+    opciones: ['Hacer clic para revisar de qué se trata', 'Reportarlo a TI/seguridad antes de hacer nada', 'Reenviarlo a un compañero para preguntar', 'Responder pidiendo más información'],
+  },
+]
+
+// HTML de la página educativa mostrada tras el clic (sin formularios ni captura de
+// datos sensibles) — incluye un mini-quiz de 2 preguntas que se envía por AJAX
+// al token del destinatario, sin recargar la página.
+function landingHtml({ empresa, token }) {
+  const preguntasHtml = QUIZ_PREGUNTAS.map((p, i) => `
+    <div style="margin-bottom:18px">
+      <div style="font-size:13.5px;font-weight:700;color:#2C2C2A;margin-bottom:8px">${i + 1}. ${p.texto}</div>
+      ${p.opciones.map((o, j) => `
+        <label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:13px;color:#444;cursor:pointer">
+          <input type="radio" name="${p.id}" value="${j}" style="margin-top:3px">
+          <span>${o}</span>
+        </label>`).join('')}
+    </div>`).join('')
+
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Simulación de phishing</title>
@@ -123,6 +151,8 @@ h1{color:#C0392B;font-size:22px;margin:0 0 6px}
 .sub{color:#888780;font-size:13px;margin-bottom:20px}
 ul{padding-left:18px;font-size:14px;line-height:1.7}
 .foot{margin-top:24px;font-size:11px;color:#B4B2A9;text-align:center}
+.quiz{margin-top:26px;padding-top:22px;border-top:1px solid #ECEAE3}
+.btn{background:#534AB7;color:#fff;border:none;border-radius:8px;padding:11px 22px;font-size:13.5px;font-weight:700;cursor:pointer}
 </style></head><body>
   <div class="box">
     <h1>⚠️ Esto era una simulación</h1>
@@ -135,9 +165,53 @@ ul{padding-left:18px;font-size:14px;line-height:1.7}
       <li>Solicitudes de contraseñas o datos sensibles por correo</li>
     </ul>
     <p>Si tienes dudas sobre un correo real, repórtalo a tu equipo de TI antes de hacer clic.</p>
+
+    <div class="quiz" id="quizBox">
+      <div style="font-size:14px;font-weight:700;margin-bottom:14px">Para terminar, 2 preguntas rápidas (30 segundos):</div>
+      <form id="quizForm">${preguntasHtml}
+        <button type="submit" class="btn">Enviar respuestas</button>
+      </form>
+    </div>
+
+    <div class="foot">Simulación de phishing · DSTAC Ciberseguridad</div>
+  </div>
+  <script>
+    document.getElementById('quizForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      var form = e.target, data = {};
+      ${QUIZ_PREGUNTAS.map(p => `data['${p.id}'] = (form.querySelector('input[name="${p.id}"]:checked')||{}).value;`).join('\n      ')}
+      fetch('/api/public/phishing/quiz/${token}', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ respuestas: data }) })
+        .then(function(){
+          document.getElementById('quizBox').innerHTML = '<div style="background:#EAF6F1;color:#0F6E56;padding:14px 16px;border-radius:8px;font-size:13.5px;font-weight:600">✓ ¡Gracias! Tus respuestas quedaron registradas.</div>';
+        })
+        .catch(function(){
+          document.getElementById('quizBox').innerHTML = '<div style="color:#888780;font-size:12.5px">No se pudo enviar, pero igual gracias por revisar el ejercicio.</div>';
+        });
+    });
+  </script>
+</body></html>`
+}
+
+// Página positiva mostrada cuando el destinatario reporta el correo como
+// sospechoso (en vez de hacer clic en el enlace principal) — refuerza la
+// conducta correcta en vez de solo medir el error.
+function reportadoHtml({ empresa }) {
+  return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte registrado</title>
+<style>
+body{font-family:Arial,sans-serif;background:#F8F7F4;margin:0;padding:40px 16px;color:#2C2C2A}
+.box{max-width:520px;margin:0 auto;background:#fff;border-radius:14px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}
+h1{color:#1D9E75;font-size:22px;margin:0 0 10px}
+.sub{color:#444;font-size:14px;line-height:1.6}
+.foot{margin-top:24px;font-size:11px;color:#B4B2A9}
+</style></head><body>
+  <div class="box">
+    <h1>✓ ¡Bien hecho!</h1>
+    <p class="sub">Este correo era una simulación de phishing${empresa ? ` de ${empresa}` : ''}, y reaccionaste de la forma correcta: lo reportaste en vez de hacer clic. Así es exactamente como debes reaccionar ante un correo real sospechoso.</p>
     <div class="foot">Simulación de phishing · DSTAC Ciberseguridad</div>
   </div>
 </body></html>`
 }
 
-module.exports = { PLANTILLAS, porId, landingHtml }
+module.exports = { PLANTILLAS, porId, landingHtml, reportadoHtml, QUIZ_PREGUNTAS }

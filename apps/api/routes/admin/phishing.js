@@ -20,15 +20,17 @@ router.get('/plantillas', (req, res) => {
   res.json({ plantillas: PLANTILLAS.map(p => ({ id: p.id, nombre: p.nombre, asunto: p.asunto })) })
 })
 
-// Campañas de la empresa activa, con conteo de enviados/abiertos/clics.
+// Campañas de la empresa activa, con conteo de enviados/abiertos/clics/reportes/quiz.
 router.get('/', async (req, res, next) => {
   try {
     const [rows] = await centralDB.execute(`
-      SELECT c.id, c.nombre, c.plantilla_id, c.estado, c.enviado_at, c.created_at,
+      SELECT c.id, c.nombre, c.plantilla_id, c.estado, c.recurrente, c.proxima_ejecucion, c.enviado_at, c.created_at,
         COUNT(d.id) AS total,
         SUM(d.enviado_at IS NOT NULL) AS enviados,
         SUM(d.abierto_at IS NOT NULL) AS abiertos,
-        SUM(d.clic_at IS NOT NULL) AS clics
+        SUM(d.clic_at IS NOT NULL) AS clics,
+        SUM(d.reportado_at IS NOT NULL) AS reportados,
+        SUM(d.quiz_completado_at IS NOT NULL) AS quiz_completados
       FROM phishing_campanas c
       LEFT JOIN phishing_destinatarios d ON d.campana_id = c.id
       WHERE c.company_id = ?
@@ -39,13 +41,38 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// Ranking por área/cargo (acumulado de todas las campañas de la empresa) —
+// para saber qué áreas necesitan más capacitación en concientización.
+router.get('/ranking-areas', async (req, res, next) => {
+  try {
+    const [rows] = await centralDB.execute(`
+      SELECT COALESCE(d.cargo, 'Sin área registrada') AS cargo,
+        COUNT(*) AS total,
+        SUM(d.clic_at IS NOT NULL) AS clics,
+        SUM(d.reportado_at IS NOT NULL) AS reportados
+      FROM phishing_destinatarios d
+      JOIN phishing_campanas c ON c.id = d.campana_id
+      WHERE c.company_id = ? AND d.enviado_at IS NOT NULL
+      GROUP BY cargo
+      ORDER BY (SUM(d.clic_at IS NOT NULL) / COUNT(*)) DESC
+    `, [req.company.id])
+    res.json({
+      areas: rows.map(r => ({
+        cargo: r.cargo, total: Number(r.total),
+        clics: Number(r.clics), reportados: Number(r.reportados),
+        tasa_clic: r.total ? Math.round((Number(r.clics) / r.total) * 100) : 0,
+      })),
+    })
+  } catch (err) { next(err) }
+})
+
 router.get('/:id', async (req, res, next) => {
   try {
     const [[c]] = await centralDB.query(
       `SELECT * FROM phishing_campanas WHERE id = ? AND company_id = ?`, [req.params.id, req.company.id])
     if (!c) return res.status(404).json({ error: 'Campaña no encontrada' })
     const [destinatarios] = await centralDB.execute(
-      `SELECT id, nombre, correo, enviado_at, abierto_at, clic_at, error
+      `SELECT id, nombre, cargo, correo, enviado_at, abierto_at, clic_at, reportado_at, quiz_completado_at, quiz_respuestas, error
        FROM phishing_destinatarios WHERE campana_id = ? ORDER BY id`, [c.id])
     res.json({ ...c, destinatarios })
   } catch (err) { next(err) }
@@ -54,7 +81,7 @@ router.get('/:id', async (req, res, next) => {
 // Crea la campaña (borrador) a partir de personal de la empresa activa.
 router.post('/', async (req, res, next) => {
   try {
-    const { nombre, plantilla_id, personal_ids } = req.body || {}
+    const { nombre, plantilla_id, personal_ids, recurrente } = req.body || {}
     if (!nombre?.trim()) return res.status(400).json({ error: 'Indica un nombre para la campaña' })
     if (!porId(plantilla_id)) return res.status(400).json({ error: 'Plantilla inválida' })
     if (!Array.isArray(personal_ids) || personal_ids.length === 0) {
@@ -62,26 +89,32 @@ router.post('/', async (req, res, next) => {
     }
 
     const [personas] = await req.tenantDB.query(
-      `SELECT id, nombre, correo FROM personal WHERE id IN (?) AND correo IS NOT NULL AND correo != ''`,
+      `SELECT id, nombre, correo, rol_empresarial FROM personal WHERE id IN (?) AND correo IS NOT NULL AND correo != ''`,
       [personal_ids]
     )
     if (!personas.length) return res.status(400).json({ error: 'Ninguna de las personas seleccionadas tiene correo registrado' })
 
+    const esRecurrente = !!recurrente
+    const proximaEjecucion = esRecurrente
+      ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      : null
+
     const [r] = await centralDB.execute(
-      `INSERT INTO phishing_campanas (company_id, nombre, plantilla_id, created_by) VALUES (?,?,?,?)`,
-      [req.company.id, nombre.trim().slice(0, 255), plantilla_id, uid(req)]
+      `INSERT INTO phishing_campanas (company_id, nombre, plantilla_id, created_by, recurrente, personal_ids, proxima_ejecucion)
+       VALUES (?,?,?,?,?,?,?)`,
+      [req.company.id, nombre.trim().slice(0, 255), plantilla_id, uid(req), esRecurrente ? 1 : 0, JSON.stringify(personal_ids), proximaEjecucion]
     )
     const campanaId = r.insertId
     for (const p of personas) {
       await centralDB.execute(
-        `INSERT INTO phishing_destinatarios (campana_id, nombre, correo, token) VALUES (?,?,?,?)`,
-        [campanaId, p.nombre || null, p.correo, uuidv4()]
+        `INSERT INTO phishing_destinatarios (campana_id, nombre, cargo, correo, token) VALUES (?,?,?,?,?)`,
+        [campanaId, p.nombre || null, p.rol_empresarial || null, p.correo, uuidv4()]
       )
     }
 
     await registrarActividad({
       req, accion: 'crear', modulo: 'phishing',
-      descripcion: `Creó la campaña de phishing "${nombre.trim()}" (${personas.length} destinatarios)`,
+      descripcion: `Creó la campaña de phishing "${nombre.trim()}" (${personas.length} destinatarios)${esRecurrente ? ' · recurrente mensual' : ''}`,
       entidad_id: campanaId, company_id: req.company.id,
     })
     res.status(201).json({ id: campanaId, destinatarios: personas.length })
@@ -105,7 +138,8 @@ router.post('/:id/enviar', async (req, res, next) => {
     let enviados = 0, errores = 0
     for (const d of pendientes) {
       const link = `${APP_URL}/api/public/phishing/c/${d.token}`
-      const html = plantilla.render({ nombre: d.nombre, empresa: empresa?.name, link })
+      const reportLink = `${APP_URL}/api/public/phishing/r/${d.token}`
+      const html = plantilla.render({ nombre: d.nombre, empresa: empresa?.name, link, reportLink })
         + `<img src="${APP_URL}/api/public/phishing/o/${d.token}" width="1" height="1" style="display:none" alt="">`
       try {
         await sendMail(d.correo, plantilla.asunto, html)
