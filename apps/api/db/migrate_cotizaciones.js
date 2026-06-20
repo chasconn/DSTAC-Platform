@@ -8,7 +8,7 @@ const mysql = require('mysql2/promise')
 
 // [nombre, detalle, tipo, precio_sugerido (CLP, referencial), nivel, orden]
 const SEED = [
-  ['Diagnóstico de Postura de Seguridad', 'Evaluación de lectura de la postura de ciberseguridad (2–3 semanas), con informe y hoja de ruta.', 'unico', 1200000, 'N1', 1],
+  ['Diagnóstico de Postura de Seguridad', 'Evaluación de lectura de la postura de ciberseguridad (2–3 semanas), con informe y hoja de ruta. Precio según tamaño: PYME $790.000 · Mediana $1.200.000 · Grande desde $2.500.000.', 'unico', 1200000, 'N1', 1],
   ['Seguridad Gestionada Operacional', 'Monitoreo, gestión de incidentes, accesos y reportes mensuales. Cobertura L–V.', 'mensual', 450000, '2A', 2],
   ['Seguridad Estratégica / vCISO', 'Incluye Seguridad Gestionada (2A) + gobierno, acompañamiento ejecutivo y evaluaciones avanzadas.', 'mensual', 1200000, '2B', 3],
   ['Pentest / Auditoría de Seguridad', 'Prueba de penetración o auditoría técnica puntual, con informe de hallazgos y remediación.', 'unico', 1500000, 'N3', 4],

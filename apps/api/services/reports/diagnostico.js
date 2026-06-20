@@ -2,7 +2,7 @@
 // diagnóstico guardado de la empresa. Incluye score, brechas por dominio y
 // servicios recomendados (del catálogo) con valor estimado.
 const { buildHeader, buildFooter, colorFor, wrapDocument } = require('./template')
-const { planDeRespuestas } = require('../diagnostico/cuestionario')
+const { planDeRespuestas, tamanoPorTrabajadores, precioDiagnostico } = require('../diagnostico/cuestionario')
 
 const CLP = (n) => '$' + (Number(n) || 0).toLocaleString('es-CL')
 // Columnas JSON: mysql2 las devuelve ya parseadas (array); tolera string también.
@@ -21,13 +21,20 @@ async function getData(tenantDB, centralDB, companyId, company, query = {}) {
       : (typeof d.respuestas === 'string' ? (() => { try { return JSON.parse(d.respuestas) || {} } catch { return {} } })() : {})
   }
   // Recomendación = PLAN (según tamaño) + diagnóstico de onboarding + proyectos.
+  const tamano = resp?.tamano || tamanoPorTrabajadores(resp?.trabajadores) || 'Profesional'
   const keywords = d ? [planDeRespuestas(resp), 'Diagnóstico de Postura', ...proyectos] : []
   const servicios = []
   for (const kw of keywords) {
     const [rows] = await centralDB.execute(
       `SELECT nombre, tipo, precio_sugerido FROM cotizacion_catalogo
        WHERE activo = 1 AND nombre LIKE ? ORDER BY orden LIMIT 5`, [`%${kw}%`])
-    rows.forEach(r => { if (!servicios.find(x => x.nombre === r.nombre)) servicios.push(r) })
+    rows.forEach(r => {
+      if (servicios.find(x => x.nombre === r.nombre)) return
+      // Mismo ajuste que en la cotización automática: el diagnóstico de
+      // onboarding tiene precio escalonado por tamaño, no el fijo del catálogo.
+      if (r.nombre.includes('Diagnóstico de Postura')) r.precio_sugerido = precioDiagnostico(tamano)
+      servicios.push(r)
+    })
   }
   return {
     company: { name: emp?.name || company?.name || '—' },

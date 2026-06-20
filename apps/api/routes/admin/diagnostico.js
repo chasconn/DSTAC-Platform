@@ -4,7 +4,7 @@ const router    = require('express').Router()
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const { resolveTenant }                  = require('../../middleware/tenant')
 const centralDB = require('../../db/central')
-const { DOMINIOS, TAMANOS, evaluar, planDeRespuestas } = require('../../services/diagnostico/cuestionario')
+const { DOMINIOS, TAMANOS, evaluar, planDeRespuestas, tamanoPorTrabajadores, precioDiagnostico } = require('../../services/diagnostico/cuestionario')
 const { helpers } = require('./cotizaciones')
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
@@ -68,6 +68,7 @@ router.post('/:id/cotizacion', async (req, res, next) => {
       : (typeof d.servicios === 'string' && d.servicios ? (() => { try { return JSON.parse(d.servicios) || [] } catch { return [] } })() : [])
     let resp = d.respuestas
     if (typeof resp === 'string') { try { resp = JSON.parse(resp) } catch { resp = {} } }
+    const tamano = resp?.tamano || tamanoPorTrabajadores(resp?.trabajadores) || 'Profesional'
     const planKw = planDeRespuestas(resp || {})
     // Cotización = PLAN recomendado (según tamaño) + diagnóstico de onboarding + proyectos puntuales.
     const keywords = [planKw, 'Diagnóstico de Postura', ...proyectos]
@@ -81,7 +82,12 @@ router.post('/:id/cotizacion', async (req, res, next) => {
       for (const r of rows) {
         if (seen.has(r.nombre)) continue
         seen.add(r.nombre)
-        items.push({ servicio: r.nombre, detalle: r.detalle, tipo: r.tipo, cantidad: 1, precio_unitario: r.precio_sugerido || 0 })
+        // El diagnóstico de onboarding tiene precio escalonado por tamaño (igual
+        // que la propuesta por TIER) — el catálogo solo trae un precio fijo de
+        // referencia, así que se sobrescribe aquí para no cobrar de más a una
+        // PYME ni de menos a una empresa grande.
+        const precio = r.nombre.includes('Diagnóstico de Postura') ? precioDiagnostico(tamano) : (r.precio_sugerido || 0)
+        items.push({ servicio: r.nombre, detalle: r.detalle, tipo: r.tipo, cantidad: 1, precio_unitario: precio })
       }
     }
     if (!items.length) return res.status(400).json({ error: 'No se encontraron servicios en el catálogo para las brechas detectadas' })

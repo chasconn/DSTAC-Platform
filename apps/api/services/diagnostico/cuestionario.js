@@ -102,6 +102,15 @@ const TAMANOS = [
 ]
 const planDeTamano = (t) => (TAMANOS.find(x => x.id === t) || TAMANOS[1]).plan
 
+// Precio del Diagnóstico de Postura de Seguridad según tamaño — mismos montos
+// que la propuesta por TIER (services/reports/propuesta.js) y el material
+// comercial (PROPUESTA DSTAC TIER.pdf). El catálogo de cotizaciones trae un
+// solo precio fijo; esta función es la fuente de verdad para no cobrar de
+// más a una PYME ni de menos a una empresa grande al generar la cotización
+// automática desde el diagnóstico.
+const PRECIO_DIAGNOSTICO = { PYMES: 790000, Profesional: 1200000, Empresarial: 2500000 }
+const precioDiagnostico = (t) => PRECIO_DIAGNOSTICO[t] ?? PRECIO_DIAGNOSTICO.Profesional
+
 // Tamaño (y por ende el plan) derivado de la cantidad de trabajadores.
 function tamanoPorTrabajadores(n) {
   n = Number(n) || 0
@@ -162,4 +171,4 @@ function evaluar(respuestas = {}) {
   return { dominios, scoreTotal, nivel: nivelDe(scoreTotal), brechas: brechas.map(b => b.id), proyectos, tamano, plan: planDeTamano(tamano) }
 }
 
-module.exports = { DOMINIOS, TAMANOS, evaluar, nivelDe, planDeTamano, tamanoPorTrabajadores, planDeRespuestas }
+module.exports = { DOMINIOS, TAMANOS, evaluar, nivelDe, planDeTamano, tamanoPorTrabajadores, planDeRespuestas, precioDiagnostico }
