@@ -11,7 +11,10 @@ const { PLANTILLAS, porId } = require('../../services/phishing/content')
 
 router.use(requireAuth, requireDstacRole, resolveTenant)
 const uid = (req) => req.user.id || req.user.user_id
-const APP_URL = process.env.APP_URL || 'http://localhost:3000'
+// Sin APP_URL configurada en el entorno, el link caería a localhost
+// (inalcanzable para el destinatario real) — se usa el dominio de producción
+// como respaldo en vez de localhost, que nunca es correcto fuera de dev local.
+const APP_URL = process.env.APP_URL || 'https://portal.dstac.cl'
 
 router.get('/plantillas', (req, res) => {
   res.json({ plantillas: PLANTILLAS.map(p => ({ id: p.id, nombre: p.nombre, asunto: p.asunto })) })

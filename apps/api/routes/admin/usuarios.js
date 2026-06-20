@@ -195,7 +195,7 @@ router.post('/', async (req, res, next) => {
         first_name,
         tempPassword,
         role,
-        loginUrl:     (process.env.APP_URL || 'http://localhost:3000') + '/login',
+        loginUrl:     (process.env.APP_URL || 'https://portal.dstac.cl') + '/login',
         expiresHoras: 48,
       })
       res.status(201).json({ id: insertId, message: 'Usuario creado. Credenciales enviadas por correo.' })
@@ -303,7 +303,7 @@ router.post('/:id/reset-password', async (req, res, next) => {
         to:          user.email,
         first_name:  user.first_name,
         tempPassword,
-        loginUrl:    (process.env.APP_URL || 'http://localhost:3000') + '/login',
+        loginUrl:    (process.env.APP_URL || 'https://portal.dstac.cl') + '/login',
         expiresHoras: 48,
       })
       res.json({ message: 'Nueva contraseña enviada por correo.' })
