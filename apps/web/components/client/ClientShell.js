@@ -93,7 +93,7 @@ export default function ClientShell({ user, theme, children, suplantando, empres
           collapsed={collapsed}
           onToggle={() => setCollapsed(c => !c)}
         />
-        <main style={{ flex: 1, overflowY: 'auto', background: 'var(--dash-bg)' }}>
+        <main className="client-shell-main" style={{ flex: 1, overflowY: 'auto', background: 'var(--dash-bg)' }}>
           {children}
         </main>
       </div>

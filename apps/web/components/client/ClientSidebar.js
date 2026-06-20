@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { clearSession } from '../../lib/auth'
@@ -38,6 +39,19 @@ const SECTION_LABEL = {
 
 export default function ClientSidebar({ user, collapsed, onToggle }) {
   const pathname = usePathname()
+  const [isMobile, setIsMobile] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Responsive: en celular el sidebar pasa a ser un drawer que se abre con
+  // un botón flotante, en vez de quedar siempre ocupando ancho fijo.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 820px)')
+    const upd = () => setIsMobile(mq.matches)
+    upd()
+    mq.addEventListener('change', upd)
+    return () => mq.removeEventListener('change', upd)
+  }, [])
+  useEffect(() => { setMobileOpen(false) }, [pathname])
 
   async function handleLogout() {
     await clearSession()
@@ -68,27 +82,46 @@ export default function ClientSidebar({ user, collapsed, onToggle }) {
         }}
         onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(83,74,183,0.15)' }}
         onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
-        title={collapsed ? label : undefined}
+        title={effCollapsed ? label : undefined}
       >
         <Icon active={active} />
-        {!collapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>}
+        {!effCollapsed && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>}
       </Link>
     )
   }
 
+  // En celular siempre se muestra expandido dentro del drawer (no tiene
+  // sentido un drawer angosto de solo iconos).
+  const effCollapsed = isMobile ? false : collapsed
+
   return (
+    <>
+      {isMobile && !mobileOpen && (
+        <button onClick={() => setMobileOpen(true)} aria-label="Abrir menú"
+          style={{ position: 'fixed', top: 10, left: 10, zIndex: 1001, width: 42, height: 42, borderRadius: 10,
+                   background: 'var(--sidebar-bg, #0f0d2e)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                   boxShadow: '0 2px 12px rgba(0,0,0,.35)', cursor: 'pointer' }}>
+          <IconMenu />
+        </button>
+      )}
+      {isMobile && mobileOpen && (
+        <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 999 }} />
+      )}
     <aside
       style={{
-        width: collapsed ? 48 : 200,
-        minWidth: collapsed ? 48 : 200,
+        width: isMobile ? 250 : (collapsed ? 48 : 200),
+        minWidth: isMobile ? 250 : (collapsed ? 48 : 200),
         background: 'var(--sidebar-bg, #0f0d2e)',
         display: 'flex',
         flexDirection: 'column',
         height: '100vh',
-        transition: 'width 0.2s, min-width 0.2s',
+        transition: 'transform .25s ease, width 0.2s, min-width 0.2s',
         overflow: 'hidden',
-        position: 'sticky',
-        top: 0,
+        position: isMobile ? 'fixed' : 'sticky',
+        top: 0, left: 0,
+        zIndex: isMobile ? 1000 : 'auto',
+        transform: isMobile ? (mobileOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+        boxShadow: isMobile && mobileOpen ? '4px 0 24px rgba(0,0,0,.4)' : 'none',
         borderRight: '1px solid rgba(83,74,183,0.2)',
       }}
     >
@@ -97,24 +130,24 @@ export default function ClientSidebar({ user, collapsed, onToggle }) {
         height: 48,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: collapsed ? 'center' : 'space-between',
-        padding: collapsed ? '0 12px' : '0 10px 0 14px',
+        justifyContent: effCollapsed ? 'center' : 'space-between',
+        padding: effCollapsed ? '0 12px' : '0 10px 0 14px',
         borderBottom: '1px solid rgba(83,74,183,0.2)',
         flexShrink: 0,
       }}>
-        {!collapsed && (
+        {!effCollapsed && (
           <span style={{ color: '#CECBF6', fontWeight: 700, fontSize: 15, letterSpacing: 0.3 }}>
             Portal
           </span>
         )}
         <button
-          onClick={onToggle}
+          onClick={() => isMobile ? setMobileOpen(false) : onToggle()}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             padding: 4, borderRadius: 6, color: '#7F77DD',
             display: 'flex', alignItems: 'center',
           }}
-          title={collapsed ? 'Expandir' : 'Colapsar'}
+          title={isMobile ? 'Cerrar' : (collapsed ? 'Expandir' : 'Colapsar')}
         >
           <IconMenu />
         </button>
@@ -122,17 +155,17 @@ export default function ClientSidebar({ user, collapsed, onToggle }) {
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '6px 6px', overflowY: 'auto', overflowX: 'hidden' }}>
-        {!collapsed && (
+        {!effCollapsed && (
           <div style={SECTION_LABEL}>Seguridad</div>
         )}
         {NAV_SEGURIDAD.map(item => (
           <NavItem key={item.href} {...item} />
         ))}
 
-        {!collapsed && (
+        {!effCollapsed && (
           <div style={{ ...SECTION_LABEL, marginTop: 6 }}>Gestión</div>
         )}
-        {collapsed && <div style={{ height: 8 }} />}
+        {effCollapsed && <div style={{ height: 8 }} />}
         {NAV_GESTION.map(item => (
           <NavItem key={item.href} {...item} />
         ))}
@@ -144,7 +177,7 @@ export default function ClientSidebar({ user, collapsed, onToggle }) {
         borderTop: '1px solid rgba(83,74,183,0.2)',
         flexShrink: 0,
       }}>
-        {!collapsed && user && (
+        {!effCollapsed && user && (
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -188,10 +221,10 @@ export default function ClientSidebar({ user, collapsed, onToggle }) {
           title="Cerrar sesión"
         >
           <IconLogout />
-          {!collapsed && <span>Cerrar sesión</span>}
+          {!effCollapsed && <span>Cerrar sesión</span>}
         </button>
 
-        {!collapsed && (
+        {!effCollapsed && (
           <div style={{
             textAlign: 'center',
             color: 'rgba(127,119,221,0.4)',
@@ -204,6 +237,7 @@ export default function ClientSidebar({ user, collapsed, onToggle }) {
         )}
       </div>
     </aside>
+    </>
   )
 }
 

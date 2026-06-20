@@ -78,7 +78,7 @@ export default function ActivoDetalle({ activo, onClose, onEdit, onDelete }) {
   const tieneTecnicos    = ip || sistema_operativo || version
 
   return (
-    <div style={{
+    <div className="detail-side-panel" style={{
       width: 280, flexShrink: 0,
       borderLeft: '1px solid #e2e0d8',
       background: '#fff',

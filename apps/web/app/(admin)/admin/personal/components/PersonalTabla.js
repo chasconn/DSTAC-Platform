@@ -50,7 +50,7 @@ function NivelBadge({ nivel }) {
 
 function SkeletonRow() {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1.5fr 1fr 80px', gap: 12, padding: '10px 16px', alignItems: 'center', borderBottom: '1px solid #f1efe8' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1.5fr 1fr 80px', minWidth: 820, gap: 12, padding: '10px 16px', alignItems: 'center', borderBottom: '1px solid #f1efe8' }}>
       {[160, 120, 70, 70, 130, 90, 60].map((w, i) => (
         <div key={i} style={{ height: 14, width: w, background: '#e2e0d8', borderRadius: 6, animation: 'pulse 1.5s infinite' }} />
       ))}
@@ -70,10 +70,10 @@ const COLS = [
 
 export default function PersonalTabla({ personal, loading, selected, onSelect, onEdit, onDelete }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflowX: 'auto' }}>
 
       {/* Header */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1.5fr 1fr 80px', gap: 12, padding: '8px 16px', background: '#fafaf8', borderBottom: '1px solid #e2e0d8' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1.5fr 1fr 80px', minWidth: 820, gap: 12, padding: '8px 16px', background: '#fafaf8', borderBottom: '1px solid #e2e0d8' }}>
         {COLS.map(c => (
           <span key={c.label} style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#888780', letterSpacing: 0.5, ...c.style }}>
             {c.label}
@@ -98,7 +98,7 @@ export default function PersonalTabla({ personal, loading, selected, onSelect, o
             key={p.id}
             onClick={() => onSelect(p)}
             style={{
-              display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1.5fr 1fr 80px',
+              display: 'grid', gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1.5fr 1fr 80px', minWidth: 820,
               gap: 12, padding: '10px 16px', alignItems: 'center',
               borderBottom: '1px solid #f1efe8',
               background: isSelected ? '#EEEDFE' : 'transparent',

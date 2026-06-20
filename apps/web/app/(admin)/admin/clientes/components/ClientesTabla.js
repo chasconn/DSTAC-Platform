@@ -5,7 +5,7 @@ import { StatusBadge, PlanBadge, getInitials } from './badges'
 // Skeleton de fila mientras carga
 function SkeletonRow() {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 70px 70px 1fr 96px', gap: 12, padding: '10px 16px', alignItems: 'center', borderBottom: '1px solid #f1efe8' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 70px 70px 1fr 96px', minWidth: 760, gap: 12, padding: '10px 16px', alignItems: 'center', borderBottom: '1px solid #f1efe8' }}>
       {[180, 80, 80, 50, 50, 90, 80].map((w, i) => (
         <div key={i} style={{ height: 14, width: w, background: '#e2e0d8', borderRadius: 6, animation: 'pulse 1.5s infinite' }} />
       ))}
@@ -26,10 +26,10 @@ export default function ClientesTabla({ empresas, loading, selectedSlug, onSelec
   ]
 
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflowX: 'auto' }}>
       {/* Header */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 70px 70px 1fr 96px',
+        display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 70px 70px 1fr 96px', minWidth: 760,
         gap: 12, padding: '8px 16px',
         background: '#f8f7f4', borderBottom: '1px solid #e2e0d8'
       }}>
@@ -60,7 +60,7 @@ export default function ClientesTabla({ empresas, loading, selectedSlug, onSelec
             key={emp.slug}
             onClick={() => onSelect(emp)}
             style={{
-              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 70px 70px 1fr 96px',
+              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 70px 70px 1fr 96px', minWidth: 760,
               gap: 12, padding: '10px 16px', alignItems: 'center',
               borderBottom: '1px solid #f1efe8',
               background: selected ? '#EEEDFE' : 'transparent',

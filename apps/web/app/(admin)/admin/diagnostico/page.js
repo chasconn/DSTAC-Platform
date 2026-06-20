@@ -101,7 +101,8 @@ export default function DiagnosticoPage() {
           {historial.length === 0
             ? <div style={{ fontSize: 13, color: '#888780' }}>Aún no hay diagnósticos guardados para esta empresa.</div>
             : (
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: 640, borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#f8f7f4' }}>
                     <th style={{ textAlign: 'left', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Fecha</th>
@@ -127,6 +128,7 @@ export default function DiagnosticoPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
         </div>
       )}

@@ -99,7 +99,7 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
 
   return (
     <div style={{
-      position: 'fixed', top: 0, right: 0, width: 480, height: '100vh',
+      position: 'fixed', top: 0, right: 0, width: 'min(480px, 94vw)', height: '100vh',
       background: '#fff', borderLeft: '1px solid #e2e0d8',
       display: 'flex', flexDirection: 'column',
       zIndex: 100, boxShadow: '-4px 0 20px rgba(0,0,0,0.08)',

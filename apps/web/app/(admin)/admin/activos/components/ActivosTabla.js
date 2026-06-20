@@ -50,7 +50,7 @@ const TH_STYLE = {
 function SkeletonRow() {
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: COL,
+      display: 'grid', gridTemplateColumns: COL, minWidth: 760,
       alignItems: 'center', padding: '12px 14px',
       borderBottom: '1px solid #f1efe8',
     }}>
@@ -72,12 +72,12 @@ export default function ActivosTabla({ activos, loading, selected, onSelect, onE
   return (
     <div style={{
       background: '#fff', border: '1px solid #e2e0d8',
-      borderRadius: 10, overflow: 'hidden',
+      borderRadius: 10, overflowX: 'auto',
     }}>
 
       {/* Cabecera */}
       <div style={{
-        display: 'grid', gridTemplateColumns: COL,
+        display: 'grid', gridTemplateColumns: COL, minWidth: 760,
         background: '#fafaf8', borderBottom: '1px solid #e2e0d8',
       }}>
         {['Nombre / Tipo', 'Criticidad', 'Estado', 'Ambiente', 'Proveedor', 'Responsable', ''].map((h, i) => (
@@ -103,7 +103,7 @@ export default function ActivosTabla({ activos, loading, selected, onSelect, onE
             key={activo.id}
             onClick={() => onSelect(activo)}
             style={{
-              display: 'grid', gridTemplateColumns: COL,
+              display: 'grid', gridTemplateColumns: COL, minWidth: 760,
               alignItems: 'center', padding: '11px 14px',
               borderBottom: '1px solid #f1efe8',
               background: isSelected ? '#EEEDFE' : '#fff',

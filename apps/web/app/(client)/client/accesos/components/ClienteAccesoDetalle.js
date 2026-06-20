@@ -61,7 +61,7 @@ export default function ClienteAccesoDetalle({ acceso, onClose }) {
   const esRootActivo = acceso.nivel_acceso === 'root' && acceso.estado === 'activo'
 
   return (
-    <aside style={{ width: 280, minWidth: 280, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
+    <aside className="detail-side-panel" style={{ width: 280, minWidth: 280, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
 
       {esExpirado && (
         <div style={{ background: '#FCEBEB', borderBottom: '1px solid #E8A6A6', padding: '8px 14px', fontSize: 12, color: '#791F1F', fontWeight: 500 }}>

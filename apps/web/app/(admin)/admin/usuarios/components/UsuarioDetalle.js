@@ -63,7 +63,7 @@ export default function UsuarioDetalle({ usuario, onClose, onEdit, onReset, onDe
     : usuario.email
 
   return (
-    <aside style={{ width: 280, minWidth: 280, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
+    <aside className="detail-side-panel" style={{ width: 280, minWidth: 280, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
 
       {/* Header */}
       <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #e2e0d8' }}>

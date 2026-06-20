@@ -42,7 +42,7 @@ export default function IncidenteDetalle({ incidente, onClose, onEdit, onDelete 
   if (!incidente) return null
 
   return (
-    <aside style={{ width: 300, minWidth: 300, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0, overflowY: 'auto' }}>
+    <aside className="detail-side-panel" style={{ width: 300, minWidth: 300, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0, overflowY: 'auto' }}>
 
       <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e0d8' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>

@@ -93,9 +93,9 @@ export default function PlanAccionTab({ slug, evaluationId }) {
           <span style={{ fontSize: 13 }}>Usa "Generar plan automático" para crear tareas desde controles pendientes.</span>
         </div>
       ) : (
-        <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: 10, border: '1px solid #e2e0d8', overflowX: 'auto' }}>
           {/* Head */}
-          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 90px 100px 130px 110px 70px', gap: 8, padding: '11px 16px', background: '#f8f7f4', borderBottom: '1px solid #f1efe8' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 90px 100px 130px 110px 70px', minWidth: 720, gap: 8, padding: '11px 16px', background: '#f8f7f4', borderBottom: '1px solid #f1efe8' }}>
             {['Control','Acción','Prioridad','Estado','Responsable','Fecha límite',''].map(h => (
               <div key={h} style={{ fontSize: 12, fontWeight: 600, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.3 }}>{h}</div>
             ))}
@@ -107,7 +107,7 @@ export default function PlanAccionTab({ slug, evaluationId }) {
 
             return (
               <div key={tarea.id} style={{
-                display: 'grid', gridTemplateColumns: '120px 1fr 90px 100px 130px 110px 70px',
+                display: 'grid', gridTemplateColumns: '120px 1fr 90px 100px 130px 110px 70px', minWidth: 720,
                 gap: 8, padding: '12px 16px', alignItems: 'center',
                 borderBottom: i < plan.length - 1 ? '1px solid #f8f7f4' : 'none',
               }}>
@@ -166,7 +166,7 @@ function EditModal({ tarea, onClose, onSave }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#fff', borderRadius: 14, padding: '26px', width: 420, boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+      <div style={{ background: '#fff', borderRadius: 14, padding: '26px', width: 'min(420px, 92vw)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: '#2C2C2A' }}>Editar tarea — {tarea.control_id}</h3>
         <p style={{ margin: '0 0 16px', fontSize: 14, color: '#888780', lineHeight: 1.5 }}>{tarea.action}</p>
 

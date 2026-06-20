@@ -42,7 +42,7 @@ export default function PersonalDetalle({ persona, empresaSlug, onClose, onEdit,
   const avatarStyle = ESTADO_STYLE[p.estado] || { bg: '#F1EFE8', color: '#444441' }
 
   return (
-    <div style={{
+    <div className="detail-side-panel" style={{
       width: 280, minWidth: 280, background: '#fff',
       borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column',
       height: '100%', overflow: 'hidden',

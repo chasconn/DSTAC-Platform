@@ -244,8 +244,8 @@ export default function GastosPage() {
       </div>
 
       {/* Tabla */}
-      <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, overflowX: 'auto' }}>
+        <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f8f7f4' }}>
               {['Fecha', 'Categoría', 'Proveedor / Descripción', 'Monto', 'Método', 'Realizó', 'Pagó', 'Comprobante', ''].map(h => (

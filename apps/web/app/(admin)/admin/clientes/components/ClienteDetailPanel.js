@@ -120,7 +120,7 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
     : '—'
 
   return (
-    <div style={{
+    <div className="detail-side-panel" style={{
       width: 296, minWidth: 296, background: '#fff',
       borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column',
       height: '100%', overflow: 'hidden',

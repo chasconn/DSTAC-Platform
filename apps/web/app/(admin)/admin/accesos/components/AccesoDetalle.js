@@ -84,7 +84,7 @@ export default function AccesoDetalle({ acceso, empresaSlug, onClose, onEdit, on
   }
 
   return (
-    <div style={{ width: 300, minWidth: 300, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div className="detail-side-panel" style={{ width: 300, minWidth: 300, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* Header */}
       <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #f1efe8', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>

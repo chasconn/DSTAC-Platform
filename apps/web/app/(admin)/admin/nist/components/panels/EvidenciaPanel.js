@@ -107,7 +107,7 @@ export default function EvidenciaPanel({ evidencia, slug, allEvidencias = [], on
 
   return (
     <div style={{
-      position: 'fixed', top: 0, right: 0, bottom: 0, width: 420,
+      position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(420px, 94vw)',
       background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
       display: 'flex', flexDirection: 'column', zIndex: 100, overflowY: 'auto',
     }}>
