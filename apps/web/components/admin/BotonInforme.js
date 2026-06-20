@@ -20,12 +20,24 @@ function dstacReportPreview(html) {
   btns.append(zw, dl, cl); bar.appendChild(btns); ov.appendChild(bar)
   const box = document.createElement('div'); box.style.cssText = 'flex:1;overflow:auto;background:#525659;border-radius:10px;padding:14px'
   const wrap = document.createElement('div'); wrap.style.cssText = 'margin:0 auto;position:relative'
-  const ifr = document.createElement('iframe'); ifr.style.cssText = 'width:210mm;border:0;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.5);display:block;transform-origin:top left'
+  const ifr = document.createElement('iframe'); ifr.style.cssText = 'width:794px;border:0;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.5);display:block;transform-origin:top left'
   wrap.appendChild(ifr); box.appendChild(wrap); ov.appendChild(box); document.body.appendChild(ov)
   const d = ifr.contentWindow.document; d.open(); d.write(html); d.close()
   let zoom = 1, baseW = 0, baseH = 0
   const apply = () => { if (!baseW) return; ifr.style.transform = 'scale(' + zoom + ')'; wrap.style.width = (baseW * zoom) + 'px'; wrap.style.height = (baseH * zoom) + 'px'; zlbl.textContent = Math.round(zoom * 100) + '%' }
-  const measure = () => { try { baseH = ifr.contentWindow.document.documentElement.scrollHeight } catch { baseH = 1188 } ; ifr.style.height = baseH + 'px'; baseW = ifr.offsetWidth || 794; apply() }
+  // Mide el ancho REAL del contenido (algunos informes son horizontales, ej.
+  // el brochure a 297mm) en vez de asumir siempre formato vertical de 210mm —
+  // si no, el contenido se corta y el zoom queda mal calculado.
+  const measure = () => {
+    try {
+      const docEl = ifr.contentWindow.document.documentElement
+      baseW = docEl.scrollWidth || 794
+      baseH = docEl.scrollHeight || 1123
+    } catch { baseW = 794; baseH = 1123 }
+    ifr.style.width = baseW + 'px'
+    ifr.style.height = baseH + 'px'
+    apply()
+  }
   const fit = () => { measure(); zoom = Math.max(0.5, Math.min(2, (box.clientWidth - 28) / (baseW || 794))); apply() }
   const setZ = (z) => { zoom = Math.max(0.4, Math.min(3, Math.round(z * 100) / 100)); apply() }
   ifr.onload = () => { measure(); try { ifr.contentWindow.document.fonts?.ready?.then(fit) } catch {} ; setTimeout(fit, 200) }
