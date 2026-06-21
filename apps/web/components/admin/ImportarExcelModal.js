@@ -33,15 +33,27 @@ export default function ImportarExcelModal({ modulo, empresaSlug, onClose, onImp
         credentials: 'include',
         headers: { 'X-Company-Slug': empresaSlug },
       })
-      if (!res.ok) return
+      if (!res.ok) {
+        let msg = 'No se pudo descargar la plantilla'
+        try { msg = (await res.json()).error || msg } catch {}
+        setError(msg)
+        return
+      }
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
       a.href = url
       a.download = `plantilla_${modulo}.xlsx`
+      // El link debe estar en el DOM para que .click() dispare la descarga de
+      // forma confiable en todos los navegadores (en Safari/celular, un <a>
+      // sin appendChild a veces no descarga nada y falla en silencio).
+      document.body.appendChild(a)
       a.click()
+      a.remove()
       URL.revokeObjectURL(url)
-    } catch { /* silencioso */ }
+    } catch {
+      setError('Error de conexión al descargar la plantilla')
+    }
   }
 
   // ── Selección de archivo ──────────────────────────────────────────────────
