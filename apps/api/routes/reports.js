@@ -21,6 +21,7 @@ const REPORT_MODULES = {
   diagnostico: () => require('../services/reports/diagnostico'),
   brochure:    () => require('../services/reports/brochure'),
   certificado: () => require('../services/reports/certificado'),
+  changelog:   () => require('../services/reports/changelog'),
   propuesta:   () => require('../services/reports/propuesta'),
 }
 

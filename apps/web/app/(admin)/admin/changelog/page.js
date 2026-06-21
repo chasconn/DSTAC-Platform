@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
+import BotonInforme from '../../../../components/admin/BotonInforme'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 const CATEGORIA_COLOR = {
@@ -49,10 +50,13 @@ export default function ChangelogPage() {
           <div style={{ fontSize: 22, fontWeight: 800 }}>🗒️ Registro de cambios</div>
           <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Historial interno de correcciones y mejoras de la plataforma — uso exclusivo DSTAC</div>
         </div>
-        <button onClick={() => setShowForm(true)}
-          style={{ background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-          + Nuevo registro
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <BotonInforme tipo="changelog" label="📄 Ver informe completo" />
+          <button onClick={() => setShowForm(true)}
+            style={{ background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            + Nuevo registro
+          </button>
+        </div>
       </div>
 
       {loading && <div style={{ fontSize: 13, color: '#888780' }}>Cargando…</div>}
@@ -84,7 +88,12 @@ export default function ChangelogPage() {
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', marginBottom: 6 }}>{e.titulo}</div>
                   <div style={{ fontSize: 13.5, color: '#444441', lineHeight: 1.6 }}>{e.resumen_simple}</div>
                 </div>
-                <span style={{ fontSize: 13, color: '#888780', flexShrink: 0, transform: abierta ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▾</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  <div onClick={ev => ev.stopPropagation()}>
+                    <BotonInforme tipo="changelog" label="Ver informe" query={{ id: e.id }} />
+                  </div>
+                  <span style={{ fontSize: 13, color: '#888780', transform: abierta ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▾</span>
+                </div>
               </div>
 
               {abierta && (
