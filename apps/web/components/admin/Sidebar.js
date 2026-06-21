@@ -9,6 +9,7 @@ import EmpresaSelectorModal from './EmpresaSelectorModal'
 const NAV = [
   { href: '/admin/dashboard',  label: 'Dashboard',  icon: IconDashboard  },
   { href: '/admin/clientes',   label: 'Clientes',   icon: IconClientes   },
+  { href: '/admin/onboarding', label: 'Onboarding', icon: IconOnboarding },
   { href: '/admin/prospectos', label: 'Prospectos', icon: IconProspectos },
   { href: '/admin/cotizaciones', label: 'Cotizaciones', icon: IconCotizaciones },
   { href: '/admin/diagnostico', label: 'Diagnóstico', icon: IconDiag },
@@ -639,6 +640,13 @@ function IconLey21663({ color }) {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
       <path d="M12 8v4M12 15.5h.01"/>
+    </svg>
+  )
+}
+function IconOnboarding({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M5 3v18l7-4 7 4V3z"/>
     </svg>
   )
 }
