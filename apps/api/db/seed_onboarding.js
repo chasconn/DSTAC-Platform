@@ -362,6 +362,54 @@ Pasos:
     opcional: 1,
   },
 
+  // ── Módulos que dependen del plan contratado ───────────────────────────────
+  {
+    fase: 'Módulos según plan',
+    titulo: 'Registrar Incidentes de seguridad',
+    explicacion_simple:
+      'Un "incidente" es cualquier evento de seguridad que ya ocurrió (un correo de phishing que alguien abrió, un equipo infectado, etc.). Este módulo lleva el historial. Solo está disponible desde el plan Profesional — el cliente con plan PYME no lo ve en su portal.',
+    instrucciones:
+`Qué es un "incidente": un hecho concreto que ya pasó y que afectó (o pudo afectar) la seguridad de la empresa
+— por ejemplo, alguien hizo clic en un correo de phishing real, un computador se infectó con un virus, se
+detectó un acceso no autorizado, etc. Registrar estos eventos permite ver patrones (¿se repiten los mismos
+problemas?) y medir tiempos de respuesta.
+
+Importante sobre el plan: este módulo requiere que la empresa tenga plan Profesional o Enterprise. Si la
+empresa tiene plan PYME, este paso queda marcado como "No incluido en tu plan actual" — no es un error, es
+esperado. Si el cliente quiere acceso a esto, es una oportunidad de ofrecerle subir de plan.
+
+Pasos (si el plan lo permite):
+1. Ve al módulo "Incidentes".
+2. Registra cada incidente con: qué pasó, cuándo se detectó, qué tan grave fue, y qué se hizo para resolverlo.`,
+    modulo_link: '/admin/incidentes',
+    modulo_label: 'Ir a Incidentes',
+    opcional: 1,
+    plan_minimo: 'profesional',
+  },
+  {
+    fase: 'Módulos según plan',
+    titulo: 'Gestión de Riesgos',
+    explicacion_simple:
+      'Un "riesgo" es algo que podría pasar (a diferencia del incidente, que ya pasó) y que conviene anticipar. Este módulo los registra y prioriza. También solo está disponible desde el plan Profesional.',
+    instrucciones:
+`Qué es un "riesgo" en ciberseguridad: una situación que TODAVÍA no ha causado un problema, pero que podría
+causarlo — por ejemplo, "tenemos un servidor con software desactualizado" es un riesgo; si ese servidor termina
+siendo hackeado, ESO ya sería un incidente. Gestionar riesgos es justamente anticiparse antes de que se
+conviertan en incidentes reales.
+
+Importante sobre el plan: igual que Incidentes, este módulo requiere plan Profesional o Enterprise. Con plan
+PYME aparece marcado como "No incluido en tu plan actual".
+
+Pasos (si el plan lo permite):
+1. Ve al módulo "Riesgos".
+2. Registra cada riesgo identificado: qué es, qué tan probable es que pase, qué tan grave sería si pasa, y qué
+   se está haciendo para reducirlo (el "tratamiento" del riesgo).`,
+    modulo_link: '/admin/riesgos',
+    modulo_label: 'Ir a Riesgos',
+    opcional: 1,
+    plan_minimo: 'profesional',
+  },
+
   // ── FASE 6 (opcional) ────────────────────────────────────────────────────
   {
     fase: 'Servicios técnicos opcionales',
@@ -499,15 +547,29 @@ Con esto termina el proceso de onboarding de este cliente. ¡Bien hecho!`,
 ]
 
 async function main() {
-  await centralDB.query('DELETE FROM onboarding_pasos')
-  let orden = 1
+  // Actualiza/inserta por título — NUNCA borra y reinserta todo, porque eso
+  // generaría IDs nuevos y dejaría huérfano el progreso (checkboxes) que las
+  // empresas ya tengan guardado contra los IDs anteriores.
+  let orden = 1, creados = 0, actualizados = 0
   for (const p of PASOS) {
-    await centralDB.execute(
-      `INSERT INTO onboarding_pasos (orden, fase, titulo, explicacion_simple, instrucciones, modulo_link, modulo_label, opcional)
-       VALUES (?,?,?,?,?,?,?,?)`,
-      [orden++, p.fase, p.titulo, p.explicacion_simple, p.instrucciones, p.modulo_link, p.modulo_label, p.opcional ? 1 : 0]
-    )
+    const [[ya]] = await centralDB.query('SELECT id FROM onboarding_pasos WHERE titulo = ?', [p.titulo])
+    if (ya) {
+      await centralDB.execute(
+        `UPDATE onboarding_pasos SET orden=?, fase=?, explicacion_simple=?, instrucciones=?, modulo_link=?, modulo_label=?, opcional=?, plan_minimo=?
+         WHERE id = ?`,
+        [orden, p.fase, p.explicacion_simple, p.instrucciones, p.modulo_link, p.modulo_label, p.opcional ? 1 : 0, p.plan_minimo || null, ya.id]
+      )
+      actualizados++
+    } else {
+      await centralDB.execute(
+        `INSERT INTO onboarding_pasos (orden, fase, titulo, explicacion_simple, instrucciones, modulo_link, modulo_label, opcional, plan_minimo)
+         VALUES (?,?,?,?,?,?,?,?,?)`,
+        [orden, p.fase, p.titulo, p.explicacion_simple, p.instrucciones, p.modulo_link, p.modulo_label, p.opcional ? 1 : 0, p.plan_minimo || null]
+      )
+      creados++
+    }
+    orden++
   }
-  console.log(`✓ ${PASOS.length} pasos de onboarding cargados`)
+  console.log(`✓ ${creados} pasos nuevos, ${actualizados} actualizados (total ${PASOS.length})`)
 }
 main().then(() => process.exit(0)).catch(err => { console.error('✗', err.message); process.exit(1) })

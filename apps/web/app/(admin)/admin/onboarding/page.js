@@ -9,6 +9,7 @@ const NAVY = '#1a1740', PURPLE = '#534AB7'
 export default function OnboardingPage() {
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [pasos, setPasos] = useState([])
+  const [planActual, setPlanActual] = useState('')
   const [loading, setLoading] = useState(true)
   const [abiertos, setAbiertos] = useState({})
   const [toast, setToast] = useState('')
@@ -25,7 +26,7 @@ export default function OnboardingPage() {
   const cargar = useCallback(async () => {
     if (!slug) return
     setLoading(true)
-    try { const r = await api.get('/api/admin/onboarding', headers); setPasos(r.pasos ?? []) }
+    try { const r = await api.get('/api/admin/onboarding', headers); setPasos(r.pasos ?? []); setPlanActual(r.plan_actual || '') }
     catch { showToast('No se pudo cargar el checklist') }
     finally { setLoading(false) }
   }, [slug])
@@ -59,7 +60,7 @@ export default function OnboardingPage() {
       <div style={{ background: `linear-gradient(120deg, ${NAVY}, ${PURPLE})`, borderRadius: 14, padding: '22px 26px', color: '#fff', marginBottom: 20 }}>
         <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>🚀 Onboarding de cliente</div>
         <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 16 }}>
-          {empresaActiva?.name} · Guía paso a paso, pensada para seguir sin supervisión
+          {empresaActiva?.name} · Plan {planActual ? planActual.toUpperCase() : '—'} · Guía paso a paso, pensada para seguir sin supervisión
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ flex: 1, height: 8, background: 'rgba(255,255,255,.2)', borderRadius: 999, overflow: 'hidden' }}>
@@ -93,6 +94,11 @@ export default function OnboardingPage() {
                           {!!p.opcional && (
                             <span style={{ background: '#F1EFE8', color: '#888780', fontSize: 10, fontWeight: 700, padding: '1px 8px', borderRadius: 999, textTransform: 'uppercase' }}>
                               Opcional
+                            </span>
+                          )}
+                          {!p.disponible_en_plan && (
+                            <span style={{ background: '#FFF6DD', color: '#C98A1E', fontSize: 10, fontWeight: 700, padding: '1px 8px', borderRadius: 999, textTransform: 'uppercase' }}>
+                              No incluido en tu plan actual
                             </span>
                           )}
                         </div>

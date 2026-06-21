@@ -12,10 +12,16 @@ async function main() {
       modulo_link VARCHAR(120) NULL,
       modulo_label VARCHAR(80) NULL,
       opcional TINYINT(1) NOT NULL DEFAULT 0,
+      plan_minimo VARCHAR(20) NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       KEY idx_orden (orden)
     ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
+  const [cols] = await centralDB.query(`SHOW COLUMNS FROM onboarding_pasos LIKE 'plan_minimo'`)
+  if (cols.length === 0) {
+    await centralDB.query(`ALTER TABLE onboarding_pasos ADD COLUMN plan_minimo VARCHAR(20) NULL`)
+    console.log('✓ Columna plan_minimo agregada')
+  }
   await centralDB.query(`
     CREATE TABLE IF NOT EXISTS onboarding_progreso (
       id INT AUTO_INCREMENT PRIMARY KEY,

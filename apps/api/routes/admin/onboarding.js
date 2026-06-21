@@ -9,6 +9,7 @@ const centralDB = require('../../db/central')
 
 router.use(requireAuth, requireDstacRole)
 const uid = (req) => req.user.id || req.user.user_id
+const PLAN_RANK = { pyme: 0, profesional: 1, enterprise: 2 }
 
 // Catálogo completo de pasos (no depende de la empresa).
 router.get('/pasos', async (req, res, next) => {
@@ -18,16 +19,27 @@ router.get('/pasos', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// Progreso de la empresa activa: catálogo + estado completado/no por paso.
+// Progreso de la empresa activa: catálogo + estado completado/no por paso,
+// más si cada paso está disponible en el plan actual de la empresa.
 router.get('/', resolveTenant, async (req, res, next) => {
   try {
     const [pasos] = await centralDB.execute(`SELECT * FROM onboarding_pasos ORDER BY orden`)
     const [progreso] = await centralDB.execute(
       `SELECT paso_id, completado, completado_at, notas FROM onboarding_progreso WHERE company_id = ?`,
       [req.company.id])
+    const [[plan]] = await centralDB.query(
+      `SELECT pl.name FROM companies c JOIN plans pl ON pl.id = c.plan_id WHERE c.id = ?`, [req.company.id])
+    const planActual = plan?.name || 'pyme'
+    const rankActual = PLAN_RANK[planActual] ?? 0
+
     const porPaso = new Map(progreso.map(p => [p.paso_id, p]))
     res.json({
-      pasos: pasos.map(p => ({ ...p, ...(porPaso.get(p.id) || { completado: 0, completado_at: null, notas: null }) })),
+      plan_actual: planActual,
+      pasos: pasos.map(p => ({
+        ...p,
+        ...(porPaso.get(p.id) || { completado: 0, completado_at: null, notas: null }),
+        disponible_en_plan: !p.plan_minimo || rankActual >= (PLAN_RANK[p.plan_minimo] ?? 0),
+      })),
     })
   } catch (err) { next(err) }
 })
