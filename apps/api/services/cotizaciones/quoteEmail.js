@@ -23,25 +23,16 @@ function buildQuoteEmailHtml(c, opciones = {}) {
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : 'tiempo limitado'
   const nombreContacto = c.cliente_contacto ? esc(c.cliente_contacto.split(' ')[0]) : ''
 
-  const tarjetasServicios = items.map(it => {
-    const esMensual = it.tipo === 'mensual'
-    const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
-    return `
+  const tarjetasServicios = items.map(it => `
     <tr><td style="padding:0 0 14px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${BORDER};border-radius:12px">
         <tr><td style="padding:16px 18px">
           <div style="font-size:15px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif">${esc(it.servicio)}</div>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:7px"><tr>
-            <td style="white-space:nowrap">
-              <span style="display:inline-block;background:${esMensual ? '#EEEDFE' : '#EAF6F1'};color:${esMensual ? PURPLE : GREEN};font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:3px 9px;border-radius:20px;font-family:Arial,Helvetica,sans-serif">${esMensual ? 'Mensual' : 'Pago único'}</span>
-            </td>
-            <td align="right" style="font-size:14px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif;white-space:nowrap">${clp(sub)}${esMensual ? '<span style="font-size:11px;font-weight:600;color:'+MUTED+'">/mes</span>' : ''}</td>
-          </tr></table>
-          ${it.detalle ? `<div style="font-size:13px;color:#444441;line-height:1.55;margin-top:9px;font-family:Arial,Helvetica,sans-serif">${esc(it.detalle)}</div>` : ''}
+          ${it.detalle ? `<div style="font-size:13px;color:#444441;line-height:1.55;margin-top:7px;font-family:Arial,Helvetica,sans-serif">${esc(it.detalle)}</div>` : ''}
         </td></tr>
       </table>
     </td></tr>`
-  }).join('')
+  ).join('')
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

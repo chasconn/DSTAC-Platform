@@ -9,16 +9,11 @@ const fecha = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00
 function buildQuoteHtml(c) {
   const items = c.items || []
   const t = totales(items, { tipo: c.descuento_tipo, valor: c.descuento_valor })
-  const filas = items.map(it => {
-    const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
-    return `<tr>
-      <td><div class="sv">${esc(it.servicio)}</div>${it.detalle ? `<div class="dt">${esc(it.detalle)}</div>` : ''}</td>
-      <td class="c">${it.tipo === 'mensual' ? 'Mensual' : 'Único'}</td>
-      <td class="c">${Number(it.cantidad) || 1}</td>
-      <td class="r">${clp(it.precio_unitario)}</td>
-      <td class="r">${clp(sub)}</td>
-    </tr>`
-  }).join('')
+  const itemsUnico   = items.filter(it => it.tipo !== 'mensual')
+  const itemsMensual = items.filter(it => it.tipo === 'mensual')
+  const listaItems = (arr) => arr.map(it =>
+    `<div class="item"><div class="sv">${esc(it.servicio)}</div>${it.detalle ? `<div class="dt">${esc(it.detalle)}</div>` : ''}</div>`
+  ).join('')
 
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : '—'
 
@@ -39,11 +34,10 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
 .card h3{margin:0 0 8px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#888780}
 .card .row{font-size:12px;margin:3px 0}
 .card .row b{color:#2C2C2A}
-table{width:100%;border-collapse:collapse;margin-bottom:14px}
-th{background:#3C3489;color:#fff;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:8px 10px;text-align:left}
-th.c,th.r{text-align:center}th.r{text-align:right}
-td{padding:9px 10px;border-bottom:1px solid #ececec;vertical-align:top}
-td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
+.seclabel{background:#3C3489;color:#fff;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px;border-radius:6px 6px 0 0}
+.list{border:1px solid #ececec;border-radius:0 0 6px 6px;margin-bottom:14px}
+.item{padding:10px 12px;border-bottom:1px solid #ececec}
+.item:last-child{border-bottom:none}
 .sv{font-weight:600;color:#2C2C2A}
 .dt{font-size:11px;color:#888780;margin-top:2px}
 .tots{display:flex;justify-content:flex-end;gap:14px}
@@ -80,10 +74,9 @@ td.c{text-align:center}td.r{text-align:right;white-space:nowrap}
     </div>
   </div>
 
-  <table>
-    <thead><tr><th>Servicio</th><th class="c">Tipo</th><th class="c">Cant.</th><th class="r">P. unitario</th><th class="r">Subtotal</th></tr></thead>
-    <tbody>${filas || '<tr><td colspan="5" style="text-align:center;color:#888780">Sin líneas</td></tr>'}</tbody>
-  </table>
+  ${itemsUnico.length ? `<div class="seclabel">Servicios — Pago único</div><div class="list">${listaItems(itemsUnico)}</div>` : ''}
+  ${itemsMensual.length ? `<div class="seclabel">Servicios — Mensual recurrente</div><div class="list">${listaItems(itemsMensual)}</div>` : ''}
+  ${!items.length ? `<div class="list"><div class="item" style="text-align:center;color:#888780">Sin líneas</div></div>` : ''}
 
   <div class="tots">
     ${t.netoUnico > 0 ? `<div class="tot">
