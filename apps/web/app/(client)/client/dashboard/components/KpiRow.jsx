@@ -103,7 +103,7 @@ function TrendIcon({ up }) {
 
 function KpiSkeleton() {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
       {KPI_CONFIG.map(k => (
         <div key={k.label} className="kpi-card"
           style={{ borderTop: `2px solid ${k.border}`, minHeight: 76 }}>
@@ -125,7 +125,7 @@ export default function KpiRow({ stats }) {
   if (!stats) return <KpiSkeleton />
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
       {KPI_CONFIG.map(kpi => {
         const value = kpi.getValue(stats)
         const color = kpi.getColor(stats)

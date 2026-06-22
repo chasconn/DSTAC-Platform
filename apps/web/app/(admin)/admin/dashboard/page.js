@@ -73,7 +73,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Fila 1b — NIST mini-stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 20 }}>
         {[
           { label: 'Empresas evaluadas',     value: `${ns.empresas_con_eval} / ${empresas.activas}`, color: '#3C3489' },
           { label: 'Controles pendientes',   value: ns.controles_pendientes,    color: ns.controles_pendientes > 0 ? '#E24B4A' : '#639922' },
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Fila 2 — NIST cartera + Distribución por plan */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 14, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 20 }}>
 
         {/* NIST de la cartera */}
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e0d8', padding: 20 }}>
@@ -177,7 +177,8 @@ export default function AdminDashboard() {
         {nist_por_empresa.length === 0 ? (
           <div style={{ fontSize: 13, color: '#888780', textAlign: 'center', padding: '20px 0' }}>Sin empresas activas</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div style={{ overflowX: 'auto' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, minWidth: 640 }}>
             {nist_por_empresa.map((emp, i) => {
               const score = emp.score_total ?? null
               const pct   = score ?? 0
@@ -241,6 +242,7 @@ export default function AdminDashboard() {
                 </div>
               )
             })}
+          </div>
           </div>
         )}
       </div>
@@ -317,12 +319,12 @@ function DashboardSkeleton() {
           <div key={i} style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e0d8', padding: '18px 20px', height: 100 }} />
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14, marginBottom: 20 }}>
         {[0,1,2,3].map(i => (
           <div key={i} style={{ background: '#fff', borderRadius: 10, border: '1px solid #e2e0d8', height: 56 }} />
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 14, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 20 }}>
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e0d8', height: 220 }} />
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e0d8', height: 220 }} />
       </div>
