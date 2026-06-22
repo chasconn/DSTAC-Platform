@@ -74,7 +74,14 @@ export default function ChangePasswordPage() {
     <div style={{ minHeight: '100vh', position: 'relative', background: '#13102b', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <NetworkBackground />
 
-      <div style={{ position: 'relative', width: '100%', maxWidth: 380, background: '#fff', borderRadius: 16, padding: '36px 38px', boxShadow: '0 20px 60px rgba(0,0,0,0.45)', boxSizing: 'border-box' }}>
+      <div style={{
+        position: 'relative', width: '100%', maxWidth: 380,
+        background: 'rgba(255,255,255,0.92)',
+        WebkitBackdropFilter: 'blur(20px)', backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.4)',
+        borderRadius: 16, padding: '36px 38px',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.45)', boxSizing: 'border-box',
+      }}>
 
           <div style={{ fontWeight: 700, fontSize: 15, color: '#1c1c22', marginBottom: 20 }}>
             DSTAC <span style={{ color: '#534AB7' }}>SECURITY</span>
