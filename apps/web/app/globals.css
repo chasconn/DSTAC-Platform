@@ -208,7 +208,9 @@
   margin: 8px 0;
 }
 
-/* Topbar del portal cliente */
+/* Topbar del portal cliente — NO sticky: con position:sticky + fondo
+   semitransparente quedaba flotando sobre las tarjetas al hacer scroll,
+   mostrando el contenido "fundido" detrás en vez de tapado limpio. */
 .client-topbar {
   height: 44px;
   background: rgba(255, 255, 255, 0.92);
@@ -219,9 +221,6 @@
   gap: 8px;
   flex-shrink: 0;
   backdrop-filter: blur(8px);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 /* ── Modal selector de empresa ─────────────────────────────────────────────── */
