@@ -6,32 +6,73 @@ import { usePathname, useRouter } from 'next/navigation'
 import { getUser, clearSession } from '../../lib/auth'
 import EmpresaSelectorModal from './EmpresaSelectorModal'
 
-const NAV = [
-  { href: '/admin/dashboard',  label: 'Dashboard',  icon: IconDashboard  },
-  { href: '/admin/clientes',   label: 'Clientes',   icon: IconClientes   },
-  { href: '/admin/onboarding', label: 'Onboarding', icon: IconOnboarding },
-  { href: '/admin/prospectos', label: 'Prospectos', icon: IconProspectos },
-  { href: '/admin/cotizaciones', label: 'Cotizaciones', icon: IconCotizaciones },
-  { href: '/admin/diagnostico', label: 'Diagnóstico', icon: IconDiag },
-  { href: '/admin/ley21663',    label: 'Ley 21.663',  icon: IconLey21663 },
-  { href: '/admin/ley21719',    label: 'Ley 21.719',  icon: IconLey21719 },
-  { href: '/admin/phishing',    label: 'Phishing',    icon: IconPhishing },
-  { href: '/admin/gastos',     label: 'Gastos',     icon: IconGastos     },
-  { href: '/admin/usuarios',   label: 'Usuarios',   icon: IconUsuarios   },
-  { href: '/admin/changelog',  label: 'Registro de cambios', icon: IconChangelog },
-  { href: '/admin/personal',   label: 'Personal',   icon: IconPersonal   },
-  { href: '/admin/activos',    label: 'Activos',    icon: IconActivos    },
-  { href: '/admin/identidades', label: 'Identidades', icon: IconIdentidades },
-  { href: '/admin/accesos',     label: 'Accesos',     icon: IconAccesos     },
-  { href: '/admin/incidentes',  label: 'Incidentes',  icon: IconIncidentes  },
-  { href: '/admin/riesgos',     label: 'Riesgos',     icon: IconRiesgos     },
-  { href: '/admin/nist',        label: 'NIST',        icon: IconNist        },
-  { href: '/admin/iso',         label: 'ISO 27001',   icon: IconIso         },
-  { href: '/admin/edr',         label: 'EDR',         icon: IconEdr         },
-  { href: '/admin/mdm',         label: 'MDM Móviles', icon: IconMdm         },
-  { href: '/admin/pendientes',  label: 'Pendientes',  icon: IconPendientes  },
-  { href: '/admin/sitio',       label: 'Sitio web',   icon: IconSitio       },
+const NAV_GROUPS = [
+  {
+    titulo: 'Inicio',
+    items: [
+      { href: '/admin/dashboard',  label: 'Dashboard',  icon: IconDashboard  },
+      { href: '/admin/clientes',   label: 'Clientes',   icon: IconClientes   },
+    ],
+  },
+  {
+    titulo: 'Comercial',
+    items: [
+      { href: '/admin/prospectos',   label: 'Prospectos',   icon: IconProspectos   },
+      { href: '/admin/cotizaciones', label: 'Cotizaciones', icon: IconCotizaciones },
+      { href: '/admin/sitio',        label: 'Sitio web',    icon: IconSitio        },
+    ],
+  },
+  {
+    titulo: 'Onboarding',
+    items: [
+      { href: '/admin/onboarding',  label: 'Onboarding',  icon: IconOnboarding },
+      { href: '/admin/diagnostico', label: 'Diagnóstico', icon: IconDiag       },
+    ],
+  },
+  {
+    titulo: 'Datos del cliente',
+    items: [
+      { href: '/admin/personal',    label: 'Personal',    icon: IconPersonal    },
+      { href: '/admin/activos',     label: 'Activos',     icon: IconActivos     },
+      { href: '/admin/identidades', label: 'Identidades', icon: IconIdentidades },
+      { href: '/admin/accesos',     label: 'Accesos',     icon: IconAccesos     },
+    ],
+  },
+  {
+    titulo: 'Cumplimiento y riesgo',
+    items: [
+      { href: '/admin/incidentes', label: 'Incidentes', icon: IconIncidentes },
+      { href: '/admin/riesgos',    label: 'Riesgos',    icon: IconRiesgos    },
+      { href: '/admin/nist',       label: 'NIST',       icon: IconNist       },
+      { href: '/admin/iso',        label: 'ISO 27001',  icon: IconIso        },
+      { href: '/admin/ley21663',   label: 'Ley 21.663', icon: IconLey21663   },
+      { href: '/admin/ley21719',   label: 'Ley 21.719', icon: IconLey21719   },
+    ],
+  },
+  {
+    titulo: 'Servicios técnicos',
+    items: [
+      { href: '/admin/edr',      label: 'EDR',         icon: IconEdr      },
+      { href: '/admin/mdm',      label: 'MDM Móviles', icon: IconMdm      },
+      { href: '/admin/phishing', label: 'Phishing',    icon: IconPhishing },
+    ],
+  },
+  {
+    titulo: 'Administración',
+    items: [
+      { href: '/admin/gastos',      label: 'Gastos',     icon: IconGastos     },
+      { href: '/admin/usuarios',    label: 'Usuarios',   icon: IconUsuarios   },
+      { href: '/admin/pendientes',  label: 'Pendientes', icon: IconPendientes },
+      { href: '/admin/changelog',   label: 'Registro de cambios', icon: IconChangelog },
+    ],
+  },
 ]
+
+const SECTION_LABEL_STYLE = {
+  fontSize: 10.5, fontWeight: 700, color: '#7F77DD',
+  textTransform: 'uppercase', letterSpacing: '0.07em',
+  padding: '12px 8px 4px', whiteSpace: 'nowrap', overflow: 'hidden',
+}
 
 export default function Sidebar() {
   const [collapsed, setCollapsed]         = useState(false)
@@ -289,9 +330,12 @@ export default function Sidebar() {
 
       {/* Navegación */}
       <nav style={{ flex: 1, padding: '8px 6px', overflowY: 'auto' }}>
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href)
-          return (
+        {NAV_GROUPS.map(group => (
+          <div key={group.titulo}>
+            {!collapsed && <div style={SECTION_LABEL_STYLE}>{group.titulo}</div>}
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = pathname.startsWith(href)
+              return (
             <div key={href}>
               <Link
                 href={href}
@@ -377,8 +421,10 @@ export default function Sidebar() {
                 </div>
               )}
             </div>
-          )
-        })}
+              )
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Usuario + logout */}
