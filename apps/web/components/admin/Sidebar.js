@@ -83,8 +83,20 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen]       = useState(false)
   const [theme, setTheme]                 = useState('light')
   const [viendoComoCliente, setViendoComoCliente] = useState(false)
+  const [openGroups, setOpenGroups] = useState({})
   const pathname = usePathname()
   const router   = useRouter()
+
+  // Abre automáticamente la categoría que contiene la ruta activa (las demás
+  // quedan colapsadas hasta que el usuario las abra manualmente).
+  useEffect(() => {
+    const activa = NAV_GROUPS.find(g => g.items.some(i => pathname.startsWith(i.href)))
+    if (activa) setOpenGroups(prev => ({ ...prev, [activa.titulo]: true }))
+  }, [pathname])
+
+  function toggleGroup(titulo) {
+    setOpenGroups(prev => ({ ...prev, [titulo]: !prev[titulo] }))
+  }
 
   async function verComoCliente() {
     if (!empresaActiva?.slug) return
@@ -330,10 +342,24 @@ export default function Sidebar() {
 
       {/* Navegación */}
       <nav style={{ flex: 1, padding: '8px 6px', overflowY: 'auto' }}>
-        {NAV_GROUPS.map(group => (
+        {NAV_GROUPS.map(group => {
+          const abierto = collapsed || !!openGroups[group.titulo]
+          return (
           <div key={group.titulo}>
-            {!collapsed && <div style={SECTION_LABEL_STYLE}>{group.titulo}</div>}
-            {group.items.map(({ href, label, icon: Icon }) => {
+            {!collapsed && (
+              <button
+                onClick={() => toggleGroup(group.titulo)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+                  ...SECTION_LABEL_STYLE,
+                }}
+              >
+                <span>{group.titulo}</span>
+                <IconChevron rotated={abierto} />
+              </button>
+            )}
+            {abierto && group.items.map(({ href, label, icon: Icon }) => {
               const active = pathname.startsWith(href)
               return (
             <div key={href}>
@@ -424,7 +450,8 @@ export default function Sidebar() {
               )
             })}
           </div>
-        ))}
+          )
+        })}
       </nav>
 
       {/* Usuario + logout */}
@@ -726,6 +753,14 @@ function IconMdm({ color }) {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <rect x="7" y="2" width="10" height="20" rx="2"/>
       <line x1="11" y1="18" x2="13" y2="18"/>
+    </svg>
+  )
+}
+function IconChevron({ rotated }) {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7F77DD" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      style={{ flexShrink: 0, transition: 'transform 0.18s', transform: rotated ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+      <polyline points="6 9 12 15 18 9"/>
     </svg>
   )
 }
