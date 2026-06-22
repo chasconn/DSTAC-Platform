@@ -171,7 +171,7 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
                     <button onClick={() => quitar(i)} title="Quitar línea" style={{ background: '#FCEBEB', border: 'none', borderRadius: 8, cursor: 'pointer', color: '#C0392B', fontSize: 12.5, fontWeight: 600, padding: '9px 14px', whiteSpace: 'nowrap' }}>Quitar</button>
                   </div>
                   <input value={it.detalle} onChange={e => setItem(i, 'detalle', e.target.value)} placeholder="Detalle / descripción (opcional)" style={inp} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '150px 110px 1fr 1fr', gap: 12, marginTop: 10, alignItems: 'end' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12, marginTop: 10, alignItems: 'end' }}>
                     <div><label style={lbl}>Tipo</label><select value={it.tipo} onChange={e => setItem(i, 'tipo', e.target.value)} style={inp}><option value="unico">Único</option><option value="mensual">Mensual</option></select></div>
                     <div><label style={lbl}>Cantidad</label><input type="number" min="1" value={it.cantidad} onChange={e => setItem(i, 'cantidad', e.target.value)} style={inp} /></div>
                     <div><label style={lbl}>Precio unitario</label><input type="number" min="0" value={it.precio_unitario} onChange={e => setItem(i, 'precio_unitario', e.target.value)} placeholder="0" style={inp} /></div>
@@ -184,7 +184,7 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
             {/* Descuento — porcentaje o monto fijo, aplicado sobre el neto antes de IVA */}
             <div style={{ background: '#FAFAF8', border: '1px solid #ECEAE3', borderRadius: 10, padding: 14, marginBottom: 14 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', marginBottom: 10 }}>Descuento</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '140px 140px 1fr', gap: 12, alignItems: 'end' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, alignItems: 'end' }}>
                 <div>
                   <label style={lbl}>Tipo</label>
                   <select value={f.descuento_tipo} onChange={e => set('descuento_tipo', e.target.value)} style={inp}>

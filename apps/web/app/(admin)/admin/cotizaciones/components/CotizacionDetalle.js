@@ -78,7 +78,7 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
               <div style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', whiteSpace: 'nowrap' }}>{clp((Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0))}</div>
             </div>
           ))}
-          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 'auto', width: 240 }}>
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10, marginLeft: 'auto', width: 'min(240px, 100%)' }}>
             {t.netoUnico > 0 && (
               <div>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: '#888780', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 2 }}>Pago único</div>
