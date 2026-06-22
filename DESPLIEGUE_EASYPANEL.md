@@ -47,6 +47,17 @@ Crear proyecto **`dstac-portal`**.
 - Puerto contenedor: **3000**.
 - **Dominio:** `portal.dstac.cl` → EasyPanel/Traefik emite **SSL (Let's Encrypt)** automático.
 
+## 4.1 Servicio DTE (opcional, módulo de Facturación)
+- Solo si vas a emitir DTE reales ante el SII desde la plataforma (ver
+  `apps/dte/README.md`). Sin este servicio, el módulo de Facturación sigue
+  funcionando como registro interno.
+- App desde **GitHub** → build **Dockerfile** = `Dockerfile.dte`, **contexto = raíz**.
+- Puerto contenedor: **8080** (interno, sin dominio público).
+- Monta volúmenes persistentes para `/app/storage/cert` y `/app/storage/caf`
+  (certificado y CAF — nunca van en git).
+- En el servicio **API**, agrega `DTE_SERVICE_URL=http://<nombre-servicio-dte>:8080`
+  y `DTE_SERVICE_TOKEN` (debe coincidir con el configurado en el servicio DTE).
+
 ## 5. Inicializar la base de datos
 En la **consola del servicio API** (EasyPanel → API → Console):
 ```
@@ -55,6 +66,11 @@ node apps/api/db/setup.js          # crea BD central + tablas + empresa interna 
 node apps/api/db/setup.js --demo
 ```
 Luego crear/confirmar el **usuario admin DSTAC** (ver `apps/api/db/seed.js`).
+
+Para el módulo de Facturación (tablas `facturas` / `factura_items`):
+```
+node apps/api/db/migrate_facturacion.js
+```
 
 ## 6. Verificación
 - `https://portal.dstac.cl` carga el login (SSL válido).

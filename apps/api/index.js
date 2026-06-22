@@ -78,6 +78,7 @@ app.use('/api/admin/ley21719',     require('./routes/admin/ley21719'))
 app.use('/api/admin/changelog',    require('./routes/admin/changelog'))
 app.use('/api/admin/onboarding',   require('./routes/admin/onboarding'))
 app.use('/api/admin/gastos',       require('./routes/admin/gastos'))
+app.use('/api/admin/facturacion',  require('./routes/admin/facturacion'))
 app.use('/api/admin/phishing',     require('./routes/admin/phishing'))
 
 // Health check

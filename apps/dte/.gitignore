@@ -1,0 +1,6 @@
+vendor/
+storage/cert/*
+storage/caf/*
+!storage/cert/.gitkeep
+!storage/caf/.gitkeep
+.env

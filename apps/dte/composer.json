@@ -1,0 +1,15 @@
+{
+    "name": "dstac/dte-service",
+    "description": "Microservicio interno para timbrar y enviar DTE al SII usando LibreDTE (autohospedado).",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.2",
+        "libredte/libredte-lib-core": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dstac\\Dte\\": "src/"
+        }
+    }
+}

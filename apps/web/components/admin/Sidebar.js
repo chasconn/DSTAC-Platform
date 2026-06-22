@@ -61,6 +61,7 @@ const NAV_GROUPS = [
     titulo: 'Administración',
     items: [
       { href: '/admin/gastos',      label: 'Gastos',     icon: IconGastos     },
+      { href: '/admin/facturacion', label: 'Facturación', icon: IconFacturacion },
       { href: '/admin/usuarios',    label: 'Usuarios',   icon: IconUsuarios   },
       { href: '/admin/pendientes',  label: 'Pendientes', icon: IconPendientes },
       { href: '/admin/changelog',   label: 'Registro de cambios', icon: IconChangelog },
@@ -546,6 +547,14 @@ function IconGastos({ color }) {
       <circle cx="12" cy="12" r="9"/>
       <path d="M14.5 9.5a2.5 2.5 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1 2-2.5 2a2.7 2.7 0 0 1-2.5-1.5"/>
       <line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/>
+    </svg>
+  )
+}
+function IconFacturacion({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M7 3h10v18l-2.5-1.5L12 21l-2.5-1.5L7 21V3z"/>
+      <line x1="9.5" y1="8" x2="14.5" y2="8"/><line x1="9.5" y1="12" x2="14.5" y2="12"/>
     </svg>
   )
 }
