@@ -3,17 +3,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../../../lib/api'
 import { saveUserDisplay, getRedirectPath } from '../../../lib/auth'
+import NetworkBackground from '../../../components/NetworkBackground'
 
 const STEPS = { CREDENTIALS: 1, MFA: 2, SUCCESS: 3 }
 
 const CHECKS = ['Usuario', 'Contraseña', 'Empresa', 'Permisos', 'MFA']
-
-const FEATURES = [
-  'Gestión de activos e identidades',
-  'Monitoreo de incidentes en tiempo real',
-  'Marco NIST CSF integrado',
-  'Reportes PDF y Excel automatizados',
-]
 
 export default function LoginPage() {
   const [step, setStep]             = useState(STEPS.CREDENTIALS)
@@ -138,46 +132,17 @@ export default function LoginPage() {
   }
 
   // ─── Render ────────────────────────────────────────────────────────────────
+  // Fondo animado a pantalla completa (sin breakpoints que lo oculten en
+  // tablet) con la tarjeta de login centrada encima — reemplaza el panel
+  // lateral que antes solo se veía en desktop (≥1024px).
   return (
-    <div style={{ minHeight: '100vh', display: 'flex' }}>
+    <div style={{ minHeight: '100vh', position: 'relative', background: '#13102b', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <NetworkBackground />
 
-      {/* ── Panel izquierdo ─────────────────────────────────────────────── */}
-      <div style={{
-        display: 'none',
-        width: '50%',
-        background: '#26215C',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '48px',
-        '@media (min-width: 1024px)': { display: 'flex' }
-      }}
-        className="hidden lg:flex lg:flex-col"
-      >
-        <span style={{ color: '#fff', fontWeight: 700, fontSize: 22, letterSpacing: 2 }}>DSTAC</span>
-
-        <div>
-          <h1 style={{ color: '#fff', fontSize: 38, fontWeight: 800, lineHeight: 1.2, marginBottom: 16 }}>
-            Plataforma de<br />Ciberseguridad
-          </h1>
-          <p style={{ color: '#AFA9EC', fontSize: 16, marginBottom: 32 }}>
-            Gestiona la postura de seguridad de tu empresa desde un solo lugar.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {FEATURES.map(f => (
-              <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7F77DD', flexShrink: 0 }} />
-                <span style={{ color: '#CECBF6', fontSize: 14 }}>{f}</span>
-              </div>
-            ))}
+      <div style={{ position: 'relative', width: '100%', maxWidth: 380, background: '#fff', borderRadius: 16, padding: '36px 38px', boxShadow: '0 20px 60px rgba(0,0,0,0.45)', boxSizing: 'border-box' }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#1c1c22', marginBottom: 20 }}>
+            DSTAC <span style={{ color: '#534AB7' }}>SECURITY</span>
           </div>
-        </div>
-
-        <p style={{ color: '#534AB7', fontSize: 12 }}>© 2026 DSTAC — Todos los derechos reservados</p>
-      </div>
-
-      {/* ── Panel derecho ───────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, background: '#fff' }}>
-        <div style={{ width: '100%', maxWidth: 360 }}>
 
           {/* Indicador de progreso */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 36 }}>
@@ -359,7 +324,6 @@ export default function LoginPage() {
             </div>
           )}
 
-        </div>
       </div>
     </div>
   )

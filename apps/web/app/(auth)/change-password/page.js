@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { saveUserDisplay, getRedirectPath } from '../../../lib/auth'
+import NetworkBackground from '../../../components/NetworkBackground'
 
 const REQUISITOS = [
   { id: 'length',   label: 'Mínimo 8 caracteres',          test: p => p.length >= 8            },
@@ -70,35 +71,14 @@ export default function ChangePasswordPage() {
   if (!changeToken) return null
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex' }}>
+    <div style={{ minHeight: '100vh', position: 'relative', background: '#13102b', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <NetworkBackground />
 
-      {/* Panel izquierdo */}
-      <div className="hidden lg:flex lg:flex-col"
-        style={{ width: '50%', background: '#26215C', flexDirection: 'column', justifyContent: 'space-between', padding: '48px' }}>
-        <span style={{ color: '#fff', fontWeight: 700, fontSize: 22, letterSpacing: 2 }}>DSTAC</span>
-        <div>
-          <h1 style={{ color: '#fff', fontSize: 32, fontWeight: 800, lineHeight: 1.2, marginBottom: 16 }}>
-            Establece tu<br />contraseña
-          </h1>
-          <p style={{ color: '#AFA9EC', fontSize: 15, marginBottom: 28, lineHeight: 1.6 }}>
-            Tu cuenta fue creada con una contraseña temporal.<br />
-            Elige una contraseña personal segura para continuar.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {REQUISITOS.map(r => (
-              <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#7F77DD', flexShrink: 0 }} />
-                <span style={{ color: '#CECBF6', fontSize: 14 }}>{r.label}</span>
-              </div>
-            ))}
+      <div style={{ position: 'relative', width: '100%', maxWidth: 380, background: '#fff', borderRadius: 16, padding: '36px 38px', boxShadow: '0 20px 60px rgba(0,0,0,0.45)', boxSizing: 'border-box' }}>
+
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#1c1c22', marginBottom: 20 }}>
+            DSTAC <span style={{ color: '#534AB7' }}>SECURITY</span>
           </div>
-        </div>
-        <p style={{ color: '#534AB7', fontSize: 12 }}>© 2026 DSTAC — Todos los derechos reservados</p>
-      </div>
-
-      {/* Panel derecho */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, background: '#fff' }}>
-        <div style={{ width: '100%', maxWidth: 380 }}>
 
           <div style={{ marginBottom: 32 }}>
             <h2 style={{ fontSize: 24, fontWeight: 700, color: '#2C2C2A', margin: '0 0 4px' }}>Nueva contraseña</h2>
@@ -202,7 +182,6 @@ export default function ChangePasswordPage() {
           <p style={{ marginTop: 24, fontSize: 12, color: '#B4B2A9', textAlign: 'center' }}>
             ¿Necesitas ayuda? Contacta a tu administrador DSTAC.
           </p>
-        </div>
       </div>
     </div>
   )
