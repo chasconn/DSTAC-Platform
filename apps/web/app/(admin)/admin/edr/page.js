@@ -7,7 +7,9 @@ import BotonInforme from '../../../../components/admin/BotonInforme'
 // ── Instaladores de agente — comandos listos para copiar/pegar. La clave de
 // enrolamiento NO se expone aquí (vive en /var/ossec/etc/authd.pass del
 // manager); se reemplaza el placeholder <CLAVE> al pegarla.
-const RAW_BASE = 'https://raw.githubusercontent.com/chasconn/DSTAC-Platform/main/deploy/wazuh'
+// Servidos desde nuestro propio portal (apps/web/public/installers) — no
+// dependen de que el repositorio de GitHub sea público.
+const RAW_BASE = 'https://portal.dstac.cl/installers'
 const INSTALADORES = [
   {
     id: 'linux', label: 'Linux',
