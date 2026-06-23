@@ -126,7 +126,9 @@ async function getTodayStats() {
     alertas: acc.alertas + (h.totalAlerts || 0),
     eventos: acc.eventos + (h.events || 0),
   }), { alertas: 0, eventos: 0 })
-  return totales
+  // Serie horaria (solo conteos por hora, para graficar tendencia del día)
+  const serie = horas.map(h => ({ hora: h.hour, alertas: h.totalAlerts || 0 }))
+  return { ...totales, serie }
 }
 
 module.exports = { listAgents, activeResponse, deleteAgent, getAgentOs, getToken, getAgentsSummary, getTodayStats }

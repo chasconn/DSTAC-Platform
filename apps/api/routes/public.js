@@ -177,6 +177,7 @@ router.get('/security-activity', async (req, res) => {
       endpoints_monitoreados: agentes.activos,
       alertas_hoy: stats.alertas,
       eventos_hoy: stats.eventos,
+      serie_horas: stats.serie,
       actualizado_at: new Date().toISOString(),
     }
     activityCache = { data, expiresAt: Date.now() + 3 * 60 * 1000 }
