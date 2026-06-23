@@ -315,7 +315,7 @@ export default function EdrPage() {
   const visibles = nivelMin ? alerts.filter(a => a.rule_level >= Number(nivelMin)) : alerts
 
   return (
-    <div style={{ padding: 26, maxWidth: 1240, margin: '0 auto' }}>
+    <div className="edr-page" style={{ padding: 26, maxWidth: 1240, margin: '0 auto', overflowX: 'hidden' }}>
       <style>{`
         @keyframes edrPulse { 0%{box-shadow:0 0 0 0 rgba(29,158,117,.55)} 70%{box-shadow:0 0 0 7px rgba(29,158,117,0)} 100%{box-shadow:0 0 0 0 rgba(29,158,117,0)} }
         @keyframes edrFade { from{opacity:0; transform:translateY(7px)} to{opacity:1; transform:none} }
@@ -325,20 +325,26 @@ export default function EdrPage() {
         .edr-row:hover{ background: #FAFAF7; }
         .edr-dot-live{ animation: edrPulse 2.2s infinite; }
         .edr-bar{ transition: width .7s cubic-bezier(.2,.8,.2,1); }
+        .edr-header-actions{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        @media (max-width: 600px) {
+          .edr-page{ padding: 14px !important; }
+          .edr-header-actions{ width: 100%; }
+          .edr-header-actions > * { flex: 1 1 auto; }
+        }
       `}</style>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 22 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 46, height: 46, borderRadius: 14, background: 'linear-gradient(135deg,#3C3489,#6E63D8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px -8px rgba(60,52,137,.6)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+          <div style={{ width: 46, height: 46, flexShrink: 0, borderRadius: 14, background: 'linear-gradient(135deg,#3C3489,#6E63D8)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px -8px rgba(60,52,137,.6)' }}>
             <IconShield color="#fff" size={24} />
           </div>
-          <div>
-            <h1 style={{ fontSize: 23, fontWeight: 800, color: '#2C2C2A', margin: 0, letterSpacing: -0.3 }}>EDR · Detección y respuesta</h1>
-            <p style={{ fontSize: 12.5, color: '#888780', margin: '3px 0 0' }}>Telemetría de endpoints de {empresaActiva.name} · <span style={{ color: '#7F77DD' }}>Wazuh</span></p>
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontSize: 23, fontWeight: 800, color: '#2C2C2A', margin: 0, letterSpacing: -0.3, overflowWrap: 'break-word' }}>EDR · Detección y respuesta</h1>
+            <p style={{ fontSize: 12.5, color: '#888780', margin: '3px 0 0', overflowWrap: 'break-word' }}>Telemetría de endpoints de {empresaActiva.name} · <span style={{ color: '#7F77DD' }}>Wazuh</span></p>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="edr-header-actions">
           <button onClick={toggleProteccion} title="Activar / desactivar la protección de esta empresa"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 13px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, background: protegida ? '#EAF6F1' : '#FCEBEB', color: protegida ? '#0F6E56' : '#791F1F' }}>
             <span className={protegida ? 'edr-dot-live' : ''} style={{ width: 8, height: 8, borderRadius: '50%', background: protegida ? '#1D9E75' : '#C0392B' }} />
