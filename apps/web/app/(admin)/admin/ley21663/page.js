@@ -126,7 +126,7 @@ export default function Ley21663Page() {
           <div style={{ fontSize: 22, fontWeight: 800 }}>🛡️ Ley N° 21.663 · Ciberseguridad</div>
           <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{empresaActiva?.name} · Ley Marco de Ciberseguridad · {respondidas}/{preguntas.length} respondidas</div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button onClick={descargarDocumento} disabled={descargando}
             style={{ background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             📄 {descargando ? 'Descargando…' : 'Descargar política (.docx)'}
@@ -226,7 +226,7 @@ export default function Ley21663Page() {
                 <div style={{ fontSize: 18, fontWeight: 800, color: scoreColor(resultado.scoreTotal) }}>Nivel {resultado.nivel}</div>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {resultado.nivel === 'Alto' && !certResult?.codigo && (
                 <>
                   <BotonInforme tipo="certificado" slug={slug} label="👁 Vista previa" query={{ evaluacionId: resultado.id, ley: '21663', preview: 1 }} />

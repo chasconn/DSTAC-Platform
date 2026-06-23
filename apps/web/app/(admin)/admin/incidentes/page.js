@@ -202,7 +202,8 @@ export default function IncidentesPage() {
         </div>
 
         {/* Tabla */}
-        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflowX: 'auto' }}>
+          <div style={{ minWidth: 640 }}>
           {/* Cabecera */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1.2fr 1fr', gap: 12, padding: '8px 18px', background: '#fafaf8', borderBottom: '1px solid #e2e0d8' }}>
             {['Tipo / Categoría', 'Severidad', 'Estado', 'Detección', 'Responsable'].map(c => (
@@ -247,6 +248,7 @@ export default function IncidentesPage() {
               </div>
             )
           })}
+          </div>
         </div>
 
         {/* Paginación */}

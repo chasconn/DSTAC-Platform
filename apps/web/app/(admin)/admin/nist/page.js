@@ -7,8 +7,19 @@ import BotonInforme from '../../../../components/admin/BotonInforme'
 import FunctionCard  from './components/FunctionCard'
 import NistScoreRing from './components/NistScoreRing'
 
+function useIsMobile(bp = 820) {
+  const [m, setM] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${bp}px)`)
+    const upd = () => setM(mq.matches); upd()
+    mq.addEventListener('change', upd); return () => mq.removeEventListener('change', upd)
+  }, [bp])
+  return m
+}
+
 export default function NistPage() {
   const router = useRouter()
+  const isMobile = useIsMobile()
 
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [stats,         setStats]         = useState(null)
@@ -184,7 +195,7 @@ export default function NistPage() {
           {loading ? (
             <div style={{ textAlign: 'center', padding: 60, color: '#888780', fontSize: 13 }}>Cargando evaluación…</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 20, alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '340px 1fr', gap: 20, alignItems: 'start' }}>
 
               {/* Columna izquierda */}
               <div>
