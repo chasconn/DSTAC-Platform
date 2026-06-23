@@ -14,8 +14,16 @@ set -euo pipefail
 
 WAZUH_MANAGER_IP="2.25.183.242"
 WAZUH_ENROLL_PASSWORD="${WAZUH_ENROLL_PASSWORD:-__REEMPLAZAR_POR_CLAVE_DE_ENROLAMIENTO__}"
-PKG_URL="https://packages.wazuh.com/4.x/macos/wazuh-agent-4.14.5-1.intel64.pkg"
 OSSEC_DIR="/Library/Ossec"
+
+# Detecta arquitectura del Mac — los MacBook con Apple Silicon (M1/M2/M3/M4)
+# necesitan el paquete arm64, no el intel64 (instalar el equivocado falla o
+# corre con compatibilidad Rosetta de forma inestable).
+case "$(uname -m)" in
+  arm64)  PKG_ARCH="arm64" ;;
+  *)      PKG_ARCH="intel64" ;;
+esac
+PKG_URL="https://packages.wazuh.com/4.x/macos/wazuh-agent-4.14.5-1.${PKG_ARCH}.pkg"
 
 AGENT_NAME=""
 AGENT_GROUP=""
@@ -59,6 +67,7 @@ c_inf "   DSTAC EDR · Instalador de agente (macOS)"
 c_inf "════════════════════════════════════════════"
 c_inf "Agente:  $AGENT_NAME"
 c_inf "Manager: $WAZUH_MANAGER_IP"
+c_inf "Arquitectura: $(uname -m) → paquete $PKG_ARCH"
 [ -n "$AGENT_COMPANY" ] && c_inf "Empresa: $AGENT_COMPANY (auto-asignación)"
 echo
 
