@@ -228,7 +228,7 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
               )}
               {t.netoMensual > 0 && (
                 <div style={{ width: 240, background: '#F4F2FB', border: '1px solid #DAD6F2', borderRadius: 10, padding: '10px 14px' }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#3C3489', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 4 }}>Mensual recurrente</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#3C3489', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 4 }}>Mensual</div>
                   {t.descMensual > 0 && <Row l="Neto bruto" v={clp(t.netoMensualBruto)} />}
                   {t.descMensual > 0 && <Row l="Descuento" v={`− ${clp(t.descMensual)}`} />}
                   <Row l="Neto" v={clp(t.netoMensual)} />

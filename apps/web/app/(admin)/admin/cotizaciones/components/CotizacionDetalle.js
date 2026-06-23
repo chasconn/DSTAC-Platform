@@ -91,7 +91,7 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
             )}
             {t.netoMensual > 0 && (
               <div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#3C3489', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 2 }}>Mensual recurrente</div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#3C3489', textTransform: 'uppercase', letterSpacing: .4, marginBottom: 2 }}>Mensual</div>
                 {t.descMensual > 0 && <Row l="Neto bruto" v={clp(t.netoMensualBruto)} />}
                 {t.descMensual > 0 && <Row l="Descuento" v={`− ${clp(t.descMensual)}`} />}
                 <Row l="Neto" v={clp(t.netoMensual)} />

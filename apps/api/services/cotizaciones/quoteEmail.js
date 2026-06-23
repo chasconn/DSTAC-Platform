@@ -107,7 +107,7 @@ function buildQuoteEmailHtml(c, opciones = {}) {
             <td width="50%" style="padding-left:${t.netoUnico > 0 ? '6' : '0'}px">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEEDFE;border-radius:10px">
                 <tr><td style="padding:14px 16px">
-                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${PURPLE}">Mensual recurrente</div>
+                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${PURPLE}">Mensual</div>
                   <div style="font-size:21px;font-weight:800;color:${PURPLE};margin-top:4px">${clp(t.totalMensual)}<span style="font-size:12px;font-weight:600">/mes</span></div>
                 </td></tr>
               </table>

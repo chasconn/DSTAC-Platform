@@ -75,7 +75,7 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
   </div>
 
   ${itemsUnico.length ? `<div class="seclabel">Servicios — Pago único</div><div class="list">${listaItems(itemsUnico)}</div>` : ''}
-  ${itemsMensual.length ? `<div class="seclabel">Servicios — Mensual recurrente</div><div class="list">${listaItems(itemsMensual)}</div>` : ''}
+  ${itemsMensual.length ? `<div class="seclabel">Servicios — Mensual</div><div class="list">${listaItems(itemsMensual)}</div>` : ''}
   ${!items.length ? `<div class="list"><div class="item" style="text-align:center;color:#888780">Sin líneas</div></div>` : ''}
 
   <div class="tots">
@@ -88,7 +88,7 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
       <div class="l g"><span>Total</span><span>${clp(t.totalUnico)}</span></div>
     </div>` : ''}
     ${t.netoMensual > 0 ? `<div class="tot mensual">
-      <h4>Mensual recurrente</h4>
+      <h4>Mensual</h4>
       ${t.descMensual > 0 ? `<div class="l"><span>Neto bruto</span><span>${clp(t.netoMensualBruto)}</span></div>
       <div class="l"><span>Descuento</span><span>− ${clp(t.descMensual)}</span></div>` : ''}
       <div class="l"><span>Neto</span><span>${clp(t.netoMensual)}</span></div>
