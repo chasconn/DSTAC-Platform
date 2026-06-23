@@ -4,6 +4,7 @@
 const router = require('express').Router()
 const centralDB = require('../db/central')
 const { landingHtml, reportadoHtml } = require('../services/phishing/content')
+const wazuhApi = require('../services/wazuhApi')
 
 // 1x1 GIF transparente para el píxel de apertura.
 const PIXEL_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64')
@@ -154,6 +155,37 @@ router.get('/verificar/:codigo', async (req, res) => {
   } catch (e) {
     console.error('public/verificar error:', e.message)
     res.status(500).json({ valido: false })
+  }
+})
+
+// GET /api/public/security-activity — actividad real y agregada del EDR (Wazuh),
+// para el widget dinámico del sitio público. Solo conteos — nunca nombres,
+// IPs ni nada identificable de clientes. Cacheado en memoria (3 min) para no
+// golpear la API de Wazuh con cada visita del sitio.
+let activityCache = { data: null, expiresAt: 0 }
+router.get('/security-activity', async (req, res) => {
+  try {
+    if (activityCache.data && Date.now() < activityCache.expiresAt) {
+      return res.json(activityCache.data)
+    }
+    const [agentes, stats] = await Promise.all([
+      wazuhApi.getAgentsSummary(),
+      wazuhApi.getTodayStats(),
+    ])
+    const data = {
+      ok: true,
+      endpoints_monitoreados: agentes.activos,
+      alertas_hoy: stats.alertas,
+      eventos_hoy: stats.eventos,
+      actualizado_at: new Date().toISOString(),
+    }
+    activityCache = { data, expiresAt: Date.now() + 3 * 60 * 1000 }
+    res.json(data)
+  } catch (e) {
+    console.error('public/security-activity error:', e.message)
+    // Si Wazuh no responde, se sirve el último dato cacheado si existe (evita romper el widget)
+    if (activityCache.data) return res.json(activityCache.data)
+    res.status(503).json({ ok: false })
   }
 })
 

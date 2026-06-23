@@ -101,4 +101,32 @@ async function getAgentOs(agentId) {
   return `${a.platform || ''} ${a.name || ''} ${a.uname || ''}`.toLowerCase()
 }
 
-module.exports = { listAgents, activeResponse, deleteAgent, getAgentOs, getToken }
+// Resumen de conexión de agentes (cuántos endpoints monitoreados/activos).
+// No expone nombres, IPs ni nada identificable — solo conteos.
+async function getAgentsSummary() {
+  const token = await getToken()
+  const res = await req('GET', '/agents/summary/status', { token })
+  const c = res?.data?.connection || {}
+  return {
+    total: c.total || 0,
+    activos: c.active || 0,
+    desconectados: c.disconnected || 0,
+  }
+}
+
+// Stats del manager (alertas/eventos del día actual, agregadas por hora).
+// Se suman las horas para un total del día — sin desglose por agente ni sigid.
+async function getTodayStats() {
+  const token = await getToken()
+  const now = new Date()
+  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const res = await req('GET', `/manager/stats?date=${date}`, { token })
+  const horas = res?.data?.affected_items || []
+  const totales = horas.reduce((acc, h) => ({
+    alertas: acc.alertas + (h.totalAlerts || 0),
+    eventos: acc.eventos + (h.events || 0),
+  }), { alertas: 0, eventos: 0 })
+  return totales
+}
+
+module.exports = { listAgents, activeResponse, deleteAgent, getAgentOs, getToken, getAgentsSummary, getTodayStats }
