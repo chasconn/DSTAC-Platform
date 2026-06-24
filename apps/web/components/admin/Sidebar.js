@@ -21,6 +21,7 @@ const NAV_GROUPS = [
       { href: '/admin/cotizaciones',   label: 'Cotizaciones',   icon: IconCotizaciones   },
       { href: '/admin/oportunidades',  label: 'Oportunidades',  icon: IconOportunidades  },
       { href: '/admin/sitio',          label: 'Sitio web',      icon: IconSitio          },
+      { href: '/admin/marketing',      label: 'Marketing',      icon: IconMarketing      },
     ],
   },
   {
@@ -755,6 +756,15 @@ function IconPhishing({ color }) {
       <rect x="2" y="5" width="20" height="14" rx="2"/>
       <path d="M2 7l8.4 6a2.5 2.5 0 0 0 3.2 0L22 7"/>
       <path d="M16 16.5l1.8 1.8L21.5 14.5"/>
+    </svg>
+  )
+}
+function IconMarketing({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M4 4h16v12H7l-3 3V4z"/>
+      <line x1="8" y1="9" x2="16" y2="9"/>
+      <line x1="8" y1="13" x2="13" y2="13"/>
     </svg>
   )
 }
