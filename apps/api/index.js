@@ -79,6 +79,7 @@ app.use('/api/admin/changelog',    require('./routes/admin/changelog'))
 app.use('/api/admin/onboarding',   require('./routes/admin/onboarding'))
 app.use('/api/admin/gastos',       require('./routes/admin/gastos'))
 app.use('/api/admin/phishing',     require('./routes/admin/phishing'))
+app.use('/api/admin/oportunidades', require('./routes/admin/oportunidades'))
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -93,6 +94,13 @@ app.use(errorHandler)
 const { verificarRecurrentes } = require('./services/phishing/recurrente')
 setInterval(() => verificarRecurrentes(), 6 * 60 * 60 * 1000)
 setTimeout(() => verificarRecurrentes(), 30 * 1000) // primera pasada poco después de arrancar
+
+// Oportunidades (Mercado Público): busca licitaciones de ciberseguridad cada 12h.
+// Solo detecta y puntúa — nunca postula. Si falta MERCADOPUBLICO_TICKET, falla en silencio (queda logueado).
+const { sincronizarOportunidades } = require('./services/mercadoPublico/sync')
+const correrSyncOportunidades = () => sincronizarOportunidades().catch(err => console.error('[oportunidades] sync error:', err.message))
+setInterval(correrSyncOportunidades, 12 * 60 * 60 * 1000)
+setTimeout(correrSyncOportunidades, 45 * 1000)
 
 const PORT = process.env.API_PORT || 3001
 app.listen(PORT, () => {
