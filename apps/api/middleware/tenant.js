@@ -37,8 +37,11 @@ async function resolveTenant(req, res, next) {
     }
 
     // Verificar que la empresa existe y está activa (usando valor de BD, no del request)
+    // OJO: 'name' es obligatorio aquí — varios informes (ejecutivo, EDR, NIST,
+    // ISO, certificado, etc.) usan req.company.name para el encabezado del PDF;
+    // si falta, el documento queda con "Preparado para" vacío, sin avisar nada.
     const [companies] = await centralDB.execute(
-      'SELECT id, slug, plan_id, status FROM companies WHERE slug = ?',
+      'SELECT id, name, slug, plan_id, status FROM companies WHERE slug = ?',
       [slugAUsar]
     )
 
