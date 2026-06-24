@@ -74,7 +74,7 @@ async function createEnrollmentToken({ slug, companyId, policyId = 'baseline', p
   const res = await am.enterprises.enrollmentTokens.create({
     parent: enterpriseName(),
     requestBody: {
-      policyName: policyId,
+      policyName: `${enterpriseName()}/policies/${policyId}`,
       additionalData: JSON.stringify({ slug, companyId }),
       duration: '3600s',          // 1 h de validez del QR
       oneTimeOnly: false,         // permite inscribir varios equipos con el mismo QR
