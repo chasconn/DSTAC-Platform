@@ -292,12 +292,24 @@ next_step "Verificando conectividad con el Manager…"
 check_port 1514
 check_port 1515
 
+# Enrola (agent-auth) y reporta con un mensaje claro y específico si falla —
+# en vez de dejar que set -e aborte el script con el texto crudo de agent-auth.
+# El caso más común en la práctica es una clave de enrolamiento mal copiada.
+enrolar_agente() {
+  local group_arg=()
+  [ -n "$AGENT_GROUP" ] && group_arg=(-G "$AGENT_GROUP")
+  if ! "$OSSEC_DIR/bin/agent-auth" -m "$WAZUH_MANAGER_IP" -P "$WAZUH_ENROLL_PASSWORD" -A "$AGENT_NAME" "${group_arg[@]}"; then
+    c_err "El enrolamiento falló. Causas más probables:"
+    c_err "  · la clave de enrolamiento (WAZUH_ENROLL_PASSWORD) está mal copiada"
+    c_err "  · el Manager no acepta más enrolamientos en este momento"
+    exit 1
+  fi
+}
+
 if [ -d "$OSSEC_DIR" ] && [ -x "$OSSEC_DIR/bin/wazuh-control" ]; then
   next_step "El agente ya está instalado → reconfigurando…"
   "$OSSEC_DIR/bin/wazuh-control" stop >/dev/null 2>&1 || true
-  GROUP_ARG=""; [ -n "$AGENT_GROUP" ] && GROUP_ARG="-G $AGENT_GROUP"
-  # shellcheck disable=SC2086
-  "$OSSEC_DIR/bin/agent-auth" -m "$WAZUH_MANAGER_IP" -P "$WAZUH_ENROLL_PASSWORD" -A "$AGENT_NAME" $GROUP_ARG
+  enrolar_agente
   set_company_label
   set_network_scan
   "$OSSEC_DIR/bin/wazuh-control" start >/dev/null 2>&1 || true
@@ -307,14 +319,33 @@ fi
 
 next_step "Descargando el agente ($PKG_ARCH)…"
 PKG="/tmp/wazuh-agent-dstac.pkg"
-curl -sSL "$PKG_URL" -o "$PKG"
-installer -pkg "$PKG" -target / >/dev/null
+# --fail: sin esto, curl puede guardar una página de error HTML/XML del
+# servidor como si fuera el .pkg real y seguir de largo creyendo que salió
+# bien — y el error real recién aparece después, confuso, dentro de "installer".
+if ! curl -fsSL "$PKG_URL" -o "$PKG"; then
+  c_err "No se pudo descargar el instalador desde:"
+  c_err "  $PKG_URL"
+  c_err "Revisa la conexión a internet de este equipo e intenta de nuevo."
+  exit 1
+fi
+# Defensa adicional: un .pkg real de Wazuh pesa varios MB. Si el archivo
+# descargado es sospechosamente chico, algo salió mal aunque curl no se
+# haya quejado (p.ej. un proxy corporativo interceptando la descarga).
+PKG_SIZE=$(wc -c < "$PKG" | tr -d ' ')
+if [ "$PKG_SIZE" -lt 1000000 ]; then
+  c_err "El archivo descargado pesa solo ${PKG_SIZE} bytes — no parece ser el instalador real."
+  c_err "Puede que un proxy o firewall esté interceptando la descarga. Contacta a DSTAC."
+  exit 1
+fi
+if ! installer -pkg "$PKG" -target / >/dev/null; then
+  c_err "La instalación del paquete falló (comando 'installer')."
+  c_err "Verifica que el equipo tenga espacio en disco y vuelve a intentar."
+  exit 1
+fi
 c_ok "   ✓ paquete instalado"
 
 next_step "Enrolando el agente contra el Manager…"
-GROUP_ARG=""; [ -n "$AGENT_GROUP" ] && GROUP_ARG="-G $AGENT_GROUP"
-# shellcheck disable=SC2086
-"$OSSEC_DIR/bin/agent-auth" -m "$WAZUH_MANAGER_IP" -P "$WAZUH_ENROLL_PASSWORD" -A "$AGENT_NAME" $GROUP_ARG
+enrolar_agente
 c_ok "   ✓ agente enrolado como '$AGENT_NAME'"
 
 next_step "Aplicando configuración (empresa y descubrimiento de red)…"

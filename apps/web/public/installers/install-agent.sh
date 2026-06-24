@@ -278,8 +278,11 @@ install_debian() {
     else break; fi
   done
   apt-get install -y curl gnupg apt-transport-https >/dev/null 2>&1 || true
-  curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH \
-    | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import >/dev/null 2>&1
+  if ! curl -fs https://packages.wazuh.com/key/GPG-KEY-WAZUH \
+    | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import >/dev/null 2>&1; then
+    c_err "No se pudo descargar/importar la llave GPG de Wazuh. Revisa la conexión a internet."
+    exit 1
+  fi
   chmod 644 /usr/share/keyrings/wazuh.gpg
   echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/${WAZUH_REPO}/apt/ stable main" \
     > /etc/apt/sources.list.d/wazuh.list
