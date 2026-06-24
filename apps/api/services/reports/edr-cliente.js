@@ -1,13 +1,10 @@
-// Informe EDR para enviar al cliente — explica en lenguaje simple (sin
-// jerga técnica) qué tipo de cosas detecta su protección y qué se hizo por
-// ellos en el último mes. Mismo estilo visual que el informe ejecutivo /
-// el escaneo web gratuito (template.js: card-dark, finding-item, cta-box).
-//
-// v2: en vez de mostrar siempre el mismo texto educativo genérico en la
-// página 2, cada categoría ahora lleva el número real del cliente debajo
-// (ej. "detectamos 14 intentos, bloqueamos 9 solos") y se agrega un
-// veredicto general arriba y una lista de equipos que necesitan atención
-// (score CIS bajo), para que el informe se sienta hecho para ellos.
+// Informe EDR para clientes y PROSPECTOS — no es un reporte de actividad
+// mensual, es un material que explica qué los protege y cómo, para que
+// entiendan el valor de la protección (con datos reales si ya son clientes,
+// o como muestra ilustrativa si todavía no tienen el EDR instalado — ver
+// getDemoData, usado al adjuntar a una cotización).
+// Estructura: (1) estado actual → (2) qué incluye la protección (capacidades,
+// no solo "qué detectamos") → (3) cómo se actúa en la práctica + cumplimiento.
 const {
   buildHeader, buildFooter, buildMetricCard, colorFor, wrapDocument,
 } = require('./template')
@@ -112,6 +109,7 @@ async function getData(tenantDB, centralDB, companyId, company) {
   return {
     company: { name: company.name },
     fecha: new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
+    tieneInstalacion: (Number(ag?.total) || 0) > 0,
     ag: ag || {},
     revisadas: Number(resumen30?.revisadas) || 0,
     revisadasAnterior: Number(revisadasAnt?.revisadas) || 0,
@@ -136,6 +134,7 @@ function getDemoData() {
   return {
     company: { name: 'Tu empresa' },
     fecha: new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
+    tieneInstalacion: true,
     ag: { activos: 8, total: 8 },
     revisadas: 1284,
     revisadasAnterior: 1190,
@@ -162,68 +161,82 @@ function buildHTML(data) {
   const { company, fecha, ag } = data
   const cisColor = data.cisPromedio != null ? colorFor(data.cisPromedio) : '#B4B2A9'
   const v = veredicto(data)
+  const conDatos = data.tieneInstalacion && !data.esMuestra
 
   const trendRevisadas = data.revisadasAnterior > 0
     ? Math.round(((data.revisadas - data.revisadasAnterior) / data.revisadasAnterior) * 100)
     : null
 
-  const categorias = [
+  // ── Página 2: capacidades de la protección — el foco es explicar QUÉ
+  // incluye el EDR (sirve igual para un cliente o un prospecto), y si hay
+  // datos reales del cliente se agrega como dato secundario, no como titular.
+  const capacidades = [
     {
-      titulo: 'Alguien tratando de entrar sin permiso',
+      titulo: 'Vigilancia de tus equipos las 24 horas',
+      color: '#1D9E75',
+      texto: 'Un programa instalado en cada computador los observa permanentemente — no hay horario en que queden sin protección, ni fines de semana ni feriados.',
+      dato: conDatos ? `${Number(ag.activos) || 0} de ${Number(ag.total) || 0} equipos están protegidos y conectados ahora.` : null,
+    },
+    {
+      titulo: 'Detección de intentos de acceso no autorizado',
       color: '#DC2626',
       texto: 'Si alguien intenta adivinar la contraseña de un computador muchas veces seguidas, lo detectamos al instante. En los casos más claros, el sistema bloquea esa conexión solo, sin esperar a que una persona reaccione.',
-      dato: data.intentosAcceso > 0
-        ? `Este mes: ${data.intentosAcceso} intento${data.intentosAcceso !== 1 ? 's' : ''} detectado${data.intentosAcceso !== 1 ? 's' : ''}${data.correccionesAuto > 0 ? `, ${data.correccionesAuto} bloqueado${data.correccionesAuto !== 1 ? 's' : ''} automáticamente` : ''}.`
-        : 'Este mes: sin intentos detectados.',
+      dato: conDatos
+        ? (data.intentosAcceso > 0
+          ? `Este mes: ${data.intentosAcceso} intento${data.intentosAcceso !== 1 ? 's' : ''} detectado${data.intentosAcceso !== 1 ? 's' : ''}${data.correccionesAuto > 0 ? `, ${data.correccionesAuto} bloqueado${data.correccionesAuto !== 1 ? 's' : ''} automáticamente` : ''}.`
+          : 'Este mes: sin intentos detectados.')
+        : null,
     },
     {
-      titulo: 'Cambios en archivos importantes del sistema',
+      titulo: 'Protección de los archivos más sensibles',
       color: '#D97706',
-      texto: 'Vigilamos los archivos más sensibles de cada computador (los que controlan quién puede entrar y qué permisos tiene). Si alguien los modifica sin autorización, te avisamos de inmediato — puede ser señal de que alguien está intentando tomar control del equipo.',
-      dato: data.archivosCriticos > 0
-        ? `Este mes: ${data.archivosCriticos} cambio${data.archivosCriticos !== 1 ? 's' : ''} detectado${data.archivosCriticos !== 1 ? 's' : ''} y revisado${data.archivosCriticos !== 1 ? 's' : ''} por el equipo de DSTAC.`
-        : 'Este mes: sin cambios sospechosos detectados.',
+      texto: 'Vigilamos los archivos que controlan quién puede entrar a cada equipo y qué permisos tiene. Si alguien los modifica sin autorización, avisamos de inmediato — puede ser señal de que alguien está intentando tomar control del equipo.',
+      dato: conDatos
+        ? (data.archivosCriticos > 0
+          ? `Este mes: ${data.archivosCriticos} cambio${data.archivosCriticos !== 1 ? 's' : ''} detectado${data.archivosCriticos !== 1 ? 's' : ''} y revisado${data.archivosCriticos !== 1 ? 's' : ''} por el equipo de DSTAC.`
+          : 'Este mes: sin cambios sospechosos detectados.')
+        : null,
     },
     {
-      titulo: 'Actividad rara o fuera de lo normal',
-      color: '#534AB7',
-      texto: 'Cada computador tiene un comportamiento "normal". Si algo se sale de ese patrón — un programa raro, un proceso que no debería estar ahí — se genera una alerta para que el equipo de DSTAC la revise.',
-      dato: data.tacticaTop
-        ? `Lo más frecuente este mes: ${mitrePlain(data.tacticaTop)}.`
-        : 'Este mes: sin actividad fuera de lo normal.',
-    },
-    {
-      titulo: 'Qué tan bien configurado está cada equipo',
+      titulo: 'Verificación contra un estándar internacional (CIS)',
       color: '#0F6E56',
-      texto: 'Revisamos automáticamente la configuración de seguridad de cada computador contra un estándar internacional (CIS), y te mostramos un puntaje simple de qué tan protegido está cada uno — como una "nota" de salud del equipo.',
-      dato: data.cisPromedio != null
-        ? `Promedio de tus equipos: ${data.cisPromedio}%${data.equiposAtencion.length > 0 ? ` — ${data.equiposAtencion.length} necesita${data.equiposAtencion.length > 1 ? 'n' : ''} revisión (detalle abajo)` : ', todos en buen nivel'}.`
-        : 'Aún no hay suficientes datos de configuración.',
+      texto: 'Revisamos automáticamente la configuración de seguridad de cada computador contra un estándar reconocido a nivel mundial, y te mostramos un puntaje simple de qué tan bien protegido está cada uno.',
+      dato: conDatos && data.cisPromedio != null
+        ? `Promedio de tus equipos: ${data.cisPromedio}%${data.equiposAtencion.length > 0 ? ` — ${data.equiposAtencion.length} necesita${data.equiposAtencion.length > 1 ? 'n' : ''} revisión (detalle más abajo)` : ', todos en buen nivel'}.`
+        : null,
     },
     {
-      titulo: 'Qué otros equipos están en tu red',
+      titulo: 'Visibilidad completa de tu red',
       color: '#185FA5',
       texto: 'Detectamos qué otros dispositivos están conectados a la misma red — router, impresoras, celulares — sin necesidad de instalarles nada. Así puedes notar fácilmente si aparece algo que no reconoces.',
-      dato: `${Number(data.red.total) || 0} dispositivos detectados, ${Number(data.red.conectados) || 0} conectados ahora.`,
+      dato: conDatos ? `${Number(data.red.total) || 0} dispositivos detectados, ${Number(data.red.conectados) || 0} conectados ahora.` : null,
     },
     {
       titulo: 'Reacción automática ante lo más grave',
-      color: '#1D9E75',
+      color: '#534AB7',
       texto: 'Cuando detectamos algo realmente serio, el sistema puede actuar solo (por ejemplo, bloqueando la conexión de un atacante) en segundos — mucho antes de que una persona pueda revisarlo a mano.',
-      dato: data.correccionesTotal > 0
-        ? `Este mes: ${data.correccionesTotal} acción${data.correccionesTotal !== 1 ? 'es' : ''} tomada${data.correccionesTotal !== 1 ? 's' : ''}, ${data.correccionesAuto} de forma automática.`
-        : 'Este mes: no fue necesario actuar.',
+      dato: conDatos
+        ? (data.correccionesTotal > 0
+          ? `Este mes: ${data.correccionesTotal} acción${data.correccionesTotal !== 1 ? 'es' : ''} tomada${data.correccionesTotal !== 1 ? 's' : ''}, ${data.correccionesAuto} de forma automática.`
+          : 'Este mes: no fue necesario actuar.')
+        : null,
+    },
+    {
+      titulo: 'Un equipo humano detrás del sistema',
+      color: '#A32D2D',
+      texto: 'El EDR no es solo software — el equipo de DSTAC revisa las alertas, descarta falsos positivos y decide cuándo algo realmente requiere tu atención. No estás solo frente a una pantalla de alertas.',
+      dato: conDatos && data.tacticaTop ? `Lo más frecuente este mes fue: ${mitrePlain(data.tacticaTop)}, ya revisado por nuestro equipo.` : null,
     },
   ]
 
-  const catRows = categorias.map(c => `
+  const capRows = capacidades.map(c => `
     <div class="finding-item" style="border-left:3px solid ${c.color};flex-direction:column;align-items:stretch;gap:4px;">
       <div style="font-size:13px;font-weight:700;color:#2C2C2A;">${c.titulo}</div>
       <div style="font-size:12px;color:#444441;line-height:1.55;">${c.texto}</div>
-      <div style="font-size:11.5px;color:${c.color};font-weight:700;margin-top:4px;">${esc(c.dato)}</div>
+      ${c.dato ? `<div style="font-size:11.5px;color:${c.color};font-weight:700;margin-top:4px;">${esc(c.dato)}</div>` : ''}
     </div>`).join('')
 
-  const equiposAtencionHTML = data.equiposAtencion.length > 0 ? `
+  const equiposAtencionHTML = conDatos && data.equiposAtencion.length > 0 ? `
     <div class="card" style="margin-top:14px;border-left:3px solid #D97706;">
       <div style="font-size:12.5px;font-weight:700;color:#854F0B;margin-bottom:8px;">Equipos que conviene revisar</div>
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -239,28 +252,45 @@ function buildHTML(data) {
       </div>
     </div>` : ''
 
+  const proceso = [
+    { n: '1', titulo: 'Vigilancia constante', texto: 'El sistema observa cada equipo protegido en tiempo real, las 24 horas.' },
+    { n: '2', titulo: 'Detección', texto: 'Si algo se sale del comportamiento normal del equipo, se genera una alerta automáticamente.' },
+    { n: '3', titulo: 'Análisis humano', texto: 'Un analista de DSTAC revisa la alerta — no es solo una máquina decidiendo por su cuenta.' },
+    { n: '4', titulo: 'Acción', texto: 'Si es grave, el sistema actúa solo en segundos. Si requiere tu decisión, te contactamos directamente.' },
+  ]
+  const procesoHTML = proceso.map(p => `
+    <div style="display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;">
+      <div style="width:30px;height:30px;border-radius:50%;background:#534AB7;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${p.n}</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#2C2C2A;margin-bottom:2px;">${p.titulo}</div>
+        <div style="font-size:12px;color:#444441;line-height:1.5;">${p.texto}</div>
+      </div>
+    </div>`).join('')
+
   const page1 = `
 <div class="page">
-  ${buildHeader('Protección EDR · Resumen')}
+  ${buildHeader('Protección EDR · Estado actual')}
   <div class="page-body">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
-        <div class="title">¿Qué hace tu protección EDR?</div>
-        <div class="subtitle">Resumen simple para ${esc(company.name)}</div>
+        <div class="title">Así te protege tu EDR</div>
+        <div class="subtitle">Estado actual para ${esc(company.name)}</div>
       </div>
       ${data.esMuestra ? `<span style="background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;white-space:nowrap;margin-top:4px;">Muestra ilustrativa</span>` : ''}
     </div>
 
+    ${conDatos ? `
     <div style="background:${v.bg};border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:18px;">
       <span style="width:28px;height:28px;border-radius:50%;background:${v.color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;">${v.icon}</span>
       <span style="font-size:13px;font-weight:700;color:${v.color};">${esc(v.texto)}</span>
-    </div>
+    </div>` : ''}
 
     <div class="card" style="margin-bottom:22px;">
       <div style="font-size:12.5px;color:#444441;line-height:1.6;">
         Tu protección <b>EDR</b> es un programa instalado en tus computadores que los vigila las 24 horas del día,
         los 7 días de la semana. No espera a que pase algo malo para reaccionar — está siempre mirando, y cuando
-        detecta algo extraño, avisa al equipo de DSTAC (y en los casos más graves, actúa solo).
+        detecta algo extraño, avisa al equipo de DSTAC (y en los casos más graves, actúa solo). Las páginas siguientes
+        explican en detalle qué incluye y cómo funciona en la práctica.
       </div>
     </div>
 
@@ -288,18 +318,38 @@ function buildHTML(data) {
     </div>` : ''}
     ${equiposAtencionHTML}
   </div>
-  ${buildFooter(1, 2)}
+  ${buildFooter(1, 3)}
 </div>`
 
   const page2 = `
 <div class="page">
-  ${buildHeader('Protección EDR · Qué detectamos')}
+  ${buildHeader('Protección EDR · Qué incluye')}
   <div class="page-body">
-    <div class="title">¿Qué tipo de cosas detectamos?</div>
-    <div class="subtitle">Explicado sin tecnicismos, con tus números de este mes</div>
+    <div class="title">Qué incluye tu protección EDR</div>
+    <div class="subtitle">Las capacidades activas en cada equipo protegido</div>
 
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
-      ${catRows}
+      ${capRows}
+    </div>
+  </div>
+  ${buildFooter(2, 3)}
+</div>`
+
+  const page3 = `
+<div class="page">
+  ${buildHeader('Protección EDR · Cómo funciona')}
+  <div class="page-body">
+    <div class="title">Así actuamos cuando pasa algo</div>
+    <div class="subtitle">El proceso detrás de la protección, paso a paso</div>
+
+    <div class="card" style="margin-bottom:20px;">
+      ${procesoHTML}
+    </div>
+
+    <div class="quote-block">
+      Este nivel de monitoreo y capacidad de respuesta ante incidentes también es parte de lo que exige la
+      <b>Ley Marco de Ciberseguridad (Ley 21.663)</b> a las empresas — tenerlo activo te ayuda a avanzar en
+      ese cumplimiento, no solo a estar más protegido.
     </div>
 
     <div class="cta-box">
@@ -316,14 +366,14 @@ function buildHTML(data) {
 
     <div style="margin-top:16px;font-size:10px;color:#B4B2A9;line-height:1.5;">
       ${data.esMuestra
-        ? 'Esta es una muestra ilustrativa del informe que recibirías — los números son de ejemplo, no corresponden a datos reales de ningún cliente. El informe real se genera con los datos de tu propia protección EDR (Wazuh), administrada por DSTAC Ciberseguridad.'
+        ? 'Esta es una muestra ilustrativa del informe que recibirías — los números de la primera página son de ejemplo, no corresponden a datos reales de ningún cliente. El informe real se genera con los datos de tu propia protección EDR (Wazuh), administrada por DSTAC Ciberseguridad.'
         : `Informe generado automáticamente el ${fecha} con los datos actuales de tu protección EDR (Wazuh), administrada por DSTAC Ciberseguridad.`}
     </div>
   </div>
-  ${buildFooter(2, 2)}
+  ${buildFooter(3, 3)}
 </div>`
 
-  return wrapDocument(page1 + page2)
+  return wrapDocument(page1 + page2 + page3)
 }
 
 module.exports = { getData, getDemoData, buildHTML }
