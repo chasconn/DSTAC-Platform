@@ -17,9 +17,10 @@ const NAV_GROUPS = [
   {
     titulo: 'Comercial',
     items: [
-      { href: '/admin/prospectos',   label: 'Prospectos',   icon: IconProspectos   },
-      { href: '/admin/cotizaciones', label: 'Cotizaciones', icon: IconCotizaciones },
-      { href: '/admin/sitio',        label: 'Sitio web',    icon: IconSitio        },
+      { href: '/admin/prospectos',     label: 'Prospectos',     icon: IconProspectos     },
+      { href: '/admin/cotizaciones',   label: 'Cotizaciones',   icon: IconCotizaciones   },
+      { href: '/admin/oportunidades',  label: 'Oportunidades',  icon: IconOportunidades  },
+      { href: '/admin/sitio',          label: 'Sitio web',      icon: IconSitio          },
     ],
   },
   {
@@ -546,6 +547,15 @@ function IconGastos({ color }) {
       <circle cx="12" cy="12" r="9"/>
       <path d="M14.5 9.5a2.5 2.5 0 0 0-2.5-1.5c-1.5 0-2.5.8-2.5 2s1 1.6 2.5 2 2.5.8 2.5 2-1 2-2.5 2a2.7 2.7 0 0 1-2.5-1.5"/>
       <line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/>
+    </svg>
+  )
+}
+function IconOportunidades({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="11" cy="11" r="7"/>
+      <line x1="21" y1="21" x2="16" y2="16"/>
+      <path d="M11 8v3l2 1.5"/>
     </svg>
   )
 }
