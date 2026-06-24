@@ -252,12 +252,19 @@ resolver_nombre() {
   fi
   echo "$name"
 }
+# El hostname viene de DNS reverso / NetBIOS de OTROS equipos en la red —
+# cualquier dispositivo en la misma LAN puede ponerse un nombre con comillas
+# o backslashes a propósito para romper el JSON. Se escapa antes de interpolar.
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\n\r'
+}
 OUT=$( (ip neighbor show 2>/dev/null || arp -an 2>/dev/null) | while read -r line; do
   ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
   mac=$(echo "$line" | grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}')
   if [ -n "$ip" ] && [ -n "$mac" ]; then
     host=$(resolver_nombre "$ip")
     if [ -n "$host" ]; then
+      host=$(json_escape "$host")
       printf '{"ip":"%s","mac":"%s","hostname":"%s"},' "$ip" "$mac" "$host"
     else
       printf '{"ip":"%s","mac":"%s"},' "$ip" "$mac"
@@ -268,6 +275,7 @@ OUT=$(echo "$OUT" | sed 's/,$//')
 echo "DSTAC_NETSCAN {\"items\":[$OUT]}"
 NETSCAN
   chmod 750 "$OSSEC_DIR/active-response/bin/dstac-network-scan.sh"
+  chown root:wheel "$OSSEC_DIR/active-response/bin/dstac-network-scan.sh" 2>/dev/null || true
 
   local conf="$OSSEC_DIR/etc/ossec.conf"
   [ -f "$conf" ] || return 0
@@ -342,6 +350,7 @@ if ! installer -pkg "$PKG" -target / >/dev/null; then
   c_err "Verifica que el equipo tenga espacio en disco y vuelve a intentar."
   exit 1
 fi
+rm -f "$PKG"
 c_ok "   ✓ paquete instalado"
 
 next_step "Enrolando el agente contra el Manager…"

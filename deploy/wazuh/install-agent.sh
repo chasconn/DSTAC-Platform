@@ -210,12 +210,19 @@ resolver_nombre() {
   fi
   echo "$name"
 }
+# El hostname viene de DNS reverso de OTROS equipos en la red — cualquier
+# dispositivo en la misma LAN puede ponerse un nombre con comillas o
+# backslashes a propósito para romper el JSON. Se escapa antes de interpolar.
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\n\r'
+}
 OUT=$( (ip neighbor show 2>/dev/null || arp -an 2>/dev/null) | while read -r line; do
   ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
   mac=$(echo "$line" | grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}')
   if [ -n "$ip" ] && [ -n "$mac" ]; then
     host=$(resolver_nombre "$ip")
     if [ -n "$host" ]; then
+      host=$(json_escape "$host")
       printf '{"ip":"%s","mac":"%s","hostname":"%s"},' "$ip" "$mac" "$host"
     else
       printf '{"ip":"%s","mac":"%s"},' "$ip" "$mac"
