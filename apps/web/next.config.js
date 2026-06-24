@@ -9,6 +9,18 @@ const nextConfig = {
       },
     ]
   },
+  // Los instaladores de agente EDR deben descargarse, no mostrarse como
+  // texto plano en el navegador al hacer clic en el link.
+  async headers() {
+    return [
+      {
+        source: '/installers/:file',
+        headers: [
+          { key: 'Content-Disposition', value: 'attachment' },
+        ],
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig
