@@ -9,10 +9,14 @@
   Uso (PowerShell como Administrador):
     $env:WAZUH_ENROLL_PASSWORD="<clave>"
     powershell -ExecutionPolicy Bypass -File install-agent-windows-server.ps1 -Nombre "DC01" -Empresa "acme"
+
+  Grupo Wazuh opcional:
+    ... -File install-agent-windows-server.ps1 -Nombre "DC01" -Empresa "acme" -Grupo "servidores"
 #>
 param(
   [string]$Nombre  = "",
-  [string]$Empresa = ""
+  [string]$Empresa = "",
+  [string]$Grupo   = ""
 )
 $ErrorActionPreference = "Stop"
 
@@ -39,6 +43,7 @@ if (-not $Nombre) { $Nombre = $env:COMPUTERNAME }
 Write-Host "Equipo:  $Nombre"
 Write-Host "Manager: $Manager"
 if ($Empresa) { Write-Host "Empresa: $Empresa (auto-asignacion)" }
+if ($Grupo)   { Write-Host "Grupo:   $Grupo" }
 
 foreach ($p in 1514,1515) {
   $ok = (Test-NetConnection -ComputerName $Manager -Port $p -WarningAction SilentlyContinue).TcpTestSucceeded
@@ -53,6 +58,7 @@ Invoke-WebRequest -Uri $MsiUrl -OutFile $msi -UseBasicParsing
 
 Write-Host "Instalando y enrolando..."
 $mArgs = "/i `"$msi`" /q WAZUH_MANAGER=`"$Manager`" WAZUH_REGISTRATION_PASSWORD=`"$EnrollPass`" WAZUH_AGENT_NAME=`"$Nombre`""
+if ($Grupo) { $mArgs += " WAZUH_AGENT_GROUP=`"$Grupo`"" }
 $p = Start-Process msiexec.exe -ArgumentList $mArgs -Wait -PassThru
 if ($p.ExitCode -ne 0) { Die "La instalacion fallo (msiexec codigo $($p.ExitCode))." }
 
@@ -107,10 +113,21 @@ if (Test-Path $conf) {
 }
 
 $svc = Get-Service -Name "WazuhSvc","Wazuh","OssecSvc" -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($svc) { Restart-Service -Name $svc.Name -ErrorAction SilentlyContinue }
+if ($svc -and $svc.Status -ne "Running") {
+  Restart-Service -Name $svc.Name -ErrorAction SilentlyContinue
+  Start-Sleep -Seconds 3
+  $svc = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
+}
+
+if (-not $svc) {
+  Die "No se encontro el servicio de Wazuh tras la instalacion (WazuhSvc/Wazuh/OssecSvc). Revisa manualmente."
+}
+if ($svc.Status -ne "Running") {
+  Die "El servicio '$($svc.Name)' quedo en estado '$($svc.Status)', no 'Running'. Revisa: Get-Service $($svc.Name)"
+}
 
 Write-Host "==============================================" -ForegroundColor Green
-Write-Host "  Agente '$Nombre' instalado y enrolado." -ForegroundColor Green
+Write-Host "  Agente '$Nombre' instalado y activo ($($svc.Name): Running)" -ForegroundColor Green
 Write-Host "==============================================" -ForegroundColor Green
 if ($Empresa) { Write-Host "Se auto-asignara a la empresa '$Empresa' en el portal." }
 else { Write-Host "Asignalo a una empresa en el portal -> EDR." }
