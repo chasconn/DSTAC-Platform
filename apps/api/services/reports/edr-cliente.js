@@ -161,25 +161,45 @@ function buildHTML(data) {
   const { company, fecha, ag } = data
   const cisColor = data.cisPromedio != null ? colorFor(data.cisPromedio) : '#B4B2A9'
   const v = veredicto(data)
-  const conDatos = data.tieneInstalacion && !data.esMuestra
+  // OJO: antes esto excluía a las muestras (!data.esMuestra), lo que dejaba
+  // el documento que ve un PROSPECTO vacío y sin los datos de ejemplo que
+  // lo hacen ver convincente. La muestra debe verse igual de completa.
+  const conDatos = data.tieneInstalacion
 
   const trendRevisadas = data.revisadasAnterior > 0
     ? Math.round(((data.revisadas - data.revisadasAnterior) / data.revisadasAnterior) * 100)
     : null
 
+  // Íconos lineales simples (sin librería externa, mismo estilo stroke-based
+  // que el resto de la plataforma) — para que cada capacidad se distinga de
+  // un vistazo y no sea solo una barra de color repetida 7 veces.
+  const ICONS = {
+    ojo:      '<circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/>',
+    candado:  '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    archivo:  '<path d="M14 3v5h5"/><path d="M6 3h8l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>',
+    check:    '<circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.2 2.2 4.8-5.4"/>',
+    red:      '<circle cx="6" cy="12" r="2.3"/><circle cx="18" cy="6" r="2.3"/><circle cx="18" cy="18" r="2.3"/><path d="M8.1 11l7.8-3.7M8.1 13l7.8 3.7"/>',
+    rayo:     '<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>',
+    usuarios: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.3.4 4 2.3 4 4.8v1"/>',
+  }
+  function icon(name, color) {
+    return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`
+  }
+
   // ── Página 2: capacidades de la protección — el foco es explicar QUÉ
   // incluye el EDR (sirve igual para un cliente o un prospecto), y si hay
   // datos reales del cliente se agrega como dato secundario, no como titular.
+  // Colores: se evita el rojo salvo para algo realmente negativo — detectar
+  // y bloquear un intento de acceso es una BUENA noticia, no debería leerse
+  // como una alerta.
   const capacidades = [
     {
-      titulo: 'Vigilancia de tus equipos las 24 horas',
-      color: '#1D9E75',
+      icono: 'ojo', titulo: 'Vigilancia de tus equipos las 24 horas', color: '#1D9E75',
       texto: 'Un programa instalado en cada computador los observa permanentemente — no hay horario en que queden sin protección, ni fines de semana ni feriados.',
       dato: conDatos ? `${Number(ag.activos) || 0} de ${Number(ag.total) || 0} equipos están protegidos y conectados ahora.` : null,
     },
     {
-      titulo: 'Detección de intentos de acceso no autorizado',
-      color: '#DC2626',
+      icono: 'candado', titulo: 'Detección de intentos de acceso no autorizado', color: '#185FA5',
       texto: 'Si alguien intenta adivinar la contraseña de un computador muchas veces seguidas, lo detectamos al instante. En los casos más claros, el sistema bloquea esa conexión solo, sin esperar a que una persona reaccione.',
       dato: conDatos
         ? (data.intentosAcceso > 0
@@ -188,8 +208,7 @@ function buildHTML(data) {
         : null,
     },
     {
-      titulo: 'Protección de los archivos más sensibles',
-      color: '#D97706',
+      icono: 'archivo', titulo: 'Protección de los archivos más sensibles', color: '#D97706',
       texto: 'Vigilamos los archivos que controlan quién puede entrar a cada equipo y qué permisos tiene. Si alguien los modifica sin autorización, avisamos de inmediato — puede ser señal de que alguien está intentando tomar control del equipo.',
       dato: conDatos
         ? (data.archivosCriticos > 0
@@ -198,22 +217,19 @@ function buildHTML(data) {
         : null,
     },
     {
-      titulo: 'Verificación contra un estándar internacional (CIS)',
-      color: '#0F6E56',
+      icono: 'check', titulo: 'Verificación contra un estándar internacional (CIS)', color: '#0F6E56',
       texto: 'Revisamos automáticamente la configuración de seguridad de cada computador contra un estándar reconocido a nivel mundial, y te mostramos un puntaje simple de qué tan bien protegido está cada uno.',
       dato: conDatos && data.cisPromedio != null
         ? `Promedio de tus equipos: ${data.cisPromedio}%${data.equiposAtencion.length > 0 ? ` — ${data.equiposAtencion.length} necesita${data.equiposAtencion.length > 1 ? 'n' : ''} revisión (detalle más abajo)` : ', todos en buen nivel'}.`
         : null,
     },
     {
-      titulo: 'Visibilidad completa de tu red',
-      color: '#185FA5',
+      icono: 'red', titulo: 'Visibilidad completa de tu red', color: '#534AB7',
       texto: 'Detectamos qué otros dispositivos están conectados a la misma red — router, impresoras, celulares — sin necesidad de instalarles nada. Así puedes notar fácilmente si aparece algo que no reconoces.',
       dato: conDatos ? `${Number(data.red.total) || 0} dispositivos detectados, ${Number(data.red.conectados) || 0} conectados ahora.` : null,
     },
     {
-      titulo: 'Reacción automática ante lo más grave',
-      color: '#534AB7',
+      icono: 'rayo', titulo: 'Reacción automática ante lo más grave', color: '#854F0B',
       texto: 'Cuando detectamos algo realmente serio, el sistema puede actuar solo (por ejemplo, bloqueando la conexión de un atacante) en segundos — mucho antes de que una persona pueda revisarlo a mano.',
       dato: conDatos
         ? (data.correccionesTotal > 0
@@ -222,18 +238,20 @@ function buildHTML(data) {
         : null,
     },
     {
-      titulo: 'Un equipo humano detrás del sistema',
-      color: '#A32D2D',
+      icono: 'usuarios', titulo: 'Un equipo humano detrás del sistema', color: '#1D9E75',
       texto: 'El EDR no es solo software — el equipo de DSTAC revisa las alertas, descarta falsos positivos y decide cuándo algo realmente requiere tu atención. No estás solo frente a una pantalla de alertas.',
       dato: conDatos && data.tacticaTop ? `Lo más frecuente este mes fue: ${mitrePlain(data.tacticaTop)}, ya revisado por nuestro equipo.` : null,
     },
   ]
 
   const capRows = capacidades.map(c => `
-    <div class="finding-item" style="border-left:3px solid ${c.color};flex-direction:column;align-items:stretch;gap:4px;">
-      <div style="font-size:13px;font-weight:700;color:#2C2C2A;">${c.titulo}</div>
-      <div style="font-size:12px;color:#444441;line-height:1.55;">${c.texto}</div>
-      ${c.dato ? `<div style="font-size:11.5px;color:${c.color};font-weight:700;margin-top:4px;">${esc(c.dato)}</div>` : ''}
+    <div class="finding-item" style="border-left:3px solid ${c.color};gap:12px;">
+      <div style="width:36px;height:36px;border-radius:9px;background:${c.color}1a;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${icon(c.icono, c.color)}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:#2C2C2A;">${c.titulo}</div>
+        <div style="font-size:12px;color:#444441;line-height:1.55;margin-top:2px;">${c.texto}</div>
+        ${c.dato ? `<div style="font-size:11.5px;color:${c.color};font-weight:700;margin-top:5px;">${esc(c.dato)}</div>` : ''}
+      </div>
     </div>`).join('')
 
   const equiposAtencionHTML = conDatos && data.equiposAtencion.length > 0 ? `
@@ -268,13 +286,14 @@ function buildHTML(data) {
     </div>`).join('')
 
   const page1 = `
-<div class="page">
+<div class="page" style="min-height:auto;break-after:auto;">
   ${buildHeader('Protección EDR · Estado actual')}
   <div class="page-body">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
       <div>
         <div class="title">Así te protege tu EDR</div>
-        <div class="subtitle">Estado actual para ${esc(company.name)}</div>
+        <div class="subtitle" style="margin-bottom:4px;">Preparado para ${esc(company.name)}</div>
+        <div style="font-size:11px;color:#888780;margin-bottom:18px;">${fecha}</div>
       </div>
       ${data.esMuestra ? `<span style="background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;white-space:nowrap;margin-top:4px;">Muestra ilustrativa</span>` : ''}
     </div>
@@ -306,7 +325,7 @@ function buildHTML(data) {
     <div class="sec-label">En números</div>
     <div class="grid-3" style="margin-bottom:6px;">
       ${buildMetricCard(`${Number(ag.activos) || 0}/${Number(ag.total) || 0}`, 'Equipos protegidos', 'conectados ahora', '#1D9E75')}
-      ${buildMetricCard(data.intentosAcceso, 'Intentos de acceso', 'detectados (30 días)', '#DC2626')}
+      ${buildMetricCard(data.intentosAcceso, 'Intentos de acceso', 'detectados y bloqueados', '#534AB7')}
       ${buildMetricCard(Number(data.red.total) || 0, 'Equipos en tu red', `${Number(data.red.conectados) || 0} conectados ahora`, '#185FA5')}
     </div>
     ${data.cisPromedio != null ? `
@@ -322,7 +341,7 @@ function buildHTML(data) {
 </div>`
 
   const page2 = `
-<div class="page">
+<div class="page" style="min-height:auto;break-after:auto;">
   ${buildHeader('Protección EDR · Qué incluye')}
   <div class="page-body">
     <div class="title">Qué incluye tu protección EDR</div>
@@ -336,7 +355,7 @@ function buildHTML(data) {
 </div>`
 
   const page3 = `
-<div class="page">
+<div class="page" style="min-height:auto;break-after:auto;">
   ${buildHeader('Protección EDR · Cómo funciona')}
   <div class="page-body">
     <div class="title">Así actuamos cuando pasa algo</div>
@@ -360,7 +379,7 @@ function buildHTML(data) {
         El equipo de DSTAC revisa estas alertas por ti y te avisa solo cuando algo realmente requiere tu atención.
       </div>
       <div style="font-size:10px;color:rgba(255,255,255,0.55);letter-spacing:0.8px;text-transform:uppercase;">
-        Cualquier duda, escríbenos · contacto@dstac.cl
+        ¿Algo urgente? +56 9 6219 8594 · contacto@dstac.cl
       </div>
     </div>
 
