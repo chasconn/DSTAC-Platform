@@ -382,6 +382,7 @@ export default function EdrPage() {
             Reemplaza <code style={{ background: '#F1EFE8', padding: '1px 5px', borderRadius: 4 }}>&lt;CLAVE&gt;</code> por la clave de enrolamiento
             (<code style={{ background: '#F1EFE8', padding: '1px 5px', borderRadius: 4 }}>/var/ossec/etc/authd.pass</code> del manager) y <code style={{ background: '#F1EFE8', padding: '1px 5px', borderRadius: 4 }}>slug-empresa</code> por
             el slug del cliente para que se auto-asigne. Incluye descubrimiento pasivo de red (ARP) desde el primer minuto.
+            {' '}<a href="/installers" target="_blank" rel="noopener noreferrer" style={{ color: '#534AB7', fontWeight: 600 }}>Ver instaladores para descargar →</a>
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
             {INSTALADORES.map(inst => (
