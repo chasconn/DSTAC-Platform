@@ -100,7 +100,7 @@ export default function MarketingPage() {
   const fileInputRef = useRef(null)
 
   const [rubro, setRubro] = useState('')
-  const [ciudad, setCiudad] = useState('')
+  const [ciudad, setCiudad] = useState('Antofagasta')
   const [buscando, setBuscando] = useState(false)
   const [candidatos, setCandidatos] = useState([])
   const [loadingCandidatos, setLoadingCandidatos] = useState(false)
@@ -214,6 +214,22 @@ export default function MarketingPage() {
     catch (e) { showToast(e.message || 'No se pudo descartar') }
   }
 
+  // Envio rapido directo desde la lista, sin pasar por el formulario. Pide
+  // confirmacion (no hay vista previa aqui) para no perder el "siempre revisa
+  // antes de enviar" por completo.
+  async function enviarRapido(c) {
+    if (!c.email_sugerido) { showToast('Este candidato no tiene correo — usa "Usar" y complétalo a mano'); return }
+    if (!confirm(`¿Enviar correo a ${c.email_sugerido} (${c.empresa})?`)) return
+    try {
+      await api.post('/api/admin/marketing/enviar', {
+        empresa: c.empresa, nombre: '', email: c.email_sugerido, campana: 'pymes-chile', candidatoId: c.id,
+      })
+      showToast(`Correo enviado a ${c.email_sugerido}`)
+      cargarCandidatos()
+      cargarEnvios()
+    } catch (e) { showToast(e.message || 'No se pudo enviar el correo') }
+  }
+
   async function verCorreo(id) {
     try {
       const r = await api.get(`/api/admin/marketing/envios/${id}/html?campana=${campana}`)
@@ -276,6 +292,10 @@ export default function MarketingPage() {
                     <button onClick={() => usarCandidato(c)}
                       style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                       Usar
+                    </button>
+                    <button onClick={() => enviarRapido(c)} disabled={!c.email_sugerido}
+                      style={{ background: c.email_sugerido ? '#1d7a3f' : '#ccc', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: c.email_sugerido ? 'pointer' : 'not-allowed' }}>
+                      ✉️ Enviar
                     </button>
                     <button onClick={() => descartarCandidato(c.id)}
                       style={{ background: 'none', border: '1px solid #ECEAE3', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', color: '#8A877E' }}>
