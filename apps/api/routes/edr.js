@@ -262,4 +262,54 @@ router.post('/alerts', async (req, res) => {
   }
 })
 
+// POST /api/edr/agentes/registrar — endpoint público para que el instalador
+// registre el agente inmediatamente después de enrolarse, sin esperar a que llegue
+// una alerta. Valida con el header x-edr-key igual que /alerts.
+router.post('/agentes/registrar', async (req, res) => {
+  try {
+    const secret = process.env.EDR_WEBHOOK_SECRET
+    if (secret && req.headers['x-edr-key'] !== secret) {
+      return res.status(401).json({ ok: false, error: 'No autorizado' })
+    }
+
+    const { wazuh_id, agent_name, agent_ip, dstac_company } = req.body || {}
+
+    // Validar wazuh_id (requerido)
+    const wazuhId = s(wazuh_id, 10)
+    if (!wazuhId) {
+      return res.status(400).json({ ok: false, error: 'wazuh_id es requerido' })
+    }
+
+    const agentName = s(agent_name, 255)
+    const agentIp = s(agent_ip, 64)
+
+    // Resolver la empresa si viene el slug
+    let companyId = null
+    if (dstac_company) {
+      const [c] = await centralDB.execute(
+        `SELECT id FROM companies WHERE slug = ? AND status = 'active' LIMIT 1`,
+        [dstac_company]
+      )
+      companyId = c[0]?.id ?? null
+    }
+
+    // Upsert del agente (igual que en el webhook de alertas)
+    await centralDB.execute(`
+      INSERT INTO edr_agents (wazuh_id, name, ip, company_id, last_keepalive, status)
+      VALUES (?, ?, ?, ?, NOW(), 'active')
+      ON DUPLICATE KEY UPDATE
+        name           = COALESCE(VALUES(name), name),
+        ip             = COALESCE(VALUES(ip), ip),
+        company_id     = COALESCE(company_id, VALUES(company_id)),
+        last_keepalive = NOW(),
+        status         = 'active'
+    `, [wazuhId, agentName, agentIp, companyId])
+
+    res.json({ ok: true, registered: true })
+  } catch (e) {
+    console.error('edr/agentes/registrar error:', e.message)
+    res.status(500).json({ ok: false, error: 'No se pudo registrar el agente' })
+  }
+})
+
 module.exports = router

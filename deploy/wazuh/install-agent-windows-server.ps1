@@ -135,5 +135,37 @@ if ($svc.Status -ne "Running") {
 Write-Host "==============================================" -ForegroundColor Green
 Write-Host "  Agente '$Nombre' instalado y activo ($($svc.Name): Running)" -ForegroundColor Green
 Write-Host "==============================================" -ForegroundColor Green
+
+# Registrar el agente en el portal para que aparezca inmediatamente (sin esperar alertas)
+try {
+  $clientKeys = "C:\Program Files (x86)\ossec-agent\client.keys"
+  if (Test-Path $clientKeys) {
+    $line = Get-Content $clientKeys -First 1
+    $parts = $line -split "\s+"
+    $agentId = $parts[0]
+
+    if ($agentId -and $agentId -match "^[0-9]+$") {
+      Write-Host "Registrando agente en el portal..."
+      $body = @{
+        wazuh_id     = $agentId
+        agent_name   = $Nombre
+        agent_ip     = [System.Net.Dns]::GetHostAddresses($env:COMPUTERNAME)[0].IPAddressToString
+        dstac_company = if ($Empresa) { $Empresa } else { $null }
+      } | ConvertTo-Json
+
+      $headers = @{
+        "Content-Type" = "application/json"
+        "x-edr-key"    = $env:EDR_WEBHOOK_SECRET
+      }
+
+      Invoke-WebRequest -Uri "https://portal.dstac.cl/api/edr/agentes/registrar" `
+        -Method POST -Body $body -Headers $headers -UseBasicParsing -ErrorAction SilentlyContinue | Out-Null
+      Write-Host "  agente registrado en el portal" -ForegroundColor Green
+    }
+  }
+} catch {
+  # No fallar si el registro en el portal no funciona; el webhook lo hará cuando lleguen alertas
+}
+
 if ($Empresa) { Write-Host "Se auto-asignara a la empresa '$Empresa' en el portal." }
 else { Write-Host "Asignalo a una empresa en el portal -> EDR." }
