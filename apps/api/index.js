@@ -24,6 +24,9 @@ app.use(cors({
   credentials: true
 }))
 
+// Limite mas alto solo para el escaneo de tarjetas (fotos de camara de celular,
+// ya redimensionadas/comprimidas en el navegador, pero con margen de seguridad).
+app.use('/api/admin/marketing/escanear-tarjeta', express.json({ limit: '8mb' }))
 app.use(express.json({ limit: '3mb' }))   // 3mb para permitir subir logos (base64) al trust bar
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
@@ -72,6 +75,7 @@ app.use('/api/admin/riesgos',      require('./routes/admin/riesgos'))
 app.use('/api/admin/cotizaciones', require('./routes/admin/cotizaciones'))
 app.use('/api/admin/edr',          require('./routes/admin/edr'))
 app.use('/api/admin/mdm',          require('./routes/admin/mdm'))
+app.use('/api/admin/marketing',    require('./routes/admin/marketing'))
 app.use('/api/admin/diagnostico',  require('./routes/admin/diagnostico'))
 app.use('/api/admin/ley21663',     require('./routes/admin/ley21663'))
 app.use('/api/admin/ley21719',     require('./routes/admin/ley21719'))

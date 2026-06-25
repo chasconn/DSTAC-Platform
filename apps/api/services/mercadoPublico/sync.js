@@ -15,20 +15,31 @@ function normalizar(texto) {
     .normalize('NFD').replace(DIACRITICOS, '') // quita tildes
 }
 
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 async function getKeywordsActivas() {
   const [rows] = await centralDB.execute(
     'SELECT palabra, peso FROM oportunidades_keywords WHERE activo = 1'
   )
-  return rows.map(r => ({ palabra: normalizar(r.palabra), peso: r.peso }))
+  return rows.map(r => ({
+    palabra: normalizar(r.palabra),
+    peso: r.peso,
+    regex: new RegExp('\\b' + escapeRegex(normalizar(r.palabra)) + '\\b', 'i'),
+  }))
 }
 
 // Calcula el score de relevancia y devuelve qué keywords matchearon.
+// Usa coincidencia de palabra completa (no substring) para evitar falsos
+// positivos como "soc" matcheando dentro de "asociados".
 function calcularScore(licitacion, keywords) {
   const texto = normalizar(`${licitacion.Nombre || ''} ${licitacion.Descripcion || licitacion.descripcion || ''}`)
   let score = 0
   const matched = []
-  for (const { palabra, peso } of keywords) {
-    if (texto.includes(palabra)) {
+  for (const { palabra, peso, regex } of keywords) {
+    const re = regex || new RegExp('\\b' + escapeRegex(palabra) + '\\b', 'i')
+    if (re.test(texto)) {
       score += peso
       matched.push(palabra)
     }

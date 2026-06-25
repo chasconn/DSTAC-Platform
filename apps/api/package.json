@@ -27,6 +27,7 @@
     "puppeteer": "^22.10.0",
     "qrcode": "^1.5.4",
     "react-grid-layout": "^2.2.3",
+    "tesseract.js": "^5.1.1",
     "uuid": "^10.0.0",
     "xlsx": "^0.18.5"
   },
