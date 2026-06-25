@@ -26,7 +26,7 @@ function renderExponorEmail({ nombre, empresa }) {
 
         <!-- HEADER -->
         <tr>
-          <td class="dstac-header" bgcolor="#13102a" style="background-color:#13102a !important; padding:36px 40px;">
+          <td class="dstac-header" bgcolor="#13102a" background="https://www.dstac.cl/assets/navy-bg.png?v=1" style="background-color:#13102a !important; background-image:url('https://www.dstac.cl/assets/navy-bg.png?v=1'); background-repeat:repeat; padding:36px 40px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td>
@@ -208,7 +208,7 @@ function renderExponorEmail({ nombre, empresa }) {
           <td align="center" style="padding:30px 40px 0 40px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#1a1530; border-radius:12px;">
               <tr>
-                <td class="dstac-header" bgcolor="#1a1530" style="background-color:#1a1530 !important; padding:22px 26px;">
+                <td class="dstac-header" bgcolor="#1a1530" background="https://www.dstac.cl/assets/navy-bg-2.png?v=1" style="background-color:#1a1530 !important; background-image:url('https://www.dstac.cl/assets/navy-bg-2.png?v=1'); background-repeat:repeat; padding:22px 26px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                     <tr>
                       <td style="vertical-align:middle;">
@@ -277,7 +277,7 @@ function renderExponorEmail({ nombre, empresa }) {
 
         <!-- FOOTER -->
         <tr>
-          <td class="dstac-header" bgcolor="#1a1530" style="background-color:#1a1530 !important; padding:24px 40px; text-align:center; margin-top:30px;">
+          <td class="dstac-header" bgcolor="#1a1530" background="https://www.dstac.cl/assets/navy-bg-2.png?v=1" style="background-color:#1a1530 !important; background-image:url('https://www.dstac.cl/assets/navy-bg-2.png?v=1'); background-repeat:repeat; padding:24px 40px; text-align:center; margin-top:30px;">
             <p style="margin:0 0 6px 0; font-family:Arial, Helvetica, sans-serif; font-size:13px; color:#ffffff; font-weight:bold;">DSTAC | DS Tactical Security</p>
             <p style="margin:0; font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#a98bff;">Ciberseguridad aplicada a su operación</p>
           </td>
