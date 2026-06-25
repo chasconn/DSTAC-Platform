@@ -25,7 +25,13 @@ $MsiUrl   = "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.5-1.msi"
 
 $EnrollPass = $env:WAZUH_ENROLL_PASSWORD
 
-function Die($m) { Write-Host $m -ForegroundColor Red; exit 1 }
+function Die($m) {
+  Write-Host $m -ForegroundColor Red
+  Write-Host ""
+  Write-Host "Presiona ENTER para cerrar..." -ForegroundColor Yellow
+  Read-Host | Out-Null
+  exit 1
+}
 
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $admin) { Die "Abre PowerShell como Administrador y vuelve a ejecutar." }
