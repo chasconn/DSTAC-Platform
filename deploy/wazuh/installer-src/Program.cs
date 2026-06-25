@@ -41,15 +41,20 @@ namespace DstacEdrInstaller
         private readonly string _edrKey;
         private readonly Dictionary<string, string> _empresaMap = new Dictionary<string, string>();
 
-        private Label lblTitulo, lblSub, lblEmpresa, lblEmpresaEstado, lblNombre, lblLog;
+        private PictureBox picLogo;
+        private Label lblEyebrow, lblTitulo, lblSub, lblEmpresa, lblEmpresaEstado, lblNombre, lblLog;
         private ComboBox comboEmpresa;
         private TextBox txtNombre, txtLog;
         private Button btnInstalar;
 
-        private static readonly Color ColFondo = Color.FromArgb(15, 23, 32);
+        // Misma paleta que portal.dstac.cl/installers (fondo oscuro, acento morado DSTAC).
+        private static readonly Color ColFondo = Color.FromArgb(5, 5, 8);
+        private static readonly Color ColPanel = Color.FromArgb(12, 12, 22);
+        private static readonly Color ColBorde = Color.FromArgb(31, 31, 42);
         private static readonly Color ColTexto = Color.White;
-        private static readonly Color ColSub = Color.FromArgb(150, 165, 180);
-        private static readonly Color ColAcento = Color.FromArgb(0, 153, 204);
+        private static readonly Color ColSub = Color.FromArgb(154, 160, 171);
+        private static readonly Color ColAcento = Color.FromArgb(123, 77, 255);
+        private static readonly Color ColAcentoClaro = Color.FromArgb(169, 139, 255);
         private static readonly Color ColAviso = Color.FromArgb(230, 120, 80);
 
         public MainForm()
@@ -63,10 +68,26 @@ namespace DstacEdrInstaller
             this.Shown += delegate { Task.Run((Action)LoadEmpresas); };
         }
 
+        // Carga el logo de DSTAC embebido como recurso del ensamblado (no depende de
+        // ningun archivo externo ni de descargarlo por red).
+        private static Image CargarLogo()
+        {
+            try
+            {
+                System.Reflection.Assembly asm = System.Reflection.Assembly.GetExecutingAssembly();
+                using (Stream s = asm.GetManifestResourceStream("DstacEdrInstaller.logo.png"))
+                {
+                    if (s == null) return null;
+                    return Image.FromStream(s);
+                }
+            }
+            catch { return null; }
+        }
+
         private void BuildUi()
         {
             this.Text = "DSTAC EDR - Instalador de agente";
-            this.ClientSize = new Size(460, 520);
+            this.ClientSize = new Size(460, 560);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -75,18 +96,40 @@ namespace DstacEdrInstaller
             this.Font = new Font("Segoe UI", 9);
             this.BackColor = ColFondo;
 
+            Image logo = CargarLogo();
+            if (logo != null)
+            {
+                picLogo = new PictureBox();
+                picLogo.Image = logo;
+                picLogo.SizeMode = PictureBoxSizeMode.Zoom;
+                int alturaLogo = 34;
+                int anchoLogo = (int)(logo.Width * (alturaLogo / (double)logo.Height));
+                picLogo.Location = new Point(25, 24);
+                picLogo.Size = new Size(anchoLogo, alturaLogo);
+                this.Controls.Add(picLogo);
+                try { this.Icon = Icon.FromHandle(((Bitmap)logo).GetHicon()); } catch { }
+            }
+
+            lblEyebrow = new Label();
+            lblEyebrow.Text = "EDR · WAZUH";
+            lblEyebrow.Font = new Font("Segoe UI", 7.5f, FontStyle.Bold);
+            lblEyebrow.ForeColor = ColAcentoClaro;
+            lblEyebrow.Location = new Point(25, 68);
+            lblEyebrow.Size = new Size(200, 18);
+            this.Controls.Add(lblEyebrow);
+
             lblTitulo = new Label();
-            lblTitulo.Text = "DSTAC EDR";
-            lblTitulo.Font = new Font("Segoe UI", 18, FontStyle.Bold);
+            lblTitulo.Text = "Instalador de agente";
+            lblTitulo.Font = new Font("Segoe UI", 16, FontStyle.Bold);
             lblTitulo.ForeColor = ColTexto;
-            lblTitulo.Location = new Point(25, 20);
-            lblTitulo.Size = new Size(410, 36);
+            lblTitulo.Location = new Point(25, 88);
+            lblTitulo.Size = new Size(410, 32);
             this.Controls.Add(lblTitulo);
 
             lblSub = new Label();
-            lblSub.Text = "Instalador de agente de proteccion de endpoint";
+            lblSub.Text = "Protege este equipo con DSTAC EDR en un par de pasos.";
             lblSub.Font = new Font("Segoe UI", 9);
-            lblSub.Location = new Point(25, 58);
+            lblSub.Location = new Point(25, 122);
             lblSub.Size = new Size(410, 20);
             lblSub.ForeColor = ColSub;
             this.Controls.Add(lblSub);
@@ -95,12 +138,12 @@ namespace DstacEdrInstaller
             lblEmpresa.Text = "Empresa:";
             lblEmpresa.Font = new Font("Segoe UI", 9, FontStyle.Bold);
             lblEmpresa.ForeColor = ColTexto;
-            lblEmpresa.Location = new Point(25, 100);
+            lblEmpresa.Location = new Point(25, 160);
             lblEmpresa.Size = new Size(200, 20);
             this.Controls.Add(lblEmpresa);
 
             comboEmpresa = new ComboBox();
-            comboEmpresa.Location = new Point(25, 123);
+            comboEmpresa.Location = new Point(25, 183);
             comboEmpresa.Size = new Size(410, 26);
             comboEmpresa.Font = new Font("Segoe UI", 10);
             comboEmpresa.DropDownStyle = ComboBoxStyle.DropDown;
@@ -111,7 +154,7 @@ namespace DstacEdrInstaller
             lblEmpresaEstado.Text = "Cargando lista de empresas...";
             lblEmpresaEstado.Font = new Font("Segoe UI", 8);
             lblEmpresaEstado.ForeColor = ColSub;
-            lblEmpresaEstado.Location = new Point(25, 152);
+            lblEmpresaEstado.Location = new Point(25, 212);
             lblEmpresaEstado.Size = new Size(410, 32);
             this.Controls.Add(lblEmpresaEstado);
 
@@ -119,12 +162,12 @@ namespace DstacEdrInstaller
             lblNombre.Text = "Nombre para identificar este equipo:";
             lblNombre.Font = new Font("Segoe UI", 9, FontStyle.Bold);
             lblNombre.ForeColor = ColTexto;
-            lblNombre.Location = new Point(25, 192);
+            lblNombre.Location = new Point(25, 252);
             lblNombre.Size = new Size(410, 20);
             this.Controls.Add(lblNombre);
 
             txtNombre = new TextBox();
-            txtNombre.Location = new Point(25, 215);
+            txtNombre.Location = new Point(25, 275);
             txtNombre.Size = new Size(410, 26);
             txtNombre.Font = new Font("Segoe UI", 10);
             txtNombre.BackColor = Color.White;
@@ -133,13 +176,14 @@ namespace DstacEdrInstaller
 
             btnInstalar = new Button();
             btnInstalar.Text = "Instalar";
-            btnInstalar.Location = new Point(25, 258);
+            btnInstalar.Location = new Point(25, 318);
             btnInstalar.Size = new Size(410, 42);
             btnInstalar.Font = new Font("Segoe UI", 11, FontStyle.Bold);
             btnInstalar.FlatStyle = FlatStyle.Flat;
             btnInstalar.BackColor = ColAcento;
             btnInstalar.ForeColor = Color.White;
             btnInstalar.FlatAppearance.BorderSize = 0;
+            btnInstalar.FlatAppearance.MouseOverBackColor = ColAcentoClaro;
             btnInstalar.Click += BtnInstalar_Click;
             this.Controls.Add(btnInstalar);
 
@@ -147,18 +191,18 @@ namespace DstacEdrInstaller
             lblLog.Text = "Detalle:";
             lblLog.Font = new Font("Segoe UI", 8, FontStyle.Bold);
             lblLog.ForeColor = ColSub;
-            lblLog.Location = new Point(25, 312);
+            lblLog.Location = new Point(25, 372);
             lblLog.Size = new Size(200, 18);
             this.Controls.Add(lblLog);
 
             txtLog = new TextBox();
-            txtLog.Location = new Point(25, 333);
-            txtLog.Size = new Size(410, 165);
+            txtLog.Location = new Point(25, 393);
+            txtLog.Size = new Size(410, 145);
             txtLog.Multiline = true;
             txtLog.ScrollBars = ScrollBars.Vertical;
             txtLog.ReadOnly = true;
             txtLog.Font = new Font("Consolas", 9);
-            txtLog.BackColor = Color.FromArgb(10, 14, 20);
+            txtLog.BackColor = ColPanel;
             txtLog.ForeColor = Color.FromArgb(180, 220, 180);
             txtLog.BorderStyle = BorderStyle.FixedSingle;
             this.Controls.Add(txtLog);

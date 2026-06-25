@@ -38,9 +38,9 @@ const ARCHIVOS = [
     ),
   },
   {
-    nombre: 'install-agent-windows-server.ps1',
+    nombre: 'DstacEdrInstallerServer.exe',
     label: 'Windows Server',
-    detalle: 'Sin sesión gráfica — funciona en Server Core.',
+    detalle: 'Sin sesión gráfica — funciona en Server Core. Pide el nombre del equipo y la empresa por consola.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="6" rx="1.4" />
