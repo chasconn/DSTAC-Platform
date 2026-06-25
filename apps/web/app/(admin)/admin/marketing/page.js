@@ -52,13 +52,20 @@ function EmailPreviewFrame({ html, alto = 720 }) {
   const [escala, setEscala] = useState(1)
 
   useEffect(() => {
-    function actualizar() {
-      const ancho = contenedorRef.current?.offsetWidth || ANCHO_EMAIL
-      setEscala(Math.min(1, ancho / ANCHO_EMAIL))
+    const el = contenedorRef.current
+    if (!el) return
+    function actualizar(ancho) {
+      setEscala(Math.min(1, (ancho || ANCHO_EMAIL) / ANCHO_EMAIL))
     }
-    actualizar()
-    window.addEventListener('resize', actualizar)
-    return () => window.removeEventListener('resize', actualizar)
+    actualizar(el.offsetWidth)
+    // ResizeObserver detecta cambios de ancho por reflow del grid/flex, no solo
+    // por resize de la ventana (importante en celular: rotar, cambiar de
+    // columna a 1-columna, etc. no siempre dispara un evento "resize").
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) actualizar(entry.contentRect.width)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [])
 
   return (
@@ -259,13 +266,13 @@ export default function MarketingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {candidatos.map(c => (
                 <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, border: '1px solid #ECEAE3', borderRadius: 10, padding: '10px 14px' }}>
-                  <div>
+                  <div style={{ minWidth: 0, flex: '1 1 200px', overflowWrap: 'break-word' }}>
                     <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2C2C2A' }}>{c.empresa}</div>
                     <div style={{ fontSize: 12, color: c.email_sugerido ? '#6A675E' : '#B23B3B' }}>
                       {c.email_sugerido || 'Sin correo detectado'} · {c.rubro} · {c.ciudad}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button onClick={() => usarCandidato(c)}
                       style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                       Usar
@@ -285,7 +292,7 @@ export default function MarketingPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginTop: 20, alignItems: 'start' }}>
         {/* Formulario */}
         <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A' }}>
               {candidatoId ? 'Contacto desde candidato' : 'Nuevo contacto'}
             </div>
