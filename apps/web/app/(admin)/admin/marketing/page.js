@@ -12,11 +12,28 @@ function fechaHora(d) {
   return isNaN(date.getTime()) ? '—' : date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-function fileToDataUrl(file) {
+// Las fotos de camara de celular pesan varios MB -- se redimensionan y
+// recomprimen en el propio navegador antes de subirlas (mas rapido en la red
+// del evento y evita pasarse del limite de tamaño del servidor).
+function fileToDataUrlComprimido(file, maxDim = 1400, calidad = 0.82) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => resolve(reader.result)
     reader.onerror = reject
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = reject
+      img.onload = () => {
+        let { width, height } = img
+        if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim }
+        else if (height >= width && height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim }
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', calidad))
+      }
+      img.src = reader.result
+    }
     reader.readAsDataURL(file)
   })
 }
@@ -95,7 +112,7 @@ export default function MarketingExponorPage() {
     if (!file) return
     setEscaneando(true)
     try {
-      const dataUrl = await fileToDataUrl(file)
+      const dataUrl = await fileToDataUrlComprimido(file)
       const r = await api.post('/api/admin/marketing/escanear-tarjeta', { imageDataUrl: dataUrl })
       if (r.sugerido?.empresa) setEmpresa(r.sugerido.empresa)
       if (r.sugerido?.nombre)  setNombre(r.sugerido.nombre)

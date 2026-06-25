@@ -24,6 +24,9 @@ app.use(cors({
   credentials: true
 }))
 
+// Limite mas alto solo para el escaneo de tarjetas (fotos de camara de celular,
+// ya redimensionadas/comprimidas en el navegador, pero con margen de seguridad).
+app.use('/api/admin/marketing/escanear-tarjeta', express.json({ limit: '8mb' }))
 app.use(express.json({ limit: '3mb' }))   // 3mb para permitir subir logos (base64) al trust bar
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
