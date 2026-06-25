@@ -28,7 +28,7 @@ const ARCHIVOS = [
     ),
   },
   {
-    nombre: 'DstacEdrInstaller.exe',
+    nombre: 'install-agent-windows.bat',
     label: 'Windows',
     detalle: 'Equipos de escritorio Windows 10/11. Aplicación gráfica: elige tu empresa y el nombre del equipo, sin clave ni consola.',
     icon: (
@@ -38,7 +38,7 @@ const ARCHIVOS = [
     ),
   },
   {
-    nombre: 'DstacEdrInstallerServer.exe',
+    nombre: 'install-agent-windows-server.bat',
     label: 'Windows Server',
     detalle: 'Sin sesión gráfica — funciona en Server Core. Pide el nombre del equipo y la empresa por consola.',
     icon: (
