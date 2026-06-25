@@ -90,7 +90,7 @@ $colAcentoClaro = [System.Drawing.Color]::FromArgb(169, 139, 255)
 # ===== Ventana principal =====
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "DSTAC EDR - Instalador de agente"
-$form.ClientSize = New-Object System.Drawing.Size(460, 560)
+$form.ClientSize = New-Object System.Drawing.Size(460, 570)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "FixedDialog"
 $form.MaximizeBox = $false
@@ -176,9 +176,17 @@ $txtNombre.BackColor = $colCampo
 $txtNombre.Text = if ($Nombre) { $Nombre } else { $env:COMPUTERNAME }
 $form.Controls.Add($txtNombre)
 
+$lblHintNombre = New-Object System.Windows.Forms.Label
+$lblHintNombre.Text = "Ejemplo: RECEPCION-PC, NOTEBOOK-VENTAS01"
+$lblHintNombre.Font = New-Object System.Drawing.Font("Segoe UI", 7.5)
+$lblHintNombre.ForeColor = $colSub
+$lblHintNombre.Location = New-Object System.Drawing.Point(25, 303)
+$lblHintNombre.Size = New-Object System.Drawing.Size(410, 16)
+$form.Controls.Add($lblHintNombre)
+
 $btnInstalar = New-Object System.Windows.Forms.Button
 $btnInstalar.Text = "Instalar"
-$btnInstalar.Location = New-Object System.Drawing.Point(25, 318)
+$btnInstalar.Location = New-Object System.Drawing.Point(25, 327)
 $btnInstalar.Size = New-Object System.Drawing.Size(410, 42)
 $btnInstalar.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
 $btnInstalar.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
@@ -192,12 +200,12 @@ $lblLog = New-Object System.Windows.Forms.Label
 $lblLog.Text = "Detalle:"
 $lblLog.Font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
 $lblLog.ForeColor = $colSub
-$lblLog.Location = New-Object System.Drawing.Point(25, 372)
+$lblLog.Location = New-Object System.Drawing.Point(25, 381)
 $lblLog.Size = New-Object System.Drawing.Size(200, 18)
 $form.Controls.Add($lblLog)
 
 $txtLog = New-Object System.Windows.Forms.TextBox
-$txtLog.Location = New-Object System.Drawing.Point(25, 393)
+$txtLog.Location = New-Object System.Drawing.Point(25, 402)
 $txtLog.Size = New-Object System.Drawing.Size(410, 145)
 $txtLog.Multiline = $true
 $txtLog.ScrollBars = "Vertical"
@@ -215,9 +223,71 @@ function Log($msg) {
   [System.Windows.Forms.Application]::DoEvents()
 }
 
+# Dialogo modal con la marca de DSTAC (en vez del MessageBox generico de Windows,
+# que rompe la identidad visual de la app justo en el momento mas importante:
+# la confirmacion final).
+function Show-DialogoMarca($titulo, $mensaje, $esError) {
+  $dlg = New-Object System.Windows.Forms.Form
+  $dlg.Text = "DSTAC EDR"
+  $dlg.ClientSize = New-Object System.Drawing.Size(360, 230)
+  $dlg.StartPosition = "CenterParent"
+  $dlg.FormBorderStyle = "FixedDialog"
+  $dlg.MaximizeBox = $false
+  $dlg.MinimizeBox = $false
+  $dlg.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::None
+  $dlg.BackColor = $colFondo
+  if ($logo) { try { $dlg.Icon = [System.Drawing.Icon]::FromHandle($logo.GetHicon()) } catch {} }
+
+  $colIcono = if ($esError) { [System.Drawing.Color]::FromArgb(230, 90, 90) } else { [System.Drawing.Color]::FromArgb(46, 204, 113) }
+  $textoIcono = if ($esError) { [char]0x2715 } else { [char]0x2713 }
+
+  $lblIcono = New-Object System.Windows.Forms.Label
+  $lblIcono.Text = $textoIcono
+  $lblIcono.Font = New-Object System.Drawing.Font("Segoe UI", 26, [System.Drawing.FontStyle]::Bold)
+  $lblIcono.ForeColor = $colIcono
+  $lblIcono.TextAlign = "MiddleCenter"
+  $lblIcono.Location = New-Object System.Drawing.Point(0, 20)
+  $lblIcono.Size = New-Object System.Drawing.Size(360, 44)
+  $dlg.Controls.Add($lblIcono)
+
+  $lblTituloDlg = New-Object System.Windows.Forms.Label
+  $lblTituloDlg.Text = $titulo
+  $lblTituloDlg.Font = New-Object System.Drawing.Font("Segoe UI", 12.5, [System.Drawing.FontStyle]::Bold)
+  $lblTituloDlg.ForeColor = $colTexto
+  $lblTituloDlg.TextAlign = "MiddleCenter"
+  $lblTituloDlg.Location = New-Object System.Drawing.Point(20, 68)
+  $lblTituloDlg.Size = New-Object System.Drawing.Size(320, 28)
+  $dlg.Controls.Add($lblTituloDlg)
+
+  $lblMsgDlg = New-Object System.Windows.Forms.Label
+  $lblMsgDlg.Text = $mensaje
+  $lblMsgDlg.Font = New-Object System.Drawing.Font("Segoe UI", 9.5)
+  $lblMsgDlg.ForeColor = $colSub
+  $lblMsgDlg.TextAlign = "MiddleCenter"
+  $lblMsgDlg.Location = New-Object System.Drawing.Point(20, 100)
+  $lblMsgDlg.Size = New-Object System.Drawing.Size(320, 60)
+  $dlg.Controls.Add($lblMsgDlg)
+
+  $btnOk = New-Object System.Windows.Forms.Button
+  $btnOk.Text = "Aceptar"
+  $btnOk.Location = New-Object System.Drawing.Point(110, 172)
+  $btnOk.Size = New-Object System.Drawing.Size(140, 38)
+  $btnOk.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+  $btnOk.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+  $btnOk.BackColor = $colAcento
+  $btnOk.ForeColor = [System.Drawing.Color]::White
+  $btnOk.FlatAppearance.BorderSize = 0
+  $btnOk.DialogResult = [System.Windows.Forms.DialogResult]::OK
+  $dlg.Controls.Add($btnOk)
+  $dlg.AcceptButton = $btnOk
+
+  [void]$dlg.ShowDialog($form)
+  $dlg.Dispose()
+}
+
 function Fail($msg) {
   Log "ERROR: $msg"
-  [System.Windows.Forms.MessageBox]::Show($msg, "DSTAC EDR - Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  Show-DialogoMarca "Algo salio mal" $msg $true
   $btnInstalar.Enabled = $true
 }
 
@@ -243,7 +313,11 @@ if ($empresas -and $empresas.Count -gt 0) {
   $lblEmpresaEstado.ForeColor = [System.Drawing.Color]::FromArgb(230, 120, 80)
 }
 
+$script:instalado = $false
+
 $btnInstalar.Add_Click({
+  if ($script:instalado) { $form.Close(); return }
+
   $btnInstalar.Enabled = $false
   $txtLog.Clear()
 
@@ -378,8 +452,10 @@ Write-Output "DSTAC_NETSCAN {`"items`":$json}"
 
     Log ""
     Log "Listo. Agente '$nombreEquipo' instalado y asignado a '$empresaSlug'."
-    [System.Windows.Forms.MessageBox]::Show("Instalacion completa.`n`nEl equipo '$nombreEquipo' ya esta protegido por DSTAC EDR.", "DSTAC EDR", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
-    $btnInstalar.Text = "Instalado"
+    Show-DialogoMarca "Instalacion completa" "El equipo '$nombreEquipo' ya esta protegido por DSTAC EDR." $false
+    $script:instalado = $true
+    $btnInstalar.Text = "Cerrar"
+    $btnInstalar.Enabled = $true
   } catch {
     Fail $_.Exception.Message
   }
