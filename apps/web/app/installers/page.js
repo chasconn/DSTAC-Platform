@@ -28,9 +28,9 @@ const ARCHIVOS = [
     ),
   },
   {
-    nombre: 'install-agent-windows.ps1',
+    nombre: 'DstacEdrInstaller.exe',
     label: 'Windows',
-    detalle: 'Equipos de escritorio Windows 10/11.',
+    detalle: 'Equipos de escritorio Windows 10/11. Aplicación gráfica: elige tu empresa y el nombre del equipo, sin clave ni consola.',
     icon: (
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
         <path d="M3 5.5 10.5 4.4V11H3V5.5Zm0 13L10.5 19.6V12.7H3V18.5ZM11.4 4.3 21 3v8H11.4V4.3Zm0 8.4H21v8L11.4 19.7v-7Z" />
@@ -122,9 +122,10 @@ export default function InstallersPage() {
         <span className="ins-eyebrow">EDR · Wazuh</span>
         <h1 className="ins-h1">Instaladores de agente</h1>
         <p className="ins-sub">
-          Descarga el instalador correspondiente al sistema operativo del equipo. Necesitas la clave de
-          enrolamiento que te entrega tu contacto en DSTAC — el comando completo para cada plataforma
-          está disponible en el portal, módulo EDR.
+          Descarga el instalador correspondiente al sistema operativo del equipo. Para Windows de escritorio,
+          la app te pide tu empresa y un nombre para el equipo — listo. Linux, macOS y Windows Server usan
+          un script de línea de comandos; pide a tu contacto en DSTAC la clave de enrolamiento y el comando
+          completo, disponibles en el portal, módulo EDR.
         </p>
 
         <div className="ins-grid">
