@@ -40,11 +40,13 @@ Write-Host "==============================================" -ForegroundColor Cya
 Write-Host "  DSTAC EDR - Instalador de agente (Windows)"   -ForegroundColor Cyan
 Write-Host "==============================================" -ForegroundColor Cyan
 
-# Nombre del equipo: por -Nombre, o con una ventana
+# Nombre del equipo: por -Nombre, o se pide aqui mismo en la consola
+# (antes se pedia con una ventana emergente que podia quedar oculta detras
+# de la consola tras la elevacion de UAC, y el script parecia "congelado"
+# esperando una respuesta que el usuario nunca veia).
 if (-not $Nombre) {
-  Add-Type -AssemblyName Microsoft.VisualBasic
-  $Nombre = [Microsoft.VisualBasic.Interaction]::InputBox("Escribe un nombre para identificar este equipo:", "DSTAC EDR", $env:COMPUTERNAME)
-  if (-not $Nombre) { $Nombre = $env:COMPUTERNAME }
+  $resp = Read-Host "Nombre para identificar este equipo [$env:COMPUTERNAME]"
+  $Nombre = if ($resp) { $resp } else { $env:COMPUTERNAME }
 }
 # Sanitizar (sin espacios)
 $Nombre = ($Nombre -replace '\s', '_') -replace '[^A-Za-z0-9_.-]', ''
@@ -55,21 +57,31 @@ Write-Host "Manager: $Manager"
 if ($Empresa) { Write-Host "Empresa: $Empresa (auto-asignacion)" }
 if ($Grupo)   { Write-Host "Grupo:   $Grupo" }
 
-# Verificar conectividad al Manager (1514/1515)
+# Verificar conectividad al Manager (1514/1515). Se usa un TcpClient directo
+# en vez de Test-NetConnection: este ultimo intenta antes un ping ICMP y
+# puede tardar 10-20s POR PUERTO sin imprimir nada, lo que se ve igual que
+# si el script estuviera congelado.
+Write-Host "Verificando conectividad con $Manager (deberia tardar pocos segundos)..."
 foreach ($p in 1514,1515) {
-  $ok = (Test-NetConnection -ComputerName $Manager -Port $p -WarningAction SilentlyContinue).TcpTestSucceeded
+  $tcp = New-Object System.Net.Sockets.TcpClient
+  $ok = $false
+  try {
+    $task = $tcp.ConnectAsync($Manager, $p)
+    $ok = $task.Wait(4000) -and $tcp.Connected
+  } catch {} finally { $tcp.Close() }
   if ($ok) { Write-Host "  puerto $p alcanzable" -ForegroundColor Green }
   else { Die "  No se alcanza ${Manager}:$p - revisa el firewall de salida." }
 }
 
 # Descargar el MSI
 $msi = Join-Path $env:TEMP "wazuh-agent-dstac.msi"
-Write-Host "Descargando el agente..."
+Write-Host "Descargando el agente (~6 MB, puede tardar segun tu conexion)..."
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Invoke-WebRequest -Uri $MsiUrl -OutFile $msi -UseBasicParsing
+Write-Host "  descarga completa" -ForegroundColor Green
 
 # Instalar silencioso, enrolando con nombre + manager + clave
-Write-Host "Instalando y enrolando..."
+Write-Host "Instalando y enrolando (silencioso, puede tardar 10-30s sin mostrar nada mas)..."
 $mArgs = "/i `"$msi`" /q WAZUH_MANAGER=`"$Manager`" WAZUH_REGISTRATION_PASSWORD=`"$EnrollPass`" WAZUH_AGENT_NAME=`"$Nombre`""
 if ($Grupo) { $mArgs += " WAZUH_AGENT_GROUP=`"$Grupo`"" }
 $p = Start-Process msiexec.exe -ArgumentList $mArgs -Wait -PassThru
