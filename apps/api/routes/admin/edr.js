@@ -493,4 +493,26 @@ router.post('/agents/:wazuhId/mover', async (req, res) => {
   } catch (err) { res.status(502).json({ error: err.message || 'No se pudo mover el equipo' }) }
 })
 
+// PUT /agents/:wazuhId/renombrar — cambia el nombre visible del equipo en el
+// portal. NO toca Wazuh: el agente Wazuh sigue identificandose por su ID
+// interno (wazuh_id), el nombre original en client.keys no cambia (Wazuh no
+// re-ejecuta el enrolamiento si el MSI ya esta instalado). Esto es lo que
+// permite corregir el nombre sin reinstalar el agente.
+router.put('/agents/:wazuhId/renombrar', async (req, res) => {
+  try {
+    const { wazuhId } = req.params
+    const nombre = (req.body?.name || '').trim().slice(0, 255)
+    if (!nombre) return res.status(400).json({ error: 'El nombre no puede estar vacio' })
+
+    const [ag] = await centralDB.execute(`SELECT name FROM edr_agents WHERE wazuh_id = ? AND company_id = ? LIMIT 1`, [wazuhId, req.company.id])
+    if (!ag.length) return res.status(404).json({ error: 'Equipo no encontrado en esta empresa' })
+
+    await centralDB.execute(`UPDATE edr_agents SET name = ? WHERE wazuh_id = ?`, [nombre, wazuhId])
+
+    await registrarActividad({ req, accion: 'editar', modulo: 'edr', company_id: req.company.id,
+      descripcion: `Equipo renombrado de "${ag[0].name || wazuhId}" a "${nombre}"` })
+    res.json({ success: true, name: nombre })
+  } catch (err) { res.status(502).json({ error: err.message || 'No se pudo renombrar el equipo' }) }
+})
+
 module.exports = router

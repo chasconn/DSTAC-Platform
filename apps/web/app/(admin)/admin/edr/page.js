@@ -255,6 +255,16 @@ export default function EdrPage() {
     } catch (err) { showToast(err.message || 'Error al ubicar', 'error') }
   }
 
+  async function renombrar(wazuhId, nombreActual) {
+    const nuevo = prompt('Nuevo nombre para identificar el equipo:', nombreActual)
+    if (!nuevo || !nuevo.trim() || nuevo.trim() === nombreActual) return
+    try {
+      await api.put(`/api/admin/edr/agents/${wazuhId}/renombrar`, { name: nuevo.trim() }, headers)
+      showToast('Equipo renombrado')
+      await cargar()
+    } catch (err) { showToast(err.message || 'Error al renombrar', 'error') }
+  }
+
   async function darDeBaja(wazuhId, name) {
     if (!confirm(`¿Dar de baja el equipo "${name}"?\n\nSe eliminará del EDR (Wazuh + portal). Úsalo si el equipo fue robado, reemplazado o retirado. Si vuelve, hay que reinstalar el agente.`)) return
     try {
@@ -532,7 +542,13 @@ export default function EdrPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span className={activo ? 'edr-dot-live' : ''} style={{ width: 10, height: 10, borderRadius: '50%', background: activo ? '#1D9E75' : '#C0392B', flexShrink: 0 }} />
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: '#2C2C2A' }}>{a.name || a.wazuh_id}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#2C2C2A', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {a.name || a.wazuh_id}
+                            <button onClick={() => renombrar(a.wazuh_id, a.name || a.wazuh_id)} title="Renombrar este equipo"
+                              style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: '#9A988F', padding: 0, lineHeight: 1 }}>
+                              ✏️
+                            </button>
+                          </div>
                           <div style={{ fontSize: 11, color: '#9A988F' }}>ID {a.wazuh_id} · {a.ip || 's/IP'}</div>
                         </div>
                       </div>
