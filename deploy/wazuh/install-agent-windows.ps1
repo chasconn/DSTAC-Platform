@@ -40,75 +40,124 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
+# Devuelve la lista de empresas, o $null + el motivo del fallo en $script:EmpresasError
+# (para poder mostrar la causa real en vez de tragarla en silencio).
+$script:EmpresasError = $null
 function Get-Empresas {
   try {
     $headers = @{ "x-edr-key" = $EdrKey }
-    $resp = Invoke-RestMethod -Uri "$ApiBase/empresas" -Headers $headers -TimeoutSec 6
+    $resp = Invoke-RestMethod -Uri "$ApiBase/empresas" -Headers $headers -TimeoutSec 8
     return $resp.empresas
-  } catch { return @() }
+  } catch {
+    $script:EmpresasError = $_.Exception.Message
+    return @()
+  }
 }
+
+# Colores DSTAC (tema oscuro)
+$colFondo  = [System.Drawing.Color]::FromArgb(15, 23, 32)
+$colCampo  = [System.Drawing.Color]::White
+$colTexto  = [System.Drawing.Color]::White
+$colSub    = [System.Drawing.Color]::FromArgb(150, 165, 180)
+$colAcento = [System.Drawing.Color]::FromArgb(0, 153, 204)
 
 # ===== Ventana principal =====
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "DSTAC EDR - Instalador de agente"
-$form.Size = New-Object System.Drawing.Size(460, 430)
+$form.ClientSize = New-Object System.Drawing.Size(460, 520)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = "FixedDialog"
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
+$form.AutoScaleMode = [System.Windows.Forms.AutoScaleMode]::None
+$form.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$form.BackColor = $colFondo
 
 $lblTitulo = New-Object System.Windows.Forms.Label
 $lblTitulo.Text = "DSTAC EDR"
-$lblTitulo.Font = New-Object System.Drawing.Font("Segoe UI", 16, [System.Drawing.FontStyle]::Bold)
-$lblTitulo.Location = New-Object System.Drawing.Point(20, 15)
-$lblTitulo.Size = New-Object System.Drawing.Size(400, 30)
+$lblTitulo.Font = New-Object System.Drawing.Font("Segoe UI", 18, [System.Drawing.FontStyle]::Bold)
+$lblTitulo.ForeColor = $colTexto
+$lblTitulo.Location = New-Object System.Drawing.Point(25, 20)
+$lblTitulo.Size = New-Object System.Drawing.Size(410, 36)
 $form.Controls.Add($lblTitulo)
 
 $lblSub = New-Object System.Windows.Forms.Label
 $lblSub.Text = "Instalador de agente de proteccion de endpoint"
-$lblSub.Location = New-Object System.Drawing.Point(20, 45)
-$lblSub.Size = New-Object System.Drawing.Size(400, 20)
-$lblSub.ForeColor = [System.Drawing.Color]::Gray
+$lblSub.Font = New-Object System.Drawing.Font("Segoe UI", 9)
+$lblSub.Location = New-Object System.Drawing.Point(25, 58)
+$lblSub.Size = New-Object System.Drawing.Size(410, 20)
+$lblSub.ForeColor = $colSub
 $form.Controls.Add($lblSub)
 
 $lblEmpresa = New-Object System.Windows.Forms.Label
 $lblEmpresa.Text = "Empresa:"
-$lblEmpresa.Location = New-Object System.Drawing.Point(20, 85)
-$lblEmpresa.Size = New-Object System.Drawing.Size(150, 20)
+$lblEmpresa.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$lblEmpresa.ForeColor = $colTexto
+$lblEmpresa.Location = New-Object System.Drawing.Point(25, 100)
+$lblEmpresa.Size = New-Object System.Drawing.Size(200, 20)
 $form.Controls.Add($lblEmpresa)
 
 $comboEmpresa = New-Object System.Windows.Forms.ComboBox
-$comboEmpresa.Location = New-Object System.Drawing.Point(20, 108)
-$comboEmpresa.Size = New-Object System.Drawing.Size(400, 24)
+$comboEmpresa.Location = New-Object System.Drawing.Point(25, 123)
+$comboEmpresa.Size = New-Object System.Drawing.Size(410, 26)
+$comboEmpresa.Font = New-Object System.Drawing.Font("Segoe UI", 10)
 $comboEmpresa.DropDownStyle = "DropDown"  # editable: si la lista no carga, se puede escribir el nombre/slug a mano
+$comboEmpresa.BackColor = $colCampo
 $form.Controls.Add($comboEmpresa)
+
+$lblEmpresaEstado = New-Object System.Windows.Forms.Label
+$lblEmpresaEstado.Text = "Cargando lista de empresas..."
+$lblEmpresaEstado.Font = New-Object System.Drawing.Font("Segoe UI", 8)
+$lblEmpresaEstado.ForeColor = $colSub
+$lblEmpresaEstado.Location = New-Object System.Drawing.Point(25, 152)
+$lblEmpresaEstado.Size = New-Object System.Drawing.Size(410, 32)
+$form.Controls.Add($lblEmpresaEstado)
 
 $lblNombre = New-Object System.Windows.Forms.Label
 $lblNombre.Text = "Nombre para identificar este equipo:"
-$lblNombre.Location = New-Object System.Drawing.Point(20, 145)
-$lblNombre.Size = New-Object System.Drawing.Size(350, 20)
+$lblNombre.Font = New-Object System.Drawing.Font("Segoe UI", 9, [System.Drawing.FontStyle]::Bold)
+$lblNombre.ForeColor = $colTexto
+$lblNombre.Location = New-Object System.Drawing.Point(25, 192)
+$lblNombre.Size = New-Object System.Drawing.Size(410, 20)
 $form.Controls.Add($lblNombre)
 
 $txtNombre = New-Object System.Windows.Forms.TextBox
-$txtNombre.Location = New-Object System.Drawing.Point(20, 168)
-$txtNombre.Size = New-Object System.Drawing.Size(400, 24)
+$txtNombre.Location = New-Object System.Drawing.Point(25, 215)
+$txtNombre.Size = New-Object System.Drawing.Size(410, 26)
+$txtNombre.Font = New-Object System.Drawing.Font("Segoe UI", 10)
+$txtNombre.BackColor = $colCampo
 $txtNombre.Text = if ($Nombre) { $Nombre } else { $env:COMPUTERNAME }
 $form.Controls.Add($txtNombre)
 
 $btnInstalar = New-Object System.Windows.Forms.Button
 $btnInstalar.Text = "Instalar"
-$btnInstalar.Location = New-Object System.Drawing.Point(20, 205)
-$btnInstalar.Size = New-Object System.Drawing.Size(400, 36)
-$btnInstalar.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$btnInstalar.Location = New-Object System.Drawing.Point(25, 258)
+$btnInstalar.Size = New-Object System.Drawing.Size(410, 42)
+$btnInstalar.Font = New-Object System.Drawing.Font("Segoe UI", 11, [System.Drawing.FontStyle]::Bold)
+$btnInstalar.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
+$btnInstalar.BackColor = $colAcento
+$btnInstalar.ForeColor = [System.Drawing.Color]::White
+$btnInstalar.FlatAppearance.BorderSize = 0
 $form.Controls.Add($btnInstalar)
 
+$lblLog = New-Object System.Windows.Forms.Label
+$lblLog.Text = "Detalle:"
+$lblLog.Font = New-Object System.Drawing.Font("Segoe UI", 8, [System.Drawing.FontStyle]::Bold)
+$lblLog.ForeColor = $colSub
+$lblLog.Location = New-Object System.Drawing.Point(25, 312)
+$lblLog.Size = New-Object System.Drawing.Size(200, 18)
+$form.Controls.Add($lblLog)
+
 $txtLog = New-Object System.Windows.Forms.TextBox
-$txtLog.Location = New-Object System.Drawing.Point(20, 252)
-$txtLog.Size = New-Object System.Drawing.Size(400, 140)
+$txtLog.Location = New-Object System.Drawing.Point(25, 333)
+$txtLog.Size = New-Object System.Drawing.Size(410, 165)
 $txtLog.Multiline = $true
 $txtLog.ScrollBars = "Vertical"
 $txtLog.ReadOnly = $true
 $txtLog.Font = New-Object System.Drawing.Font("Consolas", 9)
+$txtLog.BackColor = [System.Drawing.Color]::FromArgb(10, 14, 20)
+$txtLog.ForeColor = [System.Drawing.Color]::FromArgb(180, 220, 180)
+$txtLog.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
 $form.Controls.Add($txtLog)
 
 function Log($msg) {
@@ -126,7 +175,6 @@ function Fail($msg) {
 
 # Cargar la lista de empresas en vivo desde el portal (con mapeo nombre -> slug)
 $empresaMap = @{}
-Log "Cargando lista de empresas..."
 $empresas = Get-Empresas
 if ($empresas -and $empresas.Count -gt 0) {
   foreach ($e in $empresas) {
@@ -139,12 +187,13 @@ if ($empresas -and $empresas.Count -gt 0) {
   } else {
     $comboEmpresa.SelectedIndex = 0
   }
-  Log "  $($empresas.Count) empresa(s) disponible(s)"
+  $lblEmpresaEstado.Text = "$($empresas.Count) empresa(s) disponible(s)."
 } else {
   $comboEmpresa.Text = if ($Empresa) { $Empresa } else { "" }
-  Log "  no se pudo cargar la lista; escribe el nombre de la empresa manualmente"
+  $motivo = if ($script:EmpresasError) { $script:EmpresasError } else { "respuesta vacia" }
+  $lblEmpresaEstado.Text = "No se pudo cargar la lista ($motivo). Escribe el nombre/slug de la empresa."
+  $lblEmpresaEstado.ForeColor = [System.Drawing.Color]::FromArgb(230, 120, 80)
 }
-$txtLog.Clear()
 
 $btnInstalar.Add_Click({
   $btnInstalar.Enabled = $false
