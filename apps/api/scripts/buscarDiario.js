@@ -1,7 +1,9 @@
-// scripts/buscarDiario.js — corrida automatica diaria (via cron) de la
-// busqueda de empresas para la campana "pymes-chile". Rota por una lista fija
-// de rubro+ciudad para no repetir siempre lo mismo, usando el dia del año
-// como indice -- sin necesitar guardar estado en ningun lado.
+// scripts/buscarDiario.js — corrida automatica (via cron, varias veces al
+// dia) de la busqueda de empresas para la campana "pymes-chile". Rota por una
+// lista fija de rubro+ciudad para no repetir siempre lo mismo, usando un
+// indice global (dia del año x corrida del dia) -- sin necesitar guardar
+// estado en ningun lado, y sin repetir las mismas combinaciones en las
+// distintas corridas de un mismo dia.
 //
 // Uso: node apps/api/scripts/buscarDiario.js
 const centralDB = require('../db/central')
@@ -23,39 +25,50 @@ const OTRAS_CIUDADES = [
   'Rancagua', 'Talca', 'Concepcion', 'Temuco', 'Puerto Montt',
 ]
 
-const COMBOS_POR_DIA = 3 // ritmo conservador: ~10.000 busquedas gratis/mes en Places API
-const COMBOS_ANTOFAGASTA_POR_DIA = 2 // 2 de 3 combos diarios son siempre Antofagasta
+const COMBOS_POR_CORRIDA = 3
+const COMBOS_ANTOFAGASTA_POR_CORRIDA = 2 // 2 de 3 combos por corrida son siempre Antofagasta
+const CORRIDAS_POR_DIA = 4 // el cron dispara cada 6 horas (00, 06, 12, 18)
 
+// Combos/dia = COMBOS_POR_CORRIDA x CORRIDAS_POR_DIA = 12/dia => ~360/mes,
+// comodo bajo el tope gratis de Google (5.000/mes en el SKU que usamos).
 function diaDelAnio() {
   const ahora = new Date()
   const inicio = new Date(ahora.getFullYear(), 0, 0)
   return Math.floor((ahora - inicio) / 86400000)
 }
 
-function combosDeHoy() {
-  const dia = diaDelAnio()
+// Indice que avanza con cada corrida (no solo con cada dia), para que las
+// distintas corridas del mismo dia no repitan las mismas combinaciones.
+function indiceGlobal() {
+  const horasPorCorrida = 24 / CORRIDAS_POR_DIA
+  const corridaDelDia = Math.floor(new Date().getHours() / horasPorCorrida)
+  return diaDelAnio() * CORRIDAS_POR_DIA + corridaDelDia
+}
+
+function combosDeEstaCorrida() {
+  const idx = indiceGlobal()
   const seleccion = []
 
-  // Mayoria del cupo diario: Antofagasta, rotando por rubro.
-  for (let i = 0; i < COMBOS_ANTOFAGASTA_POR_DIA; i++) {
-    const idxRubro = (dia * COMBOS_ANTOFAGASTA_POR_DIA + i) % RUBROS.length
+  // Mayoria del cupo: Antofagasta, rotando por rubro.
+  for (let i = 0; i < COMBOS_ANTOFAGASTA_POR_CORRIDA; i++) {
+    const idxRubro = (idx * COMBOS_ANTOFAGASTA_POR_CORRIDA + i) % RUBROS.length
     seleccion.push({ rubro: RUBROS[idxRubro], ciudad: CIUDAD_PRINCIPAL })
   }
 
-  // Resto del cupo: una combinacion rotando por las demas ciudades, para no
-  // abandonar el resto del pais.
+  // Resto del cupo: rotando por las demas ciudades, para no abandonar el
+  // resto del pais.
   const otrosTodos = []
   for (const rubro of RUBROS) for (const ciudad of OTRAS_CIUDADES) otrosTodos.push({ rubro, ciudad })
-  const restantes = COMBOS_POR_DIA - COMBOS_ANTOFAGASTA_POR_DIA
+  const restantes = COMBOS_POR_CORRIDA - COMBOS_ANTOFAGASTA_POR_CORRIDA
   for (let i = 0; i < restantes; i++) {
-    seleccion.push(otrosTodos[(dia * restantes + i) % otrosTodos.length])
+    seleccion.push(otrosTodos[(idx * restantes + i) % otrosTodos.length])
   }
 
   return seleccion
 }
 
 async function main() {
-  const combos = combosDeHoy()
+  const combos = combosDeEstaCorrida()
   console.log(`[buscarDiario] ${new Date().toISOString()} — combos de hoy:`, combos)
 
   let totalEncontrados = 0, totalNuevos = 0
