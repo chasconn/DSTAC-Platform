@@ -5,8 +5,12 @@
 const { FIRMA_HTML } = require('./firma')
 
 function renderPymesEmail({ nombre, empresa }) {
-  const safeNombre = (nombre || '').trim() || 'estimado contacto'
+  const nombreLimpio = (nombre || '').trim()
   const safeEmpresa = (empresa || '').trim() || 'tu empresa'
+  // La mayoria de las empresas encontradas por busqueda no tienen un nombre de
+  // contacto (solo un correo generico de la pagina). "Hola estimado contacto"
+  // suena forzado -- si no hay nombre, se saluda a la empresa directamente.
+  const saludo = nombreLimpio ? `Hola ${nombreLimpio},` : `Hola, equipo de ${safeEmpresa}`
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -46,17 +50,17 @@ function renderPymesEmail({ nombre, empresa }) {
         <!-- HERO / APERTURA -->
         <tr>
           <td style="padding:40px 40px 12px 40px;">
-            <h1 style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:25px; line-height:1.35; color:#1a1530;">Hola ${safeNombre}, te escribimos de DSTAC 👋</h1>
+            <h1 style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:25px; line-height:1.35; color:#1a1530;">${saludo}</h1>
             <p style="margin:0 0 14px 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.65; color:#3a3a3a;">
-              Somos una consultora de ciberseguridad chilena y notamos que ${safeEmpresa}
-              podría beneficiarse de revisar su exposición digital. Trabajamos con empresas
-              que muchas veces no tienen un área de TI propia, ayudándolas a proteger su
-              operación de forma real y aplicada — no vendemos miedo, construimos seguridad
-              junto a tu equipo.
+              Somos DSTAC, una consultora chilena de ciberseguridad. Trabajamos con empresas
+              como ${safeEmpresa} para identificar y cerrar brechas de seguridad antes de que
+              se conviertan en un problema real — sin tecnicismos innecesarios ni venderte
+              miedo: un diagnóstico claro y un plan de acción concreto.
             </p>
             <p style="margin:0 0 4px 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.65; color:#3a3a3a;">
-              Te dejamos un tema que aplica a prácticamente toda empresa en Chile hoy, y vale
-              la pena que lo tengas en el radar:
+              Muchas pymes en Chile no cuentan con un equipo de TI propio, y eso las deja
+              más expuestas de lo que creen. Antes de entrar en detalle, hay un tema
+              regulatorio que aplica a prácticamente toda empresa hoy:
             </p>
           </td>
         </tr>
