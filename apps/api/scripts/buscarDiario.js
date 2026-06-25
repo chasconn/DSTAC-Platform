@@ -15,13 +15,16 @@ const RUBROS = [
   'agencias de turismo',
 ]
 
-// Principales ciudades de Chile, de norte a sur.
-const CIUDADES = [
-  'Iquique', 'Antofagasta', 'La Serena', 'Santiago', 'Valparaiso',
+// Antofagasta es la prioridad (foco comercial); el resto de ciudades se usa
+// solo ocasionalmente para no dejar de cubrir el resto del pais.
+const CIUDAD_PRINCIPAL = 'Antofagasta'
+const OTRAS_CIUDADES = [
+  'Iquique', 'La Serena', 'Santiago', 'Valparaiso',
   'Rancagua', 'Talca', 'Concepcion', 'Temuco', 'Puerto Montt',
 ]
 
 const COMBOS_POR_DIA = 3 // ritmo conservador: ~10.000 busquedas gratis/mes en Places API
+const COMBOS_ANTOFAGASTA_POR_DIA = 2 // 2 de 3 combos diarios son siempre Antofagasta
 
 function diaDelAnio() {
   const ahora = new Date()
@@ -30,11 +33,24 @@ function diaDelAnio() {
 }
 
 function combosDeHoy() {
-  const todos = []
-  for (const rubro of RUBROS) for (const ciudad of CIUDADES) todos.push({ rubro, ciudad })
-  const inicio = (diaDelAnio() * COMBOS_POR_DIA) % todos.length
+  const dia = diaDelAnio()
   const seleccion = []
-  for (let i = 0; i < COMBOS_POR_DIA; i++) seleccion.push(todos[(inicio + i) % todos.length])
+
+  // Mayoria del cupo diario: Antofagasta, rotando por rubro.
+  for (let i = 0; i < COMBOS_ANTOFAGASTA_POR_DIA; i++) {
+    const idxRubro = (dia * COMBOS_ANTOFAGASTA_POR_DIA + i) % RUBROS.length
+    seleccion.push({ rubro: RUBROS[idxRubro], ciudad: CIUDAD_PRINCIPAL })
+  }
+
+  // Resto del cupo: una combinacion rotando por las demas ciudades, para no
+  // abandonar el resto del pais.
+  const otrosTodos = []
+  for (const rubro of RUBROS) for (const ciudad of OTRAS_CIUDADES) otrosTodos.push({ rubro, ciudad })
+  const restantes = COMBOS_POR_DIA - COMBOS_ANTOFAGASTA_POR_DIA
+  for (let i = 0; i < restantes; i++) {
+    seleccion.push(otrosTodos[(dia * restantes + i) % otrosTodos.length])
+  }
+
   return seleccion
 }
 
