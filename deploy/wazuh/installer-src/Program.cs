@@ -17,6 +17,12 @@ namespace DstacEdrInstaller
         [STAThread]
         private static void Main()
         {
+            // Forzar TLS 1.2 ANTES de cualquier llamada HTTPS (carga de empresas,
+            // descarga del MSI, registro). .NET Framework no siempre habilita TLS 1.2
+            // por defecto segun el OS, y portal.dstac.cl solo acepta TLS 1.2+, lo que
+            // causaba "No se puede crear un canal seguro SSL/TLS" en la primera llamada.
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new MainForm());
