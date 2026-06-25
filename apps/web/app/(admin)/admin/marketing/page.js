@@ -121,7 +121,7 @@ export default function MarketingExponorPage() {
         <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Envía el correo de seguimiento a cada contacto, uno por uno.</div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 18, marginTop: 20, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginTop: 20, alignItems: 'start' }}>
         {/* Formulario */}
         <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -184,7 +184,7 @@ export default function MarketingExponorPage() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input value={filtroTexto} onChange={e => setFiltroTexto(e.target.value)} placeholder="Buscar empresa, contacto o correo…"
-              style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 13, width: 240 }} />
+              style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 13, flex: '1 1 200px', minWidth: 160, boxSizing: 'border-box' }} />
             <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
               style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 13 }}>
               <option value="">Todos los estados</option>
@@ -203,7 +203,8 @@ export default function MarketingExponorPage() {
         ) : envios.length === 0 ? (
           <div style={{ color: '#8A877E', fontSize: 13 }}>No hay envíos que coincidan con el filtro.</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ textAlign: 'left', color: '#8A877E', borderBottom: '1px solid #ECEAE3' }}>
                 <th style={{ padding: '6px 8px' }}>Empresa</th>
@@ -238,18 +239,19 @@ export default function MarketingExponorPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
       {/* Modal "Ver correo" */}
       {verCorreoHtml !== null && (
         <div onClick={() => setVerCorreoHtml(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,12,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 16, width: '100%', maxWidth: 680 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 16, width: '100%', maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontWeight: 700, color: NAVY }}>Correo enviado</div>
               <button onClick={() => setVerCorreoHtml(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>×</button>
             </div>
-            <iframe srcDoc={verCorreoHtml} title="Correo enviado" style={{ width: '100%', height: 600, border: '1px solid #ECEAE3', borderRadius: 8 }} />
+            <iframe srcDoc={verCorreoHtml} title="Correo enviado" style={{ width: '100%', height: 'min(600px, 65vh)', border: '1px solid #ECEAE3', borderRadius: 8 }} />
           </div>
         </div>
       )}
