@@ -19,6 +19,15 @@ async function main() {
     ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   `)
   console.log('✓ Tabla marketing_envios lista')
+
+  console.log('› Verificando columna html_enviado…')
+  try {
+    await centralDB.query(`ALTER TABLE marketing_envios ADD COLUMN html_enviado LONGTEXT NULL AFTER error_detail`)
+    console.log('✓ Columna html_enviado agregada')
+  } catch (err) {
+    if (err.code === 'ER_DUP_FIELDNAME') console.log('… columna html_enviado ya existía')
+    else throw err
+  }
 }
 
 main().then(() => process.exit(0)).catch(err => { console.error('✗', err.message); process.exit(1) })

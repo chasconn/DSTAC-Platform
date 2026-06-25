@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../../../../lib/api'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
@@ -12,6 +12,15 @@ function fechaHora(d) {
   return isNaN(date.getTime()) ? '—' : date.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function MarketingExponorPage() {
   const [empresa, setEmpresa] = useState('')
   const [nombre, setNombre]   = useState('')
@@ -20,19 +29,36 @@ export default function MarketingExponorPage() {
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [toast, setToast] = useState('')
+
   const [envios, setEnvios] = useState([])
   const [loadingEnvios, setLoadingEnvios] = useState(false)
+  const [filtroTexto, setFiltroTexto] = useState('')
+  const [filtroEstado, setFiltroEstado] = useState('')
+
+  const [verCorreoHtml, setVerCorreoHtml] = useState(null) // null = cerrado
+
+  const [escaneando, setEscaneando] = useState(false)
+  const [textoOcr, setTextoOcr] = useState('')
+  const fileInputRef = useRef(null)
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(''), 4000) }
 
   const cargarEnvios = useCallback(async () => {
     setLoadingEnvios(true)
-    try { const r = await api.get('/api/admin/marketing/envios'); setEnvios(r.envios ?? []) }
-    catch { showToast('No se pudo cargar el historial') }
+    try {
+      const params = new URLSearchParams()
+      if (filtroTexto.trim()) params.set('q', filtroTexto.trim())
+      if (filtroEstado) params.set('estado', filtroEstado)
+      const r = await api.get(`/api/admin/marketing/envios?${params.toString()}`)
+      setEnvios(r.envios ?? [])
+    } catch { showToast('No se pudo cargar el historial') }
     finally { setLoadingEnvios(false) }
-  }, [])
+  }, [filtroTexto, filtroEstado])
 
-  useEffect(() => { cargarEnvios() }, [cargarEnvios])
+  useEffect(() => {
+    const t = setTimeout(cargarEnvios, 300)
+    return () => clearTimeout(t)
+  }, [cargarEnvios])
 
   async function generarPreview() {
     setLoadingPreview(true)
@@ -43,7 +69,6 @@ export default function MarketingExponorPage() {
     finally { setLoadingPreview(false) }
   }
 
-  // Vista previa automática mientras se escribe (con un pequeño debounce)
   useEffect(() => {
     if (!empresa && !nombre) { setPreviewHtml(''); return }
     const t = setTimeout(generarPreview, 500)
@@ -58,10 +83,34 @@ export default function MarketingExponorPage() {
     try {
       await api.post('/api/admin/marketing/enviar', { empresa, nombre, email })
       showToast(`Correo enviado a ${nombre} (${email})`)
-      setEmpresa(''); setNombre(''); setEmail(''); setPreviewHtml('')
+      setEmpresa(''); setNombre(''); setEmail(''); setPreviewHtml(''); setTextoOcr('')
       cargarEnvios()
     } catch (e) { showToast(e.message || 'No se pudo enviar el correo') }
     finally { setEnviando(false) }
+  }
+
+  async function onFotoTarjeta(e) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // permite volver a elegir la misma foto despues
+    if (!file) return
+    setEscaneando(true)
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      const r = await api.post('/api/admin/marketing/escanear-tarjeta', { imageDataUrl: dataUrl })
+      if (r.sugerido?.empresa) setEmpresa(r.sugerido.empresa)
+      if (r.sugerido?.nombre)  setNombre(r.sugerido.nombre)
+      if (r.sugerido?.email)   setEmail(r.sugerido.email)
+      setTextoOcr(r.textoCompleto || '')
+      showToast('Tarjeta leída — revisa los datos antes de enviar')
+    } catch (e) { showToast(e.message || 'No se pudo leer la tarjeta') }
+    finally { setEscaneando(false) }
+  }
+
+  async function verCorreo(id) {
+    try {
+      const r = await api.get(`/api/admin/marketing/envios/${id}/html`)
+      setVerCorreoHtml(r.html || '<p>Sin contenido guardado.</p>')
+    } catch (e) { showToast(e.message || 'No se pudo cargar el correo') }
   }
 
   return (
@@ -75,7 +124,14 @@ export default function MarketingExponorPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 18, marginTop: 20, alignItems: 'start' }}>
         {/* Formulario */}
         <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', marginBottom: 14 }}>Nuevo contacto</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A' }}>Nuevo contacto</div>
+            <button onClick={() => fileInputRef.current?.click()} disabled={escaneando}
+              style={{ background: '#F7F6F2', color: NAVY, border: '1px solid #ECEAE3', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              {escaneando ? 'Leyendo…' : '📷 Escanear tarjeta'}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onFotoTarjeta} />
+          </div>
 
           <label style={{ fontSize: 12, fontWeight: 600, color: '#8A877E', display: 'block', marginBottom: 4 }}>Empresa</label>
           <input value={empresa} onChange={e => setEmpresa(e.target.value)} placeholder="Ej: Minera Los Andes"
@@ -87,14 +143,21 @@ export default function MarketingExponorPage() {
 
           <label style={{ fontSize: 12, fontWeight: 600, color: '#8A877E', display: 'block', marginBottom: 4 }}>Correo</label>
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder="maria@empresa.cl" type="email"
-            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ECEAE3', marginBottom: 18, fontSize: 14, boxSizing: 'border-box' }} />
+            style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ECEAE3', marginBottom: 12, fontSize: 14, boxSizing: 'border-box' }} />
+
+          {textoOcr && (
+            <details style={{ marginBottom: 14, fontSize: 11.5, color: '#8A877E' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Texto leído de la tarjeta (revisa si algo quedó mal)</summary>
+              <pre style={{ whiteSpace: 'pre-wrap', background: '#F7F6F2', padding: 8, borderRadius: 6, marginTop: 6 }}>{textoOcr}</pre>
+            </details>
+          )}
 
           <button onClick={enviar} disabled={enviando}
             style={{ width: '100%', background: PURPLE, color: '#fff', border: 'none', borderRadius: 999, padding: '12px 0', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
             {enviando ? 'Enviando…' : '✉️ Enviar correo'}
           </button>
           <div style={{ fontSize: 11.5, color: '#8A877E', marginTop: 10, lineHeight: 1.5 }}>
-            La vista previa de la derecha se actualiza automáticamente mientras escribes.
+            La vista previa se actualiza automáticamente. "Escanear tarjeta" usa la cámara del celular y completa los campos — siempre revisa antes de enviar.
           </div>
         </div>
 
@@ -115,13 +178,30 @@ export default function MarketingExponorPage() {
 
       {/* Historial */}
       <div style={{ marginTop: 24, background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 20 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', marginBottom: 14 }}>
-          Enviados ({envios.filter(e => e.estado === 'enviado').length})
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A' }}>
+            Historial ({envios.filter(e => e.estado === 'enviado').length} enviados)
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input value={filtroTexto} onChange={e => setFiltroTexto(e.target.value)} placeholder="Buscar empresa, contacto o correo…"
+              style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 13, width: 240 }} />
+            <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
+              style={{ padding: '7px 10px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 13 }}>
+              <option value="">Todos los estados</option>
+              <option value="enviado">Enviado</option>
+              <option value="error">Error</option>
+            </select>
+            <a href="/api/admin/marketing/envios/export" target="_blank" rel="noopener noreferrer"
+              style={{ background: '#F7F6F2', color: NAVY, border: '1px solid #ECEAE3', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+              ⬇️ Exportar a Excel
+            </a>
+          </div>
         </div>
+
         {loadingEnvios ? (
           <div style={{ color: '#8A877E', fontSize: 13 }}>Cargando…</div>
         ) : envios.length === 0 ? (
-          <div style={{ color: '#8A877E', fontSize: 13 }}>Todavía no has enviado ningún correo.</div>
+          <div style={{ color: '#8A877E', fontSize: 13 }}>No hay envíos que coincidan con el filtro.</div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
@@ -131,6 +211,7 @@ export default function MarketingExponorPage() {
                 <th style={{ padding: '6px 8px' }}>Correo</th>
                 <th style={{ padding: '6px 8px' }}>Estado</th>
                 <th style={{ padding: '6px 8px' }}>Fecha</th>
+                <th style={{ padding: '6px 8px' }}></th>
               </tr>
             </thead>
             <tbody>
@@ -147,12 +228,31 @@ export default function MarketingExponorPage() {
                     }}>{e.estado === 'enviado' ? 'Enviado' : 'Error'}</span>
                   </td>
                   <td style={{ padding: '8px', color: '#8A877E' }}>{fechaHora(e.created_at)}</td>
+                  <td style={{ padding: '8px' }}>
+                    <button onClick={() => verCorreo(e.id)}
+                      style={{ background: 'none', border: '1px solid #ECEAE3', borderRadius: 8, padding: '4px 10px', fontSize: 11.5, cursor: 'pointer', color: PURPLE, fontWeight: 700 }}>
+                      Ver correo
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
       </div>
+
+      {/* Modal "Ver correo" */}
+      {verCorreoHtml !== null && (
+        <div onClick={() => setVerCorreoHtml(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,12,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 16, width: '100%', maxWidth: 680 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, color: NAVY }}>Correo enviado</div>
+              <button onClick={() => setVerCorreoHtml(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>×</button>
+            </div>
+            <iframe srcDoc={verCorreoHtml} title="Correo enviado" style={{ width: '100%', height: 600, border: '1px solid #ECEAE3', borderRadius: 8 }} />
+          </div>
+        </div>
+      )}
 
       {toast && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div>}
     </div>
