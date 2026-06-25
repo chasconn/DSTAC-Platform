@@ -26,8 +26,10 @@ $Manager  = "2.25.183.242"
 $MsiUrl   = "https://portal.dstac.cl/installers/wazuh-agent-4.14.5-1.msi"
 # ===============================
 
-# Clave de enrolamiento por entorno (no se hardcodea en el repo)
+# Clave de enrolamiento: por entorno si se define, si no usa la clave por defecto
+# (para que el .bat de doble-clic funcione sin pasos adicionales).
 $EnrollPass = $env:WAZUH_ENROLL_PASSWORD
+if (-not $EnrollPass) { $EnrollPass = "dc36d4d470f23469a0b8613dc62351a0" }
 
 function Die($m) {
   Write-Host $m -ForegroundColor Red
@@ -37,10 +39,15 @@ function Die($m) {
   exit 1
 }
 
-# Requiere Administrador
+# Auto-elevacion: si no es Administrador, se relanza a si mismo con UAC y termina
+# este proceso. Asi el .bat que lo invoca puede ser trivial (sin pasos manuales).
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $admin) { Die "Abre PowerShell como Administrador y vuelve a ejecutar." }
-if (-not $EnrollPass) { Die "Falta la clave: define `$env:WAZUH_ENROLL_PASSWORD antes de ejecutar." }
+if (-not $admin) {
+  $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
+  foreach ($k in $PSBoundParameters.Keys) { $argList += "-$k"; $argList += "`"$($PSBoundParameters[$k])`"" }
+  Start-Process powershell -ArgumentList $argList -Verb RunAs
+  exit 0
+}
 
 Write-Host "==============================================" -ForegroundColor Cyan
 Write-Host "  DSTAC EDR - Instalador de agente (Windows)"   -ForegroundColor Cyan
