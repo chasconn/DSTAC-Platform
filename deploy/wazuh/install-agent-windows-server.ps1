@@ -21,7 +21,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $Manager  = "2.25.183.242"
-$MsiUrl   = "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.5-1.msi"
+$MsiUrl   = "https://portal.dstac.cl/installers/wazuh-agent-4.14.5-1.msi"
 
 $EnrollPass = $env:WAZUH_ENROLL_PASSWORD
 

@@ -23,7 +23,7 @@ $ErrorActionPreference = "Stop"
 
 # ===== Configuracion DSTAC =====
 $Manager  = "2.25.183.242"
-$MsiUrl   = "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.5-1.msi"
+$MsiUrl   = "https://portal.dstac.cl/installers/wazuh-agent-4.14.5-1.msi"
 # ===============================
 
 # Clave de enrolamiento por entorno (no se hardcodea en el repo)
