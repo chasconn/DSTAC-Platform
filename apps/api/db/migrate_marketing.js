@@ -28,6 +28,24 @@ async function main() {
     if (err.code === 'ER_DUP_FIELDNAME') console.log('… columna html_enviado ya existía')
     else throw err
   }
+
+  console.log('› Creando tabla marketing_candidatos…')
+  await centralDB.query(`
+    CREATE TABLE IF NOT EXISTS marketing_candidatos (
+      id            INT AUTO_INCREMENT PRIMARY KEY,
+      campana       VARCHAR(120) NOT NULL,
+      empresa       VARCHAR(255) NOT NULL,
+      sitio_web     VARCHAR(500) NULL,
+      email_sugerido VARCHAR(255) NULL,
+      rubro         VARCHAR(255) NULL,
+      ciudad        VARCHAR(255) NULL,
+      estado        ENUM('pendiente','usado','descartado') NOT NULL DEFAULT 'pendiente',
+      created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_campana_sitio (campana, sitio_web),
+      KEY idx_campana_estado (campana, estado)
+    ) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `)
+  console.log('✓ Tabla marketing_candidatos lista')
 }
 
 main().then(() => process.exit(0)).catch(err => { console.error('✗', err.message); process.exit(1) })

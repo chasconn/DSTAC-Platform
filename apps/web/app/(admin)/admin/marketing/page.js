@@ -5,6 +5,11 @@ import { api } from '../../../../lib/api'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 
+const CAMPANAS = {
+  'exponor-2026': { label: 'Exponor 2026', subtitulo: 'Seguimiento a contactos conocidos en la feria — envía uno por uno.' },
+  'pymes-chile':  { label: 'Prospección pymes Chile', subtitulo: 'Busca empresas por rubro/ciudad y envía a los candidatos que apruebes.' },
+}
+
 function fechaHora(d) {
   if (!d) return '—'
   let date = new Date(d)
@@ -38,10 +43,13 @@ function fileToDataUrlComprimido(file, maxDim = 1400, calidad = 0.82) {
   })
 }
 
-export default function MarketingExponorPage() {
+export default function MarketingPage() {
+  const [campana, setCampana] = useState('exponor-2026')
+
   const [empresa, setEmpresa] = useState('')
   const [nombre, setNombre]   = useState('')
   const [email, setEmail]     = useState('')
+  const [candidatoId, setCandidatoId] = useState(null)
   const [previewHtml, setPreviewHtml] = useState('')
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -58,29 +66,53 @@ export default function MarketingExponorPage() {
   const [textoOcr, setTextoOcr] = useState('')
   const fileInputRef = useRef(null)
 
+  const [rubro, setRubro] = useState('')
+  const [ciudad, setCiudad] = useState('')
+  const [buscando, setBuscando] = useState(false)
+  const [candidatos, setCandidatos] = useState([])
+  const [loadingCandidatos, setLoadingCandidatos] = useState(false)
+
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(''), 4000) }
+
+  function limpiarFormulario() {
+    setEmpresa(''); setNombre(''); setEmail(''); setPreviewHtml(''); setTextoOcr(''); setCandidatoId(null)
+  }
+
+  useEffect(() => { limpiarFormulario() }, [campana])
 
   const cargarEnvios = useCallback(async () => {
     setLoadingEnvios(true)
     try {
-      const params = new URLSearchParams()
+      const params = new URLSearchParams({ campana })
       if (filtroTexto.trim()) params.set('q', filtroTexto.trim())
       if (filtroEstado) params.set('estado', filtroEstado)
       const r = await api.get(`/api/admin/marketing/envios?${params.toString()}`)
       setEnvios(r.envios ?? [])
     } catch { showToast('No se pudo cargar el historial') }
     finally { setLoadingEnvios(false) }
-  }, [filtroTexto, filtroEstado])
+  }, [campana, filtroTexto, filtroEstado])
 
   useEffect(() => {
     const t = setTimeout(cargarEnvios, 300)
     return () => clearTimeout(t)
   }, [cargarEnvios])
 
+  const cargarCandidatos = useCallback(async () => {
+    if (campana !== 'pymes-chile') return
+    setLoadingCandidatos(true)
+    try {
+      const r = await api.get('/api/admin/marketing/candidatos?campana=pymes-chile&estado=pendiente')
+      setCandidatos(r.candidatos ?? [])
+    } catch { showToast('No se pudo cargar la lista de candidatos') }
+    finally { setLoadingCandidatos(false) }
+  }, [campana])
+
+  useEffect(() => { cargarCandidatos() }, [cargarCandidatos])
+
   async function generarPreview() {
     setLoadingPreview(true)
     try {
-      const r = await api.post('/api/admin/marketing/preview', { empresa, nombre })
+      const r = await api.post('/api/admin/marketing/preview', { empresa, nombre, campana })
       setPreviewHtml(r.html)
     } catch (e) { showToast(e.message || 'No se pudo generar la vista previa') }
     finally { setLoadingPreview(false) }
@@ -90,25 +122,27 @@ export default function MarketingExponorPage() {
     if (!empresa && !nombre) { setPreviewHtml(''); return }
     const t = setTimeout(generarPreview, 500)
     return () => clearTimeout(t)
-  }, [empresa, nombre])
+  }, [empresa, nombre, campana])
 
   async function enviar() {
-    if (!empresa.trim() || !nombre.trim() || !email.trim()) {
-      showToast('Completa empresa, nombre y correo'); return
+    const nombreRequerido = campana === 'exponor-2026'
+    if (!empresa.trim() || !email.trim() || (nombreRequerido && !nombre.trim())) {
+      showToast(nombreRequerido ? 'Completa empresa, nombre y correo' : 'Completa empresa y correo'); return
     }
     setEnviando(true)
     try {
-      await api.post('/api/admin/marketing/enviar', { empresa, nombre, email })
-      showToast(`Correo enviado a ${nombre} (${email})`)
-      setEmpresa(''); setNombre(''); setEmail(''); setPreviewHtml(''); setTextoOcr('')
+      await api.post('/api/admin/marketing/enviar', { empresa, nombre, email, campana, candidatoId })
+      showToast(`Correo enviado a ${email}`)
+      limpiarFormulario()
       cargarEnvios()
+      cargarCandidatos()
     } catch (e) { showToast(e.message || 'No se pudo enviar el correo') }
     finally { setEnviando(false) }
   }
 
   async function onFotoTarjeta(e) {
     const file = e.target.files?.[0]
-    e.target.value = '' // permite volver a elegir la misma foto despues
+    e.target.value = ''
     if (!file) return
     setEscaneando(true)
     try {
@@ -123,9 +157,33 @@ export default function MarketingExponorPage() {
     finally { setEscaneando(false) }
   }
 
+  async function buscarEmpresas() {
+    if (!rubro.trim() || !ciudad.trim()) { showToast('Completa rubro y ciudad'); return }
+    setBuscando(true)
+    try {
+      const r = await api.post('/api/admin/marketing/candidatos/buscar', { rubro, ciudad })
+      showToast(`${r.encontrados} encontradas, ${r.nuevos} nuevas en la lista`)
+      cargarCandidatos()
+    } catch (e) { showToast(e.message || 'No se pudo buscar') }
+    finally { setBuscando(false) }
+  }
+
+  function usarCandidato(c) {
+    setEmpresa(c.empresa)
+    setNombre('')
+    setEmail(c.email_sugerido || '')
+    setCandidatoId(c.id)
+    showToast(c.email_sugerido ? 'Candidato cargado — revisa antes de enviar' : 'Sin correo detectado — complétalo a mano')
+  }
+
+  async function descartarCandidato(id) {
+    try { await api.post(`/api/admin/marketing/candidatos/${id}/descartar`); cargarCandidatos() }
+    catch (e) { showToast(e.message || 'No se pudo descartar') }
+  }
+
   async function verCorreo(id) {
     try {
-      const r = await api.get(`/api/admin/marketing/envios/${id}/html`)
+      const r = await api.get(`/api/admin/marketing/envios/${id}/html?campana=${campana}`)
       setVerCorreoHtml(r.html || '<p>Sin contenido guardado.</p>')
     } catch (e) { showToast(e.message || 'No se pudo cargar el correo') }
   }
@@ -134,27 +192,95 @@ export default function MarketingExponorPage() {
     <div style={{ padding: 24, maxWidth: 1200 }}>
       {/* Header */}
       <div style={{ background: `linear-gradient(120deg, ${NAVY}, ${PURPLE})`, borderRadius: 14, padding: '22px 26px', color: '#fff' }}>
-        <div style={{ fontSize: 22, fontWeight: 800 }}>📧 Marketing — Seguimiento Exponor</div>
-        <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Envía el correo de seguimiento a cada contacto, uno por uno.</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800 }}>📧 Marketing</div>
+            <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{CAMPANAS[campana].subtitulo}</div>
+          </div>
+          <select value={campana} onChange={e => setCampana(e.target.value)}
+            style={{ padding: '8px 14px', borderRadius: 999, border: '1px solid rgba(255,255,255,.4)', background: 'rgba(255,255,255,.15)', color: '#fff', fontSize: 13, fontWeight: 700 }}>
+            {Object.entries(CAMPANAS).map(([k, v]) => <option key={k} value={k} style={{ color: '#000' }}>{v.label}</option>)}
+          </select>
+        </div>
       </div>
+
+      {/* Busqueda de candidatos (solo pymes-chile) */}
+      {campana === 'pymes-chile' && (
+        <div style={{ marginTop: 20, background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', marginBottom: 4 }}>🔎 Buscar empresas</div>
+          <div style={{ fontSize: 12, color: '#8A877E', marginBottom: 14 }}>
+            Busca por rubro y ciudad. Solo se usa el correo de contacto que la propia empresa publicó en su sitio web.
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+            <input value={rubro} onChange={e => setRubro(e.target.value)} placeholder="Rubro (ej: ferreterías)"
+              style={{ flex: '1 1 200px', padding: '9px 12px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 14, boxSizing: 'border-box' }} />
+            <input value={ciudad} onChange={e => setCiudad(e.target.value)} placeholder="Ciudad (ej: Antofagasta)"
+              style={{ flex: '1 1 200px', padding: '9px 12px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 14, boxSizing: 'border-box' }} />
+            <button onClick={buscarEmpresas} disabled={buscando}
+              style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 999, padding: '9px 20px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              {buscando ? 'Buscando…' : 'Buscar'}
+            </button>
+          </div>
+
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#8A877E', marginBottom: 8 }}>
+            Candidatos pendientes ({candidatos.length})
+          </div>
+          {loadingCandidatos ? (
+            <div style={{ color: '#8A877E', fontSize: 13 }}>Cargando…</div>
+          ) : candidatos.length === 0 ? (
+            <div style={{ color: '#8A877E', fontSize: 13 }}>Sin candidatos todavía — busca por rubro y ciudad arriba.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {candidatos.map(c => (
+                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, border: '1px solid #ECEAE3', borderRadius: 10, padding: '10px 14px' }}>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2C2C2A' }}>{c.empresa}</div>
+                    <div style={{ fontSize: 12, color: c.email_sugerido ? '#6A675E' : '#B23B3B' }}>
+                      {c.email_sugerido || 'Sin correo detectado'} · {c.rubro} · {c.ciudad}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => usarCandidato(c)}
+                      style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                      Usar
+                    </button>
+                    <button onClick={() => descartarCandidato(c.id)}
+                      style={{ background: 'none', border: '1px solid #ECEAE3', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: 'pointer', color: '#8A877E' }}>
+                      Descartar
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18, marginTop: 20, alignItems: 'start' }}>
         {/* Formulario */}
         <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A' }}>Nuevo contacto</div>
-            <button onClick={() => fileInputRef.current?.click()} disabled={escaneando}
-              style={{ background: '#F7F6F2', color: NAVY, border: '1px solid #ECEAE3', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              {escaneando ? 'Leyendo…' : '📷 Escanear tarjeta'}
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onFotoTarjeta} />
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A' }}>
+              {candidatoId ? 'Contacto desde candidato' : 'Nuevo contacto'}
+            </div>
+            {campana === 'exponor-2026' && (
+              <>
+                <button onClick={() => fileInputRef.current?.click()} disabled={escaneando}
+                  style={{ background: '#F7F6F2', color: NAVY, border: '1px solid #ECEAE3', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  {escaneando ? 'Leyendo…' : '📷 Escanear tarjeta'}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={onFotoTarjeta} />
+              </>
+            )}
           </div>
 
           <label style={{ fontSize: 12, fontWeight: 600, color: '#8A877E', display: 'block', marginBottom: 4 }}>Empresa</label>
           <input value={empresa} onChange={e => setEmpresa(e.target.value)} placeholder="Ej: Minera Los Andes"
             style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ECEAE3', marginBottom: 12, fontSize: 14, boxSizing: 'border-box' }} />
 
-          <label style={{ fontSize: 12, fontWeight: 600, color: '#8A877E', display: 'block', marginBottom: 4 }}>Nombre del contacto</label>
+          <label style={{ fontSize: 12, fontWeight: 600, color: '#8A877E', display: 'block', marginBottom: 4 }}>
+            Nombre del contacto{campana === 'pymes-chile' ? ' (opcional)' : ''}
+          </label>
           <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: María Pérez"
             style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ECEAE3', marginBottom: 12, fontSize: 14, boxSizing: 'border-box' }} />
 
@@ -174,7 +300,9 @@ export default function MarketingExponorPage() {
             {enviando ? 'Enviando…' : '✉️ Enviar correo'}
           </button>
           <div style={{ fontSize: 11.5, color: '#8A877E', marginTop: 10, lineHeight: 1.5 }}>
-            La vista previa se actualiza automáticamente. "Escanear tarjeta" usa la cámara del celular y completa los campos — siempre revisa antes de enviar.
+            {campana === 'exponor-2026'
+              ? 'La vista previa se actualiza automáticamente. "Escanear tarjeta" usa la cámara del celular y completa los campos — siempre revisa antes de enviar.'
+              : 'Usa un candidato de la lista de arriba o completa los datos a mano. Siempre revisa antes de enviar.'}
           </div>
         </div>
 
@@ -197,7 +325,7 @@ export default function MarketingExponorPage() {
       <div style={{ marginTop: 24, background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A' }}>
-            Historial ({envios.filter(e => e.estado === 'enviado').length} enviados)
+            Historial · {CAMPANAS[campana].label} ({envios.filter(e => e.estado === 'enviado').length} enviados)
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input value={filtroTexto} onChange={e => setFiltroTexto(e.target.value)} placeholder="Buscar empresa, contacto o correo…"
@@ -208,7 +336,7 @@ export default function MarketingExponorPage() {
               <option value="enviado">Enviado</option>
               <option value="error">Error</option>
             </select>
-            <a href="/api/admin/marketing/envios/export" target="_blank" rel="noopener noreferrer"
+            <a href={`/api/admin/marketing/envios/export?campana=${campana}`} target="_blank" rel="noopener noreferrer"
               style={{ background: '#F7F6F2', color: NAVY, border: '1px solid #ECEAE3', borderRadius: 8, padding: '7px 14px', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
               ⬇️ Exportar a Excel
             </a>

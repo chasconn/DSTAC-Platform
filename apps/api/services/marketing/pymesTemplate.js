@@ -1,9 +1,10 @@
-// services/marketing/exponorTemplate.js — plantilla HTML del correo de seguimiento
-// a contactos obtenidos en la feria Exponor. Reemplaza [Nombre] y [Empresa] por
-// los datos reales de cada contacto.
+// services/marketing/pymesTemplate.js — plantilla HTML para prospeccion fria a
+// pymes chilenas (sin la referencia a Exponor). Misma identidad visual y firma
+// real que el correo de Exponor, pero con apertura distinta porque no hubo un
+// encuentro previo con el contacto.
 const { FIRMA_HTML } = require('./firma')
 
-function renderExponorEmail({ nombre, empresa }) {
+function renderPymesEmail({ nombre, empresa }) {
   const safeNombre = (nombre || '').trim() || 'estimado contacto'
   const safeEmpresa = (empresa || '').trim() || 'tu empresa'
 
@@ -42,19 +43,20 @@ function renderExponorEmail({ nombre, empresa }) {
           </td>
         </tr>
 
-        <!-- HERO / SALUDO PERSONAL -->
+        <!-- HERO / APERTURA -->
         <tr>
           <td style="padding:40px 40px 12px 40px;">
-            <h1 style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:25px; line-height:1.35; color:#1a1530;">Hola ${safeNombre}, un gusto haberte conocido en Exponor 👋</h1>
+            <h1 style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:25px; line-height:1.35; color:#1a1530;">Hola ${safeNombre}, te escribimos de DSTAC 👋</h1>
             <p style="margin:0 0 14px 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.65; color:#3a3a3a;">
-              Como te comenté en el stand, en <strong>DSTAC</strong> trabajamos con empresas
-              como ${safeEmpresa} para proteger su operación digital de forma real y aplicada —
-              no vendemos miedo, construimos seguridad junto a tu equipo, con o sin un área
-              de TI propia.
+              Somos una consultora de ciberseguridad chilena y notamos que ${safeEmpresa}
+              podría beneficiarse de revisar su exposición digital. Trabajamos con empresas
+              que muchas veces no tienen un área de TI propia, ayudándolas a proteger su
+              operación de forma real y aplicada — no vendemos miedo, construimos seguridad
+              junto a tu equipo.
             </p>
             <p style="margin:0 0 4px 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.65; color:#3a3a3a;">
-              Te escribo personalmente porque hay un tema que aplica a prácticamente toda
-              empresa en Chile hoy, y vale la pena que lo tengas en el radar:
+              Te dejamos un tema que aplica a prácticamente toda empresa en Chile hoy, y vale
+              la pena que lo tengas en el radar:
             </p>
           </td>
         </tr>
@@ -252,4 +254,4 @@ function renderExponorEmail({ nombre, empresa }) {
 </html>`
 }
 
-module.exports = { renderExponorEmail }
+module.exports = { renderPymesEmail }
