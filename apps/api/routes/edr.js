@@ -312,4 +312,22 @@ router.post('/agentes/registrar', async (req, res) => {
   }
 })
 
+// GET /api/edr/empresas — lista pública de empresas activas (id, name, slug),
+// para que el instalador (GUI) ofrezca un selector en vez de pedir el slug a mano.
+router.get('/empresas', async (req, res) => {
+  try {
+    const secret = process.env.EDR_WEBHOOK_SECRET
+    if (secret && req.headers['x-edr-key'] !== secret) {
+      return res.status(401).json({ ok: false, error: 'No autorizado' })
+    }
+    const [rows] = await centralDB.execute(
+      `SELECT slug, name FROM companies WHERE status = 'active' ORDER BY name`
+    )
+    res.json({ ok: true, empresas: rows })
+  } catch (e) {
+    console.error('edr/empresas error:', e.message)
+    res.status(500).json({ ok: false, error: 'No se pudo obtener la lista de empresas' })
+  }
+})
+
 module.exports = router

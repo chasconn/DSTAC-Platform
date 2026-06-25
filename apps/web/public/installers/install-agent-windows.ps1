@@ -1,18 +1,10 @@
 <#
-  DSTAC EDR - Instalador de agente Wazuh para Windows
-  ----------------------------------------------------
-  Descarga el agente, lo enrola contra el Manager de DSTAC y lo arranca.
-  Pregunta el NOMBRE del equipo con una ventana (o se pasa con -Nombre).
-
-  Uso (PowerShell como Administrador):
-    $env:WAZUH_ENROLL_PASSWORD="<clave>"
-    powershell -ExecutionPolicy Bypass -File install-agent-windows.ps1 -Empresa "kali-test"
-
-  O con nombre explicito:
-    ... -File install-agent-windows.ps1 -Nombre "RECEPCION-PC" -Empresa "kali-test"
-
-  Grupo Wazuh opcional:
-    ... -File install-agent-windows.ps1 -Empresa "kali-test" -Grupo "sucursales"
+  DSTAC EDR - Instalador de agente Wazuh para Windows (interfaz grafica)
+  -----------------------------------------------------------------------
+  Aplicacion de escritorio: el usuario elige la empresa de una lista (cargada
+  en vivo desde el portal) y escribe un nombre para identificar el equipo.
+  El instalador hace todo lo demas solo: descarga, enrola y se registra en
+  el portal para que aparezca de inmediato en EDR.
 #>
 param(
   [string]$Nombre  = "",
@@ -24,100 +16,204 @@ $ErrorActionPreference = "Stop"
 # ===== Configuracion DSTAC =====
 $Manager  = "2.25.183.242"
 $MsiUrl   = "https://portal.dstac.cl/installers/wazuh-agent-4.14.5-1.msi"
+$ApiBase  = "https://portal.dstac.cl/api/edr"
 # ===============================
 
-# Clave de enrolamiento: por entorno si se define, si no usa la clave por defecto
-# (para que el .bat de doble-clic funcione sin pasos adicionales).
+# Claves por defecto (para que la app funcione con solo doble clic, sin pasos
+# adicionales). Se pueden sobreescribir por entorno si se necesita otra clave.
 $EnrollPass = $env:WAZUH_ENROLL_PASSWORD
 if (-not $EnrollPass) { $EnrollPass = "dc36d4d470f23469a0b8613dc62351a0" }
+$EdrKey = $env:EDR_WEBHOOK_SECRET
+if (-not $EdrKey) { $EdrKey = "e2080355efb4666a64a24288afe29172b5de93733c07373a" }
 
-function Die($m) {
-  Write-Host $m -ForegroundColor Red
-  Write-Host ""
-  Write-Host "Presiona ENTER para cerrar..." -ForegroundColor Yellow
-  Read-Host | Out-Null
-  exit 1
-}
-
-# Auto-elevacion: si no es Administrador, se relanza a si mismo con UAC y termina
-# este proceso. Asi el .bat que lo invoca puede ser trivial (sin pasos manuales).
+# Auto-elevacion: si no es Administrador, se relanza a si mismo con UAC (consola
+# oculta; los mensajes se muestran en la ventana grafica) y termina este proceso.
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $admin) {
-  $argList = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
+  $argList = @("-NoProfile", "-WindowStyle", "Hidden", "-ExecutionPolicy", "Bypass", "-File", "`"$PSCommandPath`"")
   foreach ($k in $PSBoundParameters.Keys) { $argList += "-$k"; $argList += "`"$($PSBoundParameters[$k])`"" }
   Start-Process powershell -ArgumentList $argList -Verb RunAs
   exit 0
 }
 
-Write-Host "==============================================" -ForegroundColor Cyan
-Write-Host "  DSTAC EDR - Instalador de agente (Windows)"   -ForegroundColor Cyan
-Write-Host "==============================================" -ForegroundColor Cyan
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+[System.Windows.Forms.Application]::EnableVisualStyles()
 
-# Nombre del equipo: por -Nombre, o se pide aqui mismo en la consola
-# (antes se pedia con una ventana emergente que podia quedar oculta detras
-# de la consola tras la elevacion de UAC, y el script parecia "congelado"
-# esperando una respuesta que el usuario nunca veia).
-if (-not $Nombre) {
-  $resp = Read-Host "Nombre para identificar este equipo [$env:COMPUTERNAME]"
-  $Nombre = if ($resp) { $resp } else { $env:COMPUTERNAME }
-}
-# Sanitizar (sin espacios)
-$Nombre = ($Nombre -replace '\s', '_') -replace '[^A-Za-z0-9_.-]', ''
-if (-not $Nombre) { $Nombre = $env:COMPUTERNAME }
-
-Write-Host "Equipo:  $Nombre"
-Write-Host "Manager: $Manager"
-if ($Empresa) { Write-Host "Empresa: $Empresa (auto-asignacion)" }
-if ($Grupo)   { Write-Host "Grupo:   $Grupo" }
-
-# Verificar conectividad al Manager (1514/1515). Se usa un TcpClient directo
-# en vez de Test-NetConnection: este ultimo intenta antes un ping ICMP y
-# puede tardar 10-20s POR PUERTO sin imprimir nada, lo que se ve igual que
-# si el script estuviera congelado.
-Write-Host "Verificando conectividad con $Manager (deberia tardar pocos segundos)..."
-foreach ($p in 1514,1515) {
-  $tcp = New-Object System.Net.Sockets.TcpClient
-  $ok = $false
+function Get-Empresas {
   try {
-    $task = $tcp.ConnectAsync($Manager, $p)
-    $ok = $task.Wait(4000) -and $tcp.Connected
-  } catch {} finally { $tcp.Close() }
-  if ($ok) { Write-Host "  puerto $p alcanzable" -ForegroundColor Green }
-  else { Die "  No se alcanza ${Manager}:$p - revisa el firewall de salida." }
+    $headers = @{ "x-edr-key" = $EdrKey }
+    $resp = Invoke-RestMethod -Uri "$ApiBase/empresas" -Headers $headers -TimeoutSec 6
+    return $resp.empresas
+  } catch { return @() }
 }
 
-# Descargar el MSI
-$msi = Join-Path $env:TEMP "wazuh-agent-dstac.msi"
-Write-Host "Descargando el agente (~6 MB, puede tardar segun tu conexion)..."
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-Invoke-WebRequest -Uri $MsiUrl -OutFile $msi -UseBasicParsing
-Write-Host "  descarga completa" -ForegroundColor Green
+# ===== Ventana principal =====
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "DSTAC EDR - Instalador de agente"
+$form.Size = New-Object System.Drawing.Size(460, 430)
+$form.StartPosition = "CenterScreen"
+$form.FormBorderStyle = "FixedDialog"
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
 
-# Instalar silencioso, enrolando con nombre + manager + clave
-Write-Host "Instalando y enrolando (silencioso, puede tardar 10-30s sin mostrar nada mas)..."
-$mArgs = "/i `"$msi`" /q WAZUH_MANAGER=`"$Manager`" WAZUH_REGISTRATION_PASSWORD=`"$EnrollPass`" WAZUH_AGENT_NAME=`"$Nombre`""
-if ($Grupo) { $mArgs += " WAZUH_AGENT_GROUP=`"$Grupo`"" }
-$p = Start-Process msiexec.exe -ArgumentList $mArgs -Wait -PassThru
-if ($p.ExitCode -ne 0) { Die "La instalacion fallo (msiexec codigo $($p.ExitCode))." }
+$lblTitulo = New-Object System.Windows.Forms.Label
+$lblTitulo.Text = "DSTAC EDR"
+$lblTitulo.Font = New-Object System.Drawing.Font("Segoe UI", 16, [System.Drawing.FontStyle]::Bold)
+$lblTitulo.Location = New-Object System.Drawing.Point(20, 15)
+$lblTitulo.Size = New-Object System.Drawing.Size(400, 30)
+$form.Controls.Add($lblTitulo)
 
-# Etiqueta de empresa (auto-asignacion en el portal)
-$conf = "C:\Program Files (x86)\ossec-agent\ossec.conf"
-if ($Empresa -and (Test-Path $conf)) {
-  $c = Get-Content $conf -Raw
-  if ($c -notmatch "dstac_company") {
-    $label = "  <labels>`r`n    <label key=""dstac_company"">$Empresa</label>`r`n  </labels>`r`n</ossec_config>"
-    $c = $c -replace "</ossec_config>", $label
-    Set-Content -Path $conf -Value $c -Encoding ASCII
+$lblSub = New-Object System.Windows.Forms.Label
+$lblSub.Text = "Instalador de agente de proteccion de endpoint"
+$lblSub.Location = New-Object System.Drawing.Point(20, 45)
+$lblSub.Size = New-Object System.Drawing.Size(400, 20)
+$lblSub.ForeColor = [System.Drawing.Color]::Gray
+$form.Controls.Add($lblSub)
+
+$lblEmpresa = New-Object System.Windows.Forms.Label
+$lblEmpresa.Text = "Empresa:"
+$lblEmpresa.Location = New-Object System.Drawing.Point(20, 85)
+$lblEmpresa.Size = New-Object System.Drawing.Size(150, 20)
+$form.Controls.Add($lblEmpresa)
+
+$comboEmpresa = New-Object System.Windows.Forms.ComboBox
+$comboEmpresa.Location = New-Object System.Drawing.Point(20, 108)
+$comboEmpresa.Size = New-Object System.Drawing.Size(400, 24)
+$comboEmpresa.DropDownStyle = "DropDown"  # editable: si la lista no carga, se puede escribir el nombre/slug a mano
+$form.Controls.Add($comboEmpresa)
+
+$lblNombre = New-Object System.Windows.Forms.Label
+$lblNombre.Text = "Nombre para identificar este equipo:"
+$lblNombre.Location = New-Object System.Drawing.Point(20, 145)
+$lblNombre.Size = New-Object System.Drawing.Size(350, 20)
+$form.Controls.Add($lblNombre)
+
+$txtNombre = New-Object System.Windows.Forms.TextBox
+$txtNombre.Location = New-Object System.Drawing.Point(20, 168)
+$txtNombre.Size = New-Object System.Drawing.Size(400, 24)
+$txtNombre.Text = if ($Nombre) { $Nombre } else { $env:COMPUTERNAME }
+$form.Controls.Add($txtNombre)
+
+$btnInstalar = New-Object System.Windows.Forms.Button
+$btnInstalar.Text = "Instalar"
+$btnInstalar.Location = New-Object System.Drawing.Point(20, 205)
+$btnInstalar.Size = New-Object System.Drawing.Size(400, 36)
+$btnInstalar.Font = New-Object System.Drawing.Font("Segoe UI", 10, [System.Drawing.FontStyle]::Bold)
+$form.Controls.Add($btnInstalar)
+
+$txtLog = New-Object System.Windows.Forms.TextBox
+$txtLog.Location = New-Object System.Drawing.Point(20, 252)
+$txtLog.Size = New-Object System.Drawing.Size(400, 140)
+$txtLog.Multiline = $true
+$txtLog.ScrollBars = "Vertical"
+$txtLog.ReadOnly = $true
+$txtLog.Font = New-Object System.Drawing.Font("Consolas", 9)
+$form.Controls.Add($txtLog)
+
+function Log($msg) {
+  $txtLog.AppendText("$msg`r`n")
+  $txtLog.SelectionStart = $txtLog.Text.Length
+  $txtLog.ScrollToCaret()
+  [System.Windows.Forms.Application]::DoEvents()
+}
+
+function Fail($msg) {
+  Log "ERROR: $msg"
+  [System.Windows.Forms.MessageBox]::Show($msg, "DSTAC EDR - Error", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  $btnInstalar.Enabled = $true
+}
+
+# Cargar la lista de empresas en vivo desde el portal (con mapeo nombre -> slug)
+$empresaMap = @{}
+Log "Cargando lista de empresas..."
+$empresas = Get-Empresas
+if ($empresas -and $empresas.Count -gt 0) {
+  foreach ($e in $empresas) {
+    [void]$comboEmpresa.Items.Add($e.name)
+    $empresaMap[$e.name] = $e.slug
   }
+  if ($Empresa -and $empresaMap.Values -contains $Empresa) {
+    $nombreEmpresa = ($empresaMap.GetEnumerator() | Where-Object { $_.Value -eq $Empresa } | Select-Object -First 1).Key
+    $comboEmpresa.Text = $nombreEmpresa
+  } else {
+    $comboEmpresa.SelectedIndex = 0
+  }
+  Log "  $($empresas.Count) empresa(s) disponible(s)"
+} else {
+  $comboEmpresa.Text = if ($Empresa) { $Empresa } else { "" }
+  Log "  no se pudo cargar la lista; escribe el nombre de la empresa manualmente"
 }
+$txtLog.Clear()
 
-# Descubrimiento pasivo de red (tabla ARP, sin generar trafico): el panel EDR
-# del portal muestra TODOS los dispositivos de la red, no solo los que tienen
-# agente Wazuh. Corre cada minuto via wodle "command".
-$scanDir = "C:\Program Files (x86)\ossec-agent\active-response\bin"
-New-Item -ItemType Directory -Force -Path $scanDir | Out-Null
-$scanScript = Join-Path $scanDir "dstac-network-scan.ps1"
-@'
+$btnInstalar.Add_Click({
+  $btnInstalar.Enabled = $false
+  $txtLog.Clear()
+
+  $nombreEquipo = $txtNombre.Text.Trim()
+  if (-not $nombreEquipo) { $nombreEquipo = $env:COMPUTERNAME }
+  $nombreEquipo = ($nombreEquipo -replace '\s', '_') -replace '[^A-Za-z0-9_.-]', ''
+  if (-not $nombreEquipo) { $nombreEquipo = $env:COMPUTERNAME }
+
+  $empresaTexto = $comboEmpresa.Text.Trim()
+  $empresaSlug = $null
+  if ($empresaMap.ContainsKey($empresaTexto)) { $empresaSlug = $empresaMap[$empresaTexto] }
+  elseif ($empresaTexto) { $empresaSlug = $empresaTexto }
+
+  if (-not $empresaSlug) {
+    Fail "Selecciona o escribe una empresa valida."
+    return
+  }
+
+  try {
+    Log "Equipo:  $nombreEquipo"
+    Log "Empresa: $empresaSlug"
+    Log "Manager: $Manager"
+    Log ""
+
+    Log "Verificando conectividad..."
+    foreach ($p in 1514, 1515) {
+      $tcp = New-Object System.Net.Sockets.TcpClient
+      $ok = $false
+      try {
+        $task = $tcp.ConnectAsync($Manager, $p)
+        $ok = $task.Wait(4000) -and $tcp.Connected
+      } catch {} finally { $tcp.Close() }
+      if ($ok) { Log "  puerto $p alcanzable" }
+      else { throw "No se alcanza ${Manager}:$p - revisa el firewall de salida." }
+    }
+
+    $msi = Join-Path $env:TEMP "wazuh-agent-dstac.msi"
+    Log "Descargando el agente (~6 MB)..."
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -Uri $MsiUrl -OutFile $msi -UseBasicParsing
+    Log "  descarga completa"
+
+    Log "Instalando y enrolando (puede tardar 10-30s)..."
+    $mArgs = "/i `"$msi`" /q WAZUH_MANAGER=`"$Manager`" WAZUH_REGISTRATION_PASSWORD=`"$EnrollPass`" WAZUH_AGENT_NAME=`"$nombreEquipo`""
+    if ($Grupo) { $mArgs += " WAZUH_AGENT_GROUP=`"$Grupo`"" }
+    $p = Start-Process msiexec.exe -ArgumentList $mArgs -Wait -PassThru
+    if ($p.ExitCode -ne 0) { throw "La instalacion fallo (msiexec codigo $($p.ExitCode))." }
+    Log "  msiexec OK"
+
+    # Etiqueta de empresa (auto-asignacion en el portal)
+    $conf = "C:\Program Files (x86)\ossec-agent\ossec.conf"
+    if (Test-Path $conf) {
+      $c = Get-Content $conf -Raw
+      if ($c -notmatch "dstac_company") {
+        $label = "  <labels>`r`n    <label key=""dstac_company"">$empresaSlug</label>`r`n  </labels>`r`n</ossec_config>"
+        $c = $c -replace "</ossec_config>", $label
+        Set-Content -Path $conf -Value $c -Encoding ASCII
+      }
+    }
+
+    # Descubrimiento pasivo de red (tabla ARP, sin generar trafico): el panel EDR
+    # del portal muestra TODOS los dispositivos de la red, no solo los que tienen
+    # agente Wazuh. Corre cada minuto via wodle "command".
+    $scanDir = "C:\Program Files (x86)\ossec-agent\active-response\bin"
+    New-Item -ItemType Directory -Force -Path $scanDir | Out-Null
+    $scanScript = Join-Path $scanDir "dstac-network-scan.ps1"
+    @'
 function Resolver-Nombre($ip) {
   try { return ([System.Net.Dns]::GetHostEntry($ip)).HostName } catch { return $null }
 }
@@ -144,66 +240,53 @@ $json = if ($items) { ($items | ConvertTo-Json -Compress) } else { "[]" }
 Write-Output "DSTAC_NETSCAN {`"items`":$json}"
 '@ | Set-Content -Path $scanScript -Encoding ASCII
 
-if (Test-Path $conf) {
-  $c = Get-Content $conf -Raw
-  if ($c -notmatch "dstac_netscan") {
-    $wodle = "  <wodle name=""command"">`r`n    <disabled>no</disabled>`r`n    <tag>dstac_netscan</tag>`r`n    <command>powershell.exe -ExecutionPolicy Bypass -File `"$scanScript`"</command>`r`n    <interval>1m</interval>`r`n    <ignore_output>no</ignore_output>`r`n    <run_on_start>yes</run_on_start>`r`n    <timeout>45</timeout>`r`n  </wodle>`r`n</ossec_config>"
-    $c = $c -replace "</ossec_config>", $wodle
-    Set-Content -Path $conf -Value $c -Encoding ASCII
-  }
-}
-
-# Iniciar el servicio (nombre WazuhSvc en versiones recientes) y VERIFICAR
-# que realmente quedó corriendo — no asumir éxito solo porque msiexec no
-# devolvió error.
-$svc = Get-Service -Name "WazuhSvc","Wazuh","OssecSvc" -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($svc -and $svc.Status -ne "Running") {
-  Restart-Service -Name $svc.Name -ErrorAction SilentlyContinue
-  Start-Sleep -Seconds 3
-  $svc = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
-}
-
-if (-not $svc) {
-  Die "No se encontro el servicio de Wazuh tras la instalacion (WazuhSvc/Wazuh/OssecSvc). Revisa manualmente."
-}
-if ($svc.Status -ne "Running") {
-  Die "El servicio '$($svc.Name)' quedo en estado '$($svc.Status)', no 'Running'. Revisa: Get-Service $($svc.Name)"
-}
-
-Write-Host "==============================================" -ForegroundColor Green
-Write-Host "  Agente '$Nombre' instalado y activo ($($svc.Name): Running)" -ForegroundColor Green
-Write-Host "==============================================" -ForegroundColor Green
-
-# Registrar el agente en el portal para que aparezca inmediatamente (sin esperar alertas)
-try {
-  $clientKeys = "C:\Program Files (x86)\ossec-agent\client.keys"
-  if (Test-Path $clientKeys) {
-    $line = Get-Content $clientKeys -First 1
-    $parts = $line -split "\s+"
-    $agentId = $parts[0]
-
-    if ($agentId -and $agentId -match "^[0-9]+$") {
-      Write-Host "Registrando agente en el portal..."
-      $body = @{
-        wazuh_id     = $agentId
-        agent_name   = $Nombre
-        agent_ip     = [System.Net.Dns]::GetHostAddresses($env:COMPUTERNAME)[0].IPAddressToString
-        dstac_company = if ($Empresa) { $Empresa } else { $null }
-      } | ConvertTo-Json
-
-      $headers = @{
-        "Content-Type" = "application/json"
-        "x-edr-key"    = $env:EDR_WEBHOOK_SECRET
+    if (Test-Path $conf) {
+      $c = Get-Content $conf -Raw
+      if ($c -notmatch "dstac_netscan") {
+        $wodle = "  <wodle name=""command"">`r`n    <disabled>no</disabled>`r`n    <tag>dstac_netscan</tag>`r`n    <command>powershell.exe -ExecutionPolicy Bypass -File `"$scanScript`"</command>`r`n    <interval>1m</interval>`r`n    <ignore_output>no</ignore_output>`r`n    <run_on_start>yes</run_on_start>`r`n    <timeout>45</timeout>`r`n  </wodle>`r`n</ossec_config>"
+        $c = $c -replace "</ossec_config>", $wodle
+        Set-Content -Path $conf -Value $c -Encoding ASCII
       }
-
-      Invoke-WebRequest -Uri "https://portal.dstac.cl/api/edr/agentes/registrar" `
-        -Method POST -Body $body -Headers $headers -UseBasicParsing -ErrorAction SilentlyContinue | Out-Null
-      Write-Host "  agente registrado en el portal" -ForegroundColor Green
     }
-  }
-} catch {
-  # No fallar si el registro en el portal no funciona; el webhook lo hará cuando lleguen alertas
-}
 
-if ($Empresa) { Write-Host "Se auto-asignara a la empresa '$Empresa' en el portal." }
-else { Write-Host "Asignalo a una empresa en el portal -> EDR." }
+    Log "Verificando el servicio..."
+    $svc = Get-Service -Name "WazuhSvc", "Wazuh", "OssecSvc" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($svc -and $svc.Status -ne "Running") {
+      Restart-Service -Name $svc.Name -ErrorAction SilentlyContinue
+      Start-Sleep -Seconds 3
+      $svc = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
+    }
+    if (-not $svc) { throw "No se encontro el servicio de Wazuh tras la instalacion." }
+    if ($svc.Status -ne "Running") { throw "El servicio '$($svc.Name)' quedo en estado '$($svc.Status)', no 'Running'." }
+    Log "  servicio activo ($($svc.Name): Running)"
+
+    # Registrar el agente en el portal para que aparezca inmediatamente (sin esperar alertas)
+    Log "Registrando en el portal..."
+    try {
+      $clientKeys = "C:\Program Files (x86)\ossec-agent\client.keys"
+      if (Test-Path $clientKeys) {
+        $line = Get-Content $clientKeys -First 1
+        $agentId = ($line -split "\s+")[0]
+        if ($agentId -match "^[0-9]+$") {
+          $ip = ([System.Net.Dns]::GetHostAddresses($env:COMPUTERNAME) | Where-Object { $_.AddressFamily -eq 'InterNetwork' } | Select-Object -First 1).IPAddressToString
+          $body = @{ wazuh_id = $agentId; agent_name = $nombreEquipo; agent_ip = $ip; dstac_company = $empresaSlug } | ConvertTo-Json
+          Invoke-RestMethod -Uri "$ApiBase/agentes/registrar" -Method POST -Body $body -ContentType "application/json" -Headers @{ "x-edr-key" = $EdrKey } -TimeoutSec 10 | Out-Null
+          Log "  agente registrado en el portal"
+        } else {
+          Log "  aviso: no se pudo leer el ID del agente; aparecera al recibir su primera alerta"
+        }
+      }
+    } catch {
+      Log "  aviso: no se pudo confirmar el registro en el portal ($($_.Exception.Message))"
+    }
+
+    Log ""
+    Log "Listo. Agente '$nombreEquipo' instalado y asignado a '$empresaSlug'."
+    [System.Windows.Forms.MessageBox]::Show("Instalacion completa.`n`nEl equipo '$nombreEquipo' ya esta protegido por DSTAC EDR.", "DSTAC EDR", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    $btnInstalar.Text = "Instalado"
+  } catch {
+    Fail $_.Exception.Message
+  }
+})
+
+[void]$form.ShowDialog()

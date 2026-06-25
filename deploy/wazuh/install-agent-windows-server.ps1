@@ -25,6 +25,8 @@ $MsiUrl   = "https://portal.dstac.cl/installers/wazuh-agent-4.14.5-1.msi"
 
 $EnrollPass = $env:WAZUH_ENROLL_PASSWORD
 if (-not $EnrollPass) { $EnrollPass = "dc36d4d470f23469a0b8613dc62351a0" }
+$EdrKey = $env:EDR_WEBHOOK_SECRET
+if (-not $EdrKey) { $EdrKey = "e2080355efb4666a64a24288afe29172b5de93733c07373a" }
 
 function Die($m) {
   Write-Host $m -ForegroundColor Red
@@ -162,7 +164,7 @@ try {
 
       $headers = @{
         "Content-Type" = "application/json"
-        "x-edr-key"    = $env:EDR_WEBHOOK_SECRET
+        "x-edr-key"    = $EdrKey
       }
 
       Invoke-WebRequest -Uri "https://portal.dstac.cl/api/edr/agentes/registrar" `
