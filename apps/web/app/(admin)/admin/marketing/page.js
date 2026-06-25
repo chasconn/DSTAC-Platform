@@ -43,6 +43,32 @@ function fileToDataUrlComprimido(file, maxDim = 1400, calidad = 0.82) {
   })
 }
 
+// El correo mide 660px de ancho fijo (es HTML de email, no responsive). Si el
+// contenedor es mas angosto, en vez de mostrar scroll horizontal con texto
+// cortado, se escala visualmente el iframe completo para que entre.
+function EmailPreviewFrame({ html, alto = 720 }) {
+  const ANCHO_EMAIL = 660
+  const contenedorRef = useRef(null)
+  const [escala, setEscala] = useState(1)
+
+  useEffect(() => {
+    function actualizar() {
+      const ancho = contenedorRef.current?.offsetWidth || ANCHO_EMAIL
+      setEscala(Math.min(1, ancho / ANCHO_EMAIL))
+    }
+    actualizar()
+    window.addEventListener('resize', actualizar)
+    return () => window.removeEventListener('resize', actualizar)
+  }, [])
+
+  return (
+    <div ref={contenedorRef} style={{ width: '100%', height: alto * escala, overflow: 'hidden', border: '1px solid #ECEAE3', borderRadius: 8 }}>
+      <iframe srcDoc={html} title="Vista previa del correo"
+        style={{ width: ANCHO_EMAIL, height: alto, border: 'none', transform: `scale(${escala})`, transformOrigin: 'top left' }} />
+    </div>
+  )
+}
+
 export default function MarketingPage() {
   const [campana, setCampana] = useState('exponor-2026')
 
@@ -312,7 +338,7 @@ export default function MarketingPage() {
             {loadingPreview ? 'Actualizando vista previa…' : 'Vista previa del correo'}
           </div>
           {previewHtml ? (
-            <iframe srcDoc={previewHtml} title="Vista previa" style={{ width: '100%', height: 720, border: '1px solid #ECEAE3', borderRadius: 8 }} />
+            <EmailPreviewFrame html={previewHtml} alto={720} />
           ) : (
             <div style={{ height: 720, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A877E', fontSize: 13 }}>
               Escribe el nombre de la empresa o del contacto para ver la vista previa.
@@ -396,7 +422,7 @@ export default function MarketingPage() {
               <div style={{ fontWeight: 700, color: NAVY }}>Correo enviado</div>
               <button onClick={() => setVerCorreoHtml(null)} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>×</button>
             </div>
-            <iframe srcDoc={verCorreoHtml} title="Correo enviado" style={{ width: '100%', height: 'min(600px, 65vh)', border: '1px solid #ECEAE3', borderRadius: 8 }} />
+            <EmailPreviewFrame html={verCorreoHtml} alto={600} />
           </div>
         </div>
       )}
