@@ -18,9 +18,15 @@ const MAX_PAGINAS = 3 // la API tope 20 resultados por pagina => hasta 60 por co
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
 async function buscarPaginaPlaces(rubro, ciudad, pageToken) {
-  const body = pageToken
-    ? { textQuery: `${rubro} en ${ciudad}, Chile`, pageToken }
-    : { textQuery: `${rubro} en ${ciudad}, Chile`, languageCode: 'es', regionCode: 'CL' }
+  // Google exige que las peticiones de paginas siguientes repitan exactamente
+  // los mismos parametros que la busqueda inicial (textQuery, languageCode,
+  // regionCode) ademas del pageToken -- si no, responde 400 INVALID_ARGUMENT.
+  const body = {
+    textQuery: `${rubro} en ${ciudad}, Chile`,
+    languageCode: 'es',
+    regionCode: 'CL',
+    ...(pageToken && { pageToken }),
+  }
 
   const res = await fetch(PLACES_URL, {
     method: 'POST',
