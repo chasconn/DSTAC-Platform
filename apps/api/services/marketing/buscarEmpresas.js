@@ -59,7 +59,7 @@ async function buscarPlaces(rubro, ciudad) {
   return places
 }
 
-async function fetchConTimeout(url, ms = 8000) {
+async function fetchConTimeout(url, ms = 6000) {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), ms)
   try {
@@ -105,23 +105,35 @@ async function buscarEmailEnSitio(sitioWeb) {
   }
 }
 
+const CONCURRENCIA_SITIOS = 8 // visitar sitios web en paralelo -- con 60 resultados
+// por combo, hacerlo uno por uno puede tardar minutos y cortar la conexion
+// HTTP del navegador (proxy/gateway timeout) antes de responder.
+
+async function buscarEmailesEnParalelo(places) {
+  const resultados = new Array(places.length)
+  let siguiente = 0
+  async function trabajador() {
+    while (siguiente < places.length) {
+      const i = siguiente++
+      resultados[i] = await buscarEmailEnSitio(places[i].websiteUri)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCIA_SITIOS, places.length) }, trabajador))
+  return resultados
+}
+
 // Devuelve [{ empresa, sitioWeb, email, rubro, ciudad }] -- email puede venir null
 // si no se encontro nada publicado; el usuario lo completa a mano en ese caso.
 async function buscarEmpresas(rubro, ciudad) {
-  const places = await buscarPlaces(rubro, ciudad)
-  const resultados = []
-  for (const p of places) {
-    if (!p.websiteUri) continue // sin sitio web no hay de donde sacar un correo propio
-    const email = await buscarEmailEnSitio(p.websiteUri)
-    resultados.push({
-      empresa: p.displayName?.text || 'Sin nombre',
-      sitioWeb: p.websiteUri,
-      email,
-      rubro,
-      ciudad,
-    })
-  }
-  return resultados
+  const places = (await buscarPlaces(rubro, ciudad)).filter(p => p.websiteUri)
+  const emails = await buscarEmailesEnParalelo(places)
+  return places.map((p, i) => ({
+    empresa: p.displayName?.text || 'Sin nombre',
+    sitioWeb: p.websiteUri,
+    email: emails[i],
+    rubro,
+    ciudad,
+  }))
 }
 
 module.exports = { buscarEmpresas }
