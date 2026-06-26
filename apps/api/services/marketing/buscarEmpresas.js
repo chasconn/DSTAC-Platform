@@ -12,26 +12,45 @@ function getApiKey() {
   return key
 }
 
-async function buscarPlaces(rubro, ciudad) {
+const FIELD_MASK = 'places.displayName,places.websiteUri,places.formattedAddress,nextPageToken'
+const MAX_PAGINAS = 3 // la API tope 20 resultados por pagina => hasta 60 por combo
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+async function buscarPaginaPlaces(rubro, ciudad, pageToken) {
+  const body = pageToken
+    ? { textQuery: `${rubro} en ${ciudad}, Chile`, pageToken }
+    : { textQuery: `${rubro} en ${ciudad}, Chile`, languageCode: 'es', regionCode: 'CL' }
+
   const res = await fetch(PLACES_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': getApiKey(),
-      'X-Goog-FieldMask': 'places.displayName,places.websiteUri,places.formattedAddress',
+      'X-Goog-FieldMask': FIELD_MASK,
     },
-    body: JSON.stringify({
-      textQuery: `${rubro} en ${ciudad}, Chile`,
-      languageCode: 'es',
-      regionCode: 'CL',
-    }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     const t = await res.text().catch(() => '')
     throw new Error(`Google Places respondio ${res.status}: ${t.slice(0, 300)}`)
   }
-  const data = await res.json()
-  return data.places || []
+  return res.json()
+}
+
+// Trae hasta MAX_PAGINAS de resultados (20 por pagina). El nextPageToken de
+// Google demora unos segundos en activarse, por eso la espera antes de usarlo.
+async function buscarPlaces(rubro, ciudad) {
+  const places = []
+  let pageToken = null
+  for (let i = 0; i < MAX_PAGINAS; i++) {
+    if (pageToken) await sleep(2000)
+    const data = await buscarPaginaPlaces(rubro, ciudad, pageToken)
+    places.push(...(data.places || []))
+    pageToken = data.nextPageToken
+    if (!pageToken) break
+  }
+  return places
 }
 
 async function fetchConTimeout(url, ms = 8000) {
