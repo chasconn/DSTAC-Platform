@@ -246,7 +246,8 @@ function renderPymesEmail({ nombre, empresa }) {
         <tr>
           <td class="dstac-header" bgcolor="#1a1530" background="https://www.dstac.cl/assets/navy-bg-2.png?v=1" style="background-color:#1a1530 !important; background-image:url('https://www.dstac.cl/assets/navy-bg-2.png?v=1'); background-repeat:repeat; padding:24px 40px; text-align:center; margin-top:30px;">
             <p style="margin:0 0 6px 0; font-family:Arial, Helvetica, sans-serif; font-size:13px; color:#ffffff; font-weight:bold;">DSTAC | DS Tactical Security</p>
-            <p style="margin:0; font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#a98bff;">Ciberseguridad aplicada a su operación</p>
+            <p style="margin:0 0 10px 0; font-family:Arial, Helvetica, sans-serif; font-size:11px; color:#a98bff;">Ciberseguridad aplicada a su operación</p>
+            <p style="margin:0; font-family:Arial, Helvetica, sans-serif; font-size:10.5px; color:#8a7ba8;">Antofagasta, Chile · Si no deseas recibir más correos como este, <a href="mailto:dchacon@dstac.cl?subject=Eliminar%20de%20lista" style="color:#c7b8ff; text-decoration:underline;">avísanos aquí</a>.</p>
           </td>
         </tr>
 

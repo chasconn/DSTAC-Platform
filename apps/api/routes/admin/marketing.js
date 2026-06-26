@@ -21,7 +21,10 @@ const CAMPANAS = {
   },
   'pymes-chile': {
     render: renderPymesEmail,
-    asunto: () => 'Ciberseguridad aplicada para tu empresa — DSTAC',
+    // Asunto personalizado por empresa -- un asunto fijo e identico repetido
+    // a decenas/cientos de destinatarios distintos es una de las señales mas
+    // fuertes que usan los filtros antispam para detectar envios masivos.
+    asunto: (nombre, empresa) => `${empresa || 'Tu empresa'}: ciberseguridad aplicada — DSTAC`,
   },
 }
 
@@ -105,7 +108,7 @@ router.post('/enviar', async (req, res, next) => {
     const html = render({ empresa, nombre: nombreFinal })
 
     try {
-      await sendMail(email.trim(), asunto(nombreFinal), html)
+      await sendMail(email.trim(), asunto(nombreFinal, empresa.trim()), html)
       await centralDB.execute(
         `INSERT INTO marketing_envios (campana, empresa, contacto_nombre, contacto_email, estado, html_enviado, created_by)
          VALUES (?,?,?,?,'enviado',?,?)`,
