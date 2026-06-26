@@ -67,7 +67,7 @@ function combosDeEstaCorrida() {
   return seleccion
 }
 
-async function main() {
+async function ejecutarBusquedaDiaria() {
   const combos = combosDeEstaCorrida()
   console.log(`[buscarDiario] ${new Date().toISOString()} — combos de hoy:`, combos)
 
@@ -96,4 +96,9 @@ async function main() {
   console.log(`[buscarDiario] total encontrados=${totalEncontrados} nuevos=${totalNuevos}`)
 }
 
-main().then(() => process.exit(0)).catch(err => { console.error('[buscarDiario] FATAL', err.message); process.exit(1) })
+module.exports = { ejecutarBusquedaDiaria }
+
+// Permite seguir corriendolo a mano: node apps/api/scripts/buscarDiario.js
+if (require.main === module) {
+  ejecutarBusquedaDiaria().then(() => process.exit(0)).catch(err => { console.error('[buscarDiario] FATAL', err.message); process.exit(1) })
+}
