@@ -16,14 +16,27 @@ const fecha = (d) => {
 
 const NAVY = '#13112B', PURPLE = '#3C3489', GREEN = '#1D9E75', INK = '#2C2C2A', MUTED = '#888780', BORDER = '#E8E6DE', BG = '#F4F3EF'
 
+function fechaVencimiento(fechaEmision, dias) {
+  if (!dias) return null
+  try {
+    const iso = fechaEmision instanceof Date ? fechaEmision.toISOString() : String(fechaEmision)
+    const d = new Date(iso.slice(0, 10) + 'T00:00:00')
+    d.setDate(d.getDate() + Number(dias))
+    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
+  } catch { return null }
+}
+
 function buildQuoteEmailHtml(c, opciones = {}) {
   const { incluyeMuestraEdr = false } = opciones
   const items = c.items || []
   const t = totales(items, { tipo: c.descuento_tipo, valor: c.descuento_valor })
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : 'tiempo limitado'
+  const venceTxt = fechaVencimiento(c.fecha, c.validez_dias)
   const nombreContacto = c.cliente_contacto ? esc(c.cliente_contacto.split(' ')[0]) : ''
 
+  let n = 0
   const tarjetasServicios = items.map(it => {
+    n++
     const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
     const cant = Number(it.cantidad) || 0
     return `
@@ -31,6 +44,9 @@ function buildQuoteEmailHtml(c, opciones = {}) {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${BORDER};border-radius:12px">
         <tr><td style="padding:16px 18px">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td width="26" style="vertical-align:top">
+              <div style="width:20px;height:20px;border-radius:10px;background:${PURPLE};color:#ffffff;font-size:10px;font-weight:700;text-align:center;line-height:20px;font-family:Arial,Helvetica,sans-serif">${n}</div>
+            </td>
             <td style="vertical-align:top">
               <div style="font-size:15px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif">${esc(it.servicio)}</div>
               ${it.detalle ? `<div style="font-size:13px;color:#444441;line-height:1.55;margin-top:7px;font-family:Arial,Helvetica,sans-serif">${esc(it.detalle)}</div>` : ''}
@@ -69,6 +85,7 @@ function buildQuoteEmailHtml(c, opciones = {}) {
           </tr></table>
           <div style="color:#ffffff;font-size:22px;font-weight:800;margin-top:18px">Cotización ${esc(c.numero || '')}</div>
           <div style="color:#CECBF6;font-size:13px;margin-top:4px">${esc(c.cliente_empresa || '')} · ${fecha(c.fecha)}</div>
+          ${venceTxt ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:10px"><tr><td style="background:rgba(255,255,255,.14);border-radius:20px;padding:5px 12px"><span style="color:#FFD9A0;font-size:11.5px;font-weight:700;font-family:Arial,Helvetica,sans-serif">⏱ Válida hasta el ${venceTxt}</span></td></tr></table>` : ''}
         </td></tr>
 
         <!-- Saludo -->

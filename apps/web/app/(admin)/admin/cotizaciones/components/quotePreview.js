@@ -5,22 +5,35 @@ import { totales } from './format'
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const clp = (n) => '$' + new Intl.NumberFormat('es-CL').format(Number(n) || 0)
 const fecha = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
+const fechaVencimiento = (fechaEmision, dias) => {
+  if (!dias) return null
+  try {
+    const d = new Date(String(fechaEmision).slice(0, 10) + 'T00:00:00')
+    d.setDate(d.getDate() + Number(dias))
+    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
+  } catch { return null }
+}
 
 function buildQuoteHtml(c) {
   const items = c.items || []
   const t = totales(items, { tipo: c.descuento_tipo, valor: c.descuento_valor })
   const itemsUnico   = items.filter(it => it.tipo !== 'mensual')
   const itemsMensual = items.filter(it => it.tipo === 'mensual')
+  let n = 0
   const listaItems = (arr) => arr.map(it => {
+    n++
     const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
     const cant = Number(it.cantidad) || 0
     return `<div class="item">
+      <div class="item-n">${n}</div>
       <div class="item-tx"><div class="sv">${esc(it.servicio)}</div>${it.detalle ? `<div class="dt">${esc(it.detalle)}</div>` : ''}</div>
       <div class="item-price">${cant !== 1 ? `<div class="qty">${cant} × ${clp(it.precio_unitario)}</div>` : ''}<div class="sub">${clp(sub)}</div></div>
     </div>`
   }).join('')
 
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : '—'
+  const venceTxt = fechaVencimiento(c.fecha, c.validez_dias)
+  const descuentoTotal = t.descUnico + t.descMensual
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <style>
@@ -41,14 +54,22 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
 .card .row b{color:#2C2C2A}
 .seclabel{background:#3C3489;color:#fff;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px;border-radius:6px 6px 0 0}
 .list{border:1px solid #ececec;border-radius:0 0 6px 6px;margin-bottom:14px}
-.item{padding:10px 12px;border-bottom:1px solid #ececec;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.item{padding:10px 12px;border-bottom:1px solid #ececec;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .item:last-child{border-bottom:none}
+.item-n{width:20px;height:20px;border-radius:50%;background:#3C3489;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .item-tx{flex:1;min-width:0}
 .sv{font-weight:600;color:#2C2C2A}
 .dt{font-size:11px;color:#888780;margin-top:2px}
 .item-price{text-align:right;flex-shrink:0}
 .item-price .qty{font-size:10px;color:#888780}
 .item-price .sub{font-size:12.5px;font-weight:700;color:#2C2C2A;margin-top:1px}
+.vence{display:inline-flex;align-items:center;gap:5px;background:#FAEEDA;color:#854F0B;font-size:10.5px;font-weight:700;padding:5px 10px;border-radius:20px;margin-top:6px}
+.descuento-box{background:#EAF6F1;border:1px solid #C9E8D8;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11.5px;color:#0F6E56}
+.descuento-box b{color:#085041}
+.next{background:#3C3489;border-radius:8px;padding:14px 18px;margin-top:18px;color:#fff}
+.next h4{margin:0 0 4px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#CECBF6}
+.next p{margin:0;font-size:12px;line-height:1.5;color:#EEEDFE}
+.next a{color:#fff;font-weight:700;text-decoration:underline}
 .tots{display:flex;justify-content:flex-end;gap:14px}
 .tot{width:230px;background:#F8F7F4;border:1px solid #e2e0d8;border-radius:8px;padding:10px 14px;margin-bottom:14px}
 .tot h4{margin:0 0 4px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#888780}
@@ -62,7 +83,9 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
 </style></head><body>
   <div class="top">
     <div class="brand"><img src="/logo-dstac.png" alt="DSTAC"></div>
-    <div class="doc"><div class="t">COTIZACIÓN</div><div class="n">${esc(c.numero || '')}</div><div class="f">${fecha(c.fecha)}</div></div>
+    <div class="doc"><div class="t">COTIZACIÓN</div><div class="n">${esc(c.numero || '')}</div><div class="f">${fecha(c.fecha)}</div>
+      ${venceTxt ? `<div class="vence">⏱ Válida hasta el ${venceTxt}</div>` : ''}
+    </div>
   </div>
 
   <div class="cols">
@@ -106,11 +129,20 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
     </div>` : ''}
   </div>
 
+  ${descuentoTotal > 0 && c.descuento_motivo ? `<div class="descuento-box">
+    <b>Por qué este descuento de ${clp(descuentoTotal)}:</b> ${esc(c.descuento_motivo)}
+  </div>` : ''}
+
   <div class="terms">
     ${c.forma_pago ? `<div class="b"><h4>Forma de pago</h4>${esc(c.forma_pago)}</div>` : ''}
     ${c.plazo_ejecucion ? `<div class="b"><h4>Plazo de ejecución</h4>${esc(c.plazo_ejecucion)}</div>` : ''}
     ${c.notas ? `<div class="b"><h4>Notas</h4>${esc(c.notas)}</div>` : ''}
-    ${c.descuento_motivo ? `<div class="b"><h4>Motivo del descuento</h4>${esc(c.descuento_motivo)}</div>` : ''}
+  </div>
+
+  <div class="next">
+    <h4>Cómo continuar</h4>
+    <p>Responde este correo o escríbenos para confirmar — coordinamos la implementación de inmediato.
+    <a href="mailto:contacto@dstac.cl">contacto@dstac.cl</a> · +56 9 6219 8594</p>
   </div>
 
   <div class="foot"><span>DSTAC CIBERSEGURIDAD · contacto@dstac.cl · www.dstac.cl</span><span>Valores en pesos chilenos (CLP)</span></div>
