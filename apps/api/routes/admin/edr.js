@@ -461,6 +461,25 @@ router.get('/agents/:wazuhId/ubicacion', async (req, res) => {
   } catch (err) { res.status(502).json({ error: err.message }) }
 })
 
+// GET /alerts/origen — geolocaliza la IP de ORIGEN de una alerta (el posible
+// atacante), no la del agente. Útil para responder "¿desde dónde nos atacaron?"
+// directamente desde la tabla de alertas, sin salir del portal.
+router.get('/alerts/origen', async (req, res) => {
+  try {
+    const ip = String(req.query.ip || '').trim()
+    if (!ip) return res.status(400).json({ error: 'Falta la IP de origen' })
+    if (ipPrivada(ip)) {
+      return res.json({ privada: true, ip, mensaje: 'IP de red privada/local; no es geolocalizable públicamente.' })
+    }
+    const g = await geoip(ip)
+    if (!g || g.status !== 'success') return res.json({ ip, error: 'No se pudo geolocalizar la IP' })
+    res.json({
+      ip, ciudad: g.city, region: g.regionName, pais: g.country, isp: g.isp,
+      lat: g.lat, lon: g.lon, maps: `https://www.google.com/maps?q=${g.lat},${g.lon}`,
+    })
+  } catch (err) { res.status(502).json({ error: err.message || 'No se pudo geolocalizar la IP' }) }
+})
+
 // GET /empresas — lista para el selector de "mover equipo".
 router.get('/empresas', async (req, res, next) => {
   try {

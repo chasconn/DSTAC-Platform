@@ -12,29 +12,54 @@ function getApiKey() {
   return key
 }
 
-async function buscarPlaces(rubro, ciudad) {
+const FIELD_MASK = 'places.displayName,places.websiteUri,places.formattedAddress,nextPageToken'
+const MAX_PAGINAS = 3 // la API tope 20 resultados por pagina => hasta 60 por combo
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+async function buscarPaginaPlaces(rubro, ciudad, pageToken) {
+  // Google exige que las peticiones de paginas siguientes repitan exactamente
+  // los mismos parametros que la busqueda inicial (textQuery, languageCode,
+  // regionCode) ademas del pageToken -- si no, responde 400 INVALID_ARGUMENT.
+  const body = {
+    textQuery: `${rubro} en ${ciudad}, Chile`,
+    languageCode: 'es',
+    regionCode: 'CL',
+    ...(pageToken && { pageToken }),
+  }
+
   const res = await fetch(PLACES_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': getApiKey(),
-      'X-Goog-FieldMask': 'places.displayName,places.websiteUri,places.formattedAddress',
+      'X-Goog-FieldMask': FIELD_MASK,
     },
-    body: JSON.stringify({
-      textQuery: `${rubro} en ${ciudad}, Chile`,
-      languageCode: 'es',
-      regionCode: 'CL',
-    }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     const t = await res.text().catch(() => '')
     throw new Error(`Google Places respondio ${res.status}: ${t.slice(0, 300)}`)
   }
-  const data = await res.json()
-  return data.places || []
+  return res.json()
 }
 
-async function fetchConTimeout(url, ms = 8000) {
+// Trae hasta MAX_PAGINAS de resultados (20 por pagina). El nextPageToken de
+// Google demora unos segundos en activarse, por eso la espera antes de usarlo.
+async function buscarPlaces(rubro, ciudad) {
+  const places = []
+  let pageToken = null
+  for (let i = 0; i < MAX_PAGINAS; i++) {
+    if (pageToken) await sleep(2000)
+    const data = await buscarPaginaPlaces(rubro, ciudad, pageToken)
+    places.push(...(data.places || []))
+    pageToken = data.nextPageToken
+    if (!pageToken) break
+  }
+  return places
+}
+
+async function fetchConTimeout(url, ms = 6000) {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), ms)
   try {
@@ -80,23 +105,35 @@ async function buscarEmailEnSitio(sitioWeb) {
   }
 }
 
+const CONCURRENCIA_SITIOS = 8 // visitar sitios web en paralelo -- con 60 resultados
+// por combo, hacerlo uno por uno puede tardar minutos y cortar la conexion
+// HTTP del navegador (proxy/gateway timeout) antes de responder.
+
+async function buscarEmailesEnParalelo(places) {
+  const resultados = new Array(places.length)
+  let siguiente = 0
+  async function trabajador() {
+    while (siguiente < places.length) {
+      const i = siguiente++
+      resultados[i] = await buscarEmailEnSitio(places[i].websiteUri)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCIA_SITIOS, places.length) }, trabajador))
+  return resultados
+}
+
 // Devuelve [{ empresa, sitioWeb, email, rubro, ciudad }] -- email puede venir null
 // si no se encontro nada publicado; el usuario lo completa a mano en ese caso.
 async function buscarEmpresas(rubro, ciudad) {
-  const places = await buscarPlaces(rubro, ciudad)
-  const resultados = []
-  for (const p of places) {
-    if (!p.websiteUri) continue // sin sitio web no hay de donde sacar un correo propio
-    const email = await buscarEmailEnSitio(p.websiteUri)
-    resultados.push({
-      empresa: p.displayName?.text || 'Sin nombre',
-      sitioWeb: p.websiteUri,
-      email,
-      rubro,
-      ciudad,
-    })
-  }
-  return resultados
+  const places = (await buscarPlaces(rubro, ciudad)).filter(p => p.websiteUri)
+  const emails = await buscarEmailesEnParalelo(places)
+  return places.map((p, i) => ({
+    empresa: p.displayName?.text || 'Sin nombre',
+    sitioWeb: p.websiteUri,
+    email: emails[i],
+    rubro,
+    ciudad,
+  }))
 }
 
 module.exports = { buscarEmpresas }
