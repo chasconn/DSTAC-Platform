@@ -11,9 +11,14 @@ function buildQuoteHtml(c) {
   const t = totales(items, { tipo: c.descuento_tipo, valor: c.descuento_valor })
   const itemsUnico   = items.filter(it => it.tipo !== 'mensual')
   const itemsMensual = items.filter(it => it.tipo === 'mensual')
-  const listaItems = (arr) => arr.map(it =>
-    `<div class="item"><div class="sv">${esc(it.servicio)}</div>${it.detalle ? `<div class="dt">${esc(it.detalle)}</div>` : ''}</div>`
-  ).join('')
+  const listaItems = (arr) => arr.map(it => {
+    const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
+    const cant = Number(it.cantidad) || 0
+    return `<div class="item">
+      <div class="item-tx"><div class="sv">${esc(it.servicio)}</div>${it.detalle ? `<div class="dt">${esc(it.detalle)}</div>` : ''}</div>
+      <div class="item-price">${cant !== 1 ? `<div class="qty">${cant} × ${clp(it.precio_unitario)}</div>` : ''}<div class="sub">${clp(sub)}</div></div>
+    </div>`
+  }).join('')
 
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : '—'
 
@@ -36,10 +41,14 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
 .card .row b{color:#2C2C2A}
 .seclabel{background:#3C3489;color:#fff;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:8px 12px;border-radius:6px 6px 0 0}
 .list{border:1px solid #ececec;border-radius:0 0 6px 6px;margin-bottom:14px}
-.item{padding:10px 12px;border-bottom:1px solid #ececec}
+.item{padding:10px 12px;border-bottom:1px solid #ececec;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
 .item:last-child{border-bottom:none}
+.item-tx{flex:1;min-width:0}
 .sv{font-weight:600;color:#2C2C2A}
 .dt{font-size:11px;color:#888780;margin-top:2px}
+.item-price{text-align:right;flex-shrink:0}
+.item-price .qty{font-size:10px;color:#888780}
+.item-price .sub{font-size:12.5px;font-weight:700;color:#2C2C2A;margin-top:1px}
 .tots{display:flex;justify-content:flex-end;gap:14px}
 .tot{width:230px;background:#F8F7F4;border:1px solid #e2e0d8;border-radius:8px;padding:10px 14px;margin-bottom:14px}
 .tot h4{margin:0 0 4px;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#888780}

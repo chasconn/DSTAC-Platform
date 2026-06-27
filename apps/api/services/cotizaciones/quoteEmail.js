@@ -23,16 +23,27 @@ function buildQuoteEmailHtml(c, opciones = {}) {
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : 'tiempo limitado'
   const nombreContacto = c.cliente_contacto ? esc(c.cliente_contacto.split(' ')[0]) : ''
 
-  const tarjetasServicios = items.map(it => `
+  const tarjetasServicios = items.map(it => {
+    const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
+    const cant = Number(it.cantidad) || 0
+    return `
     <tr><td style="padding:0 0 14px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${BORDER};border-radius:12px">
         <tr><td style="padding:16px 18px">
-          <div style="font-size:15px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif">${esc(it.servicio)}</div>
-          ${it.detalle ? `<div style="font-size:13px;color:#444441;line-height:1.55;margin-top:7px;font-family:Arial,Helvetica,sans-serif">${esc(it.detalle)}</div>` : ''}
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td style="vertical-align:top">
+              <div style="font-size:15px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif">${esc(it.servicio)}</div>
+              ${it.detalle ? `<div style="font-size:13px;color:#444441;line-height:1.55;margin-top:7px;font-family:Arial,Helvetica,sans-serif">${esc(it.detalle)}</div>` : ''}
+            </td>
+            <td align="right" style="vertical-align:top;white-space:nowrap;padding-left:14px">
+              ${cant !== 1 ? `<div style="font-size:11px;color:${MUTED};font-family:Arial,Helvetica,sans-serif">${cant} × ${clp(it.precio_unitario)}</div>` : ''}
+              <div style="font-size:14px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif;margin-top:2px">${clp(sub)}</div>
+            </td>
+          </tr></table>
         </td></tr>
       </table>
     </td></tr>`
-  ).join('')
+  }).join('')
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
