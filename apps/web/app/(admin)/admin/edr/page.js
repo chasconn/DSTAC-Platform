@@ -255,6 +255,16 @@ export default function EdrPage() {
     } catch (err) { showToast(err.message || 'Error al ubicar', 'error') }
   }
 
+  async function buscarOrigen(ip) {
+    try {
+      const d = await api.get(`/api/admin/edr/alerts/origen?ip=${encodeURIComponent(ip)}`, headers)
+      if (d.privada) { showToast(`🌐 ${ip}: ${d.mensaje}`, 'error'); return }
+      if (d.error)   { showToast(`🌐 ${ip}: ${d.error}`, 'error'); return }
+      showToast(`🌐 ${ip}: ${[d.ciudad, d.region, d.pais].filter(Boolean).join(', ')}${d.isp ? ' · ' + d.isp : ''}`)
+      if (d.maps) window.open(d.maps, '_blank')
+    } catch (err) { showToast(err.message || 'Error al buscar el origen de la IP', 'error') }
+  }
+
   async function renombrar(wazuhId, nombreActual) {
     const nuevo = prompt('Nuevo nombre para identificar el equipo:', nombreActual)
     if (!nuevo || !nuevo.trim() || nuevo.trim() === nombreActual) return
@@ -726,6 +736,13 @@ export default function EdrPage() {
                       </td>
                       <td style={td}>
                         {al.src_ip || '—'}
+                        {al.src_ip && (
+                          <button onClick={() => buscarOrigen(al.src_ip)}
+                            title="Ver ciudad, país e ISP de esta IP"
+                            style={{ marginLeft: 6, padding: '2px 9px', borderRadius: 6, border: '1px solid #c8c4f0', background: '#EEEDFE', color: '#3C3489', cursor: 'pointer', fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                            🌐 Origen
+                          </button>
+                        )}
                         {al.src_ip && al.wazuh_id && (
                           al.bloqueada ? (
                             <span title="IP ya bloqueada en el endpoint"
