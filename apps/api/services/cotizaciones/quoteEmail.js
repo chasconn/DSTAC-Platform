@@ -30,36 +30,74 @@ function buildQuoteEmailHtml(c, opciones = {}) {
   const { incluyeMuestraEdr = false } = opciones
   const items = c.items || []
   const t = totales(items, { tipo: c.descuento_tipo, valor: c.descuento_valor })
+  const itemsUnico   = items.filter(it => it.tipo !== 'mensual')
+  const itemsMensual = items.filter(it => it.tipo === 'mensual')
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : 'tiempo limitado'
   const venceTxt = fechaVencimiento(c.fecha, c.validez_dias)
   const nombreContacto = c.cliente_contacto ? esc(c.cliente_contacto.split(' ')[0]) : ''
 
-  let n = 0
-  const tarjetasServicios = items.map(it => {
-    n++
-    const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
-    const cant = Number(it.cantidad) || 0
+  // Numeral propio por bloque — pago único y mensual se leen como dos
+  // cotizaciones independientes, único siempre primero.
+  const tarjetasServicios = (arr) => {
+    let n = 0
+    return arr.map(it => {
+      n++
+      const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
+      const cant = Number(it.cantidad) || 0
+      return `
+      <tr><td style="padding:0 0 14px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${BORDER};border-radius:12px">
+          <tr><td style="padding:16px 18px">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td width="26" style="vertical-align:top">
+                <div style="width:20px;height:20px;border-radius:10px;background:${PURPLE};color:#ffffff;font-size:10px;font-weight:700;text-align:center;line-height:20px;font-family:Arial,Helvetica,sans-serif">${n}</div>
+              </td>
+              <td style="vertical-align:top">
+                <div style="font-size:15px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif">${esc(it.servicio)}</div>
+                ${it.detalle ? `<div style="font-size:13px;color:#444441;line-height:1.55;margin-top:7px;font-family:Arial,Helvetica,sans-serif">${esc(it.detalle)}</div>` : ''}
+              </td>
+              <td align="right" style="vertical-align:top;white-space:nowrap;padding-left:14px">
+                ${cant !== 1 ? `<div style="font-size:11px;color:${MUTED};font-family:Arial,Helvetica,sans-serif">${cant} × ${clp(it.precio_unitario)}</div>` : ''}
+                <div style="font-size:14px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif;margin-top:2px">${clp(sub)}</div>
+              </td>
+            </tr></table>
+          </td></tr>
+        </table>
+      </td></tr>`
+    }).join('')
+  }
+
+  // Bloque autocontenido: título + servicios + total propio + motivo del
+  // descuento de ese tipo (si aplica) — cada uno se lee como su propia cotización.
+  const bloqueServicios = (arr, tipo) => {
+    if (!arr.length) return ''
+    const totalLabel = tipo === 'unico' ? 'Pago único' : 'Mensual'
+    const totalMonto = tipo === 'unico' ? t.totalUnico : t.totalMensual
+    const totalSufijo = tipo === 'unico' ? '' : '<span style="font-size:12px;font-weight:600">/mes</span>'
+    const totalBg = tipo === 'unico' ? BG : '#EEEDFE'
+    const totalColor = tipo === 'unico' ? INK : PURPLE
+    const descMonto = tipo === 'unico' ? t.descUnico : t.descMensual
     return `
-    <tr><td style="padding:0 0 14px">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;border:1px solid ${BORDER};border-radius:12px">
-        <tr><td style="padding:16px 18px">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-            <td width="26" style="vertical-align:top">
-              <div style="width:20px;height:20px;border-radius:10px;background:${PURPLE};color:#ffffff;font-size:10px;font-weight:700;text-align:center;line-height:20px;font-family:Arial,Helvetica,sans-serif">${n}</div>
-            </td>
-            <td style="vertical-align:top">
-              <div style="font-size:15px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif">${esc(it.servicio)}</div>
-              ${it.detalle ? `<div style="font-size:13px;color:#444441;line-height:1.55;margin-top:7px;font-family:Arial,Helvetica,sans-serif">${esc(it.detalle)}</div>` : ''}
-            </td>
-            <td align="right" style="vertical-align:top;white-space:nowrap;padding-left:14px">
-              ${cant !== 1 ? `<div style="font-size:11px;color:${MUTED};font-family:Arial,Helvetica,sans-serif">${cant} × ${clp(it.precio_unitario)}</div>` : ''}
-              <div style="font-size:14px;font-weight:700;color:${INK};font-family:Arial,Helvetica,sans-serif;margin-top:2px">${clp(sub)}</div>
-            </td>
-          </tr></table>
+    <tr><td style="background:#ffffff;padding:18px 30px 6px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${MUTED};margin-bottom:12px">Servicios — ${totalLabel}</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        ${tarjetasServicios(arr)}
+      </table>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${totalBg};border-radius:10px;margin-top:2px">
+        <tr><td style="padding:14px 16px">
+          <div style="font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${totalColor}">Total ${totalLabel.toLowerCase()}</div>
+          <div style="font-size:21px;font-weight:800;color:${totalColor};margin-top:4px">${clp(totalMonto)}${totalSufijo}</div>
         </td></tr>
       </table>
+      ${descMonto > 0 && c.descuento_motivo ? `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EAF6F1;border-radius:10px;margin-top:10px">
+        <tr><td style="padding:13px 16px">
+          <div style="font-size:13px;color:${GREEN};font-weight:700;font-family:Arial,Helvetica,sans-serif">Por qué este descuento de ${clp(descMonto)}</div>
+          <div style="font-size:12.5px;color:#27500A;margin-top:3px;font-family:Arial,Helvetica,sans-serif">${esc(c.descuento_motivo)}</div>
+        </td></tr>
+      </table>` : ''}
     </td></tr>`
-  }).join('')
+  }
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -100,48 +138,14 @@ function buildQuoteEmailHtml(c, opciones = {}) {
           </p>
         </td></tr>
 
-        <!-- Servicios -->
-        <tr><td style="background:#ffffff;padding:18px 30px 6px">
-          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${MUTED};margin-bottom:12px">Qué te estamos cotizando y por qué</div>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            ${tarjetasServicios || '<tr><td style="color:'+MUTED+';font-size:13px">Sin servicios.</td></tr>'}
-          </table>
-        </td></tr>
+        <!-- Servicios — pago único primero, luego mensual, cada uno con su propio total -->
+        ${!items.length ? `<tr><td style="background:#ffffff;padding:18px 30px 6px;color:${MUTED};font-size:13px">Sin servicios.</td></tr>` : ''}
+        ${bloqueServicios(itemsUnico, 'unico')}
+        ${bloqueServicios(itemsMensual, 'mensual')}
 
-        <!-- Descuento (si aplica) -->
-        ${(t.descUnico + t.descMensual) > 0 ? `
-        <tr><td style="background:#ffffff;padding:0 30px 16px">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EAF6F1;border-radius:10px">
-            <tr><td style="padding:13px 16px">
-              <div style="font-size:13.5px;color:${GREEN};font-weight:700;font-family:Arial,Helvetica,sans-serif">Esta propuesta incluye un descuento de ${clp(t.descUnico + t.descMensual)}</div>
-              ${c.descuento_motivo ? `<div style="font-size:12.5px;color:#27500A;margin-top:3px;font-family:Arial,Helvetica,sans-serif">${esc(c.descuento_motivo)}</div>` : ''}
-            </td></tr>
-          </table>
-        </td></tr>` : ''}
-
-        <!-- Totales -->
+        <!-- Nota de vigencia / muestra EDR -->
         <tr><td style="background:#ffffff;padding:6px 30px 26px">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-            ${t.netoUnico > 0 ? `
-            <td width="50%" style="padding-right:6px">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BG};border-radius:10px">
-                <tr><td style="padding:14px 16px">
-                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${MUTED}">Pago único</div>
-                  <div style="font-size:21px;font-weight:800;color:${INK};margin-top:4px">${clp(t.totalUnico)}</div>
-                </td></tr>
-              </table>
-            </td>` : ''}
-            ${t.netoMensual > 0 ? `
-            <td width="50%" style="padding-left:${t.netoUnico > 0 ? '6' : '0'}px">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEEDFE;border-radius:10px">
-                <tr><td style="padding:14px 16px">
-                  <div style="font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:${PURPLE}">Mensual</div>
-                  <div style="font-size:21px;font-weight:800;color:${PURPLE};margin-top:4px">${clp(t.totalMensual)}<span style="font-size:12px;font-weight:600">/mes</span></div>
-                </td></tr>
-              </table>
-            </td>` : ''}
-          </tr></table>
-          <p style="font-size:12px;color:${MUTED};margin:14px 0 0;line-height:1.5">
+          <p style="font-size:12px;color:${MUTED};margin:0;line-height:1.5">
             Valores netos + IVA. Revisa el desglose completo en el PDF adjunto. Esta propuesta tiene una validez de ${validezTxt}.
           </p>
           ${incluyeMuestraEdr ? `

@@ -57,24 +57,58 @@ function buildQuoteHtml(c) {
   const t = totales(items, { tipo: c.descuento_tipo, valor: c.descuento_valor })
   const itemsUnico   = items.filter(it => it.tipo !== 'mensual')
   const itemsMensual = items.filter(it => it.tipo === 'mensual')
+  const hayAmbos = itemsUnico.length > 0 && itemsMensual.length > 0
 
-  // Numeral corrido entre ambas secciones — cada servicio se siente como un
-  // módulo distinto, no se mezclan todos en un bloque de texto homogéneo.
-  let n = 0
-  const listaItems = (arr) => arr.map(it => {
-    n++
-    const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
-    const cant = Number(it.cantidad) || 0
-    return `<div class="item">
-      <div class="item-n">${n}</div>
-      <div class="item-tx"><div class="sv">${esc(it.servicio)}</div>${it.detalle ? `<div class="dt">${esc(it.detalle)}</div>` : ''}</div>
-      <div class="item-price">${cant !== 1 ? `<div class="qty">${cant} × ${clp(it.precio_unitario)}</div>` : ''}<div class="sub">${clp(sub)}</div></div>
-    </div>`
-  }).join('')
+  // Numeral propio por sección — pago único y mensual se presentan como dos
+  // cotizaciones independientes, no como un único bloque mezclado.
+  const listaItems = (arr) => {
+    let n = 0
+    return arr.map(it => {
+      n++
+      const sub = (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0)
+      const cant = Number(it.cantidad) || 0
+      return `<div class="item">
+        <div class="item-n">${n}</div>
+        <div class="item-tx"><div class="sv">${esc(it.servicio)}</div>${it.detalle ? `<div class="dt">${esc(it.detalle)}</div>` : ''}</div>
+        <div class="item-price">${cant !== 1 ? `<div class="qty">${cant} × ${clp(it.precio_unitario)}</div>` : ''}<div class="sub">${clp(sub)}</div></div>
+      </div>`
+    }).join('')
+  }
+
+  const totBox = (tipo) => {
+    if (tipo === 'unico' && t.netoUnico > 0) {
+      return `<div class="tots"><div class="tot">
+        <h4>Pago único</h4>
+        ${t.descUnico > 0 ? `<div class="l"><span>Neto bruto</span><span>${clp(t.netoUnicoBruto)}</span></div>
+        <div class="l"><span>Descuento</span><span>− ${clp(t.descUnico)}</span></div>` : ''}
+        <div class="l"><span>Neto</span><span>${clp(t.netoUnico)}</span></div>
+        <div class="l"><span>IVA (19%)</span><span>${clp(t.ivaUnico)}</span></div>
+        <div class="l g"><span>Total</span><span>${clp(t.totalUnico)}</span></div>
+      </div></div>`
+    }
+    if (tipo === 'mensual' && t.netoMensual > 0) {
+      return `<div class="tots"><div class="tot mensual">
+        <h4>Mensual</h4>
+        ${t.descMensual > 0 ? `<div class="l"><span>Neto bruto</span><span>${clp(t.netoMensualBruto)}</span></div>
+        <div class="l"><span>Descuento</span><span>− ${clp(t.descMensual)}</span></div>` : ''}
+        <div class="l"><span>Neto</span><span>${clp(t.netoMensual)}</span></div>
+        <div class="l"><span>IVA (19%)</span><span>${clp(t.ivaMensual)}</span></div>
+        <div class="l g"><span>Total / mes</span><span>${clp(t.totalMensual)}</span></div>
+      </div></div>`
+    }
+    return ''
+  }
+
+  const discountBoxFor = (tipo) => {
+    const monto = tipo === 'unico' ? t.descUnico : t.descMensual
+    if (monto > 0 && c.descuento_motivo) {
+      return `<div class="descuento-box"><b>Por qué este descuento de ${clp(monto)}:</b> ${esc(c.descuento_motivo)}</div>`
+    }
+    return ''
+  }
 
   const validezTxt = c.validez_dias ? `${c.validez_dias} días` : '—'
   const venceTxt = fechaVencimiento(c.fecha, c.validez_dias)
-  const descuentoTotal = t.descUnico + t.descMensual
 
   return `<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">
 <style>
@@ -105,6 +139,10 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
 .item-price .qty{font-size:10px;color:#888780}
 .item-price .sub{font-size:12.5px;font-weight:700;color:#2C2C2A;margin-top:1px}
 .vence{display:inline-flex;align-items:center;gap:5px;background:#FAEEDA;color:#854F0B;font-size:10.5px;font-weight:700;padding:5px 10px;border-radius:20px;margin-top:6px}
+.pagebreak{break-before:page}
+.contheader{display:flex;align-items:center;gap:10px;margin:0 0 16px;padding-bottom:10px;border-bottom:1px solid #e2e0d8}
+.contheader img{height:20px;display:block}
+.contheader span{font-size:11px;color:#888780}
 .descuento-box{background:#EAF6F1;border:1px solid #C9E8D8;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:11.5px;color:#0F6E56}
 .descuento-box b{color:#085041}
 .next{background:#3C3489;border-radius:8px;padding:14px 18px;margin-top:18px;color:#fff}
@@ -148,31 +186,24 @@ body{font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#2C2C2A;margin:0;fo
     </div>
   </div>
 
-  ${itemsUnico.length ? `<div class="seclabel">Servicios — Pago único</div><div class="list">${listaItems(itemsUnico)}</div>` : ''}
-  ${itemsMensual.length ? `<div class="seclabel">Servicios — Mensual</div><div class="list">${listaItems(itemsMensual)}</div>` : ''}
   ${!items.length ? `<div class="list"><div class="item" style="text-align:center;color:#888780">Sin líneas</div></div>` : ''}
 
-  <div class="tots">
-    ${t.netoUnico > 0 ? `<div class="tot">
-      <h4>Pago único</h4>
-      ${t.descUnico > 0 ? `<div class="l"><span>Neto bruto</span><span>${clp(t.netoUnicoBruto)}</span></div>
-      <div class="l"><span>Descuento</span><span>− ${clp(t.descUnico)}</span></div>` : ''}
-      <div class="l"><span>Neto</span><span>${clp(t.netoUnico)}</span></div>
-      <div class="l"><span>IVA (19%)</span><span>${clp(t.ivaUnico)}</span></div>
-      <div class="l g"><span>Total</span><span>${clp(t.totalUnico)}</span></div>
-    </div>` : ''}
-    ${t.netoMensual > 0 ? `<div class="tot mensual">
-      <h4>Mensual</h4>
-      ${t.descMensual > 0 ? `<div class="l"><span>Neto bruto</span><span>${clp(t.netoMensualBruto)}</span></div>
-      <div class="l"><span>Descuento</span><span>− ${clp(t.descMensual)}</span></div>` : ''}
-      <div class="l"><span>Neto</span><span>${clp(t.netoMensual)}</span></div>
-      <div class="l"><span>IVA (19%)</span><span>${clp(t.ivaMensual)}</span></div>
-      <div class="l g"><span>Total / mes</span><span>${clp(t.totalMensual)}</span></div>
-    </div>` : ''}
-  </div>
+  ${itemsUnico.length ? `<div>
+    <div class="seclabel">Servicios — Pago único</div>
+    <div class="list">${listaItems(itemsUnico)}</div>
+    ${totBox('unico')}
+    ${discountBoxFor('unico')}
+  </div>` : ''}
 
-  ${descuentoTotal > 0 && c.descuento_motivo ? `<div class="descuento-box">
-    <b>Por qué este descuento de ${clp(descuentoTotal)}:</b> ${esc(c.descuento_motivo)}
+  ${itemsMensual.length ? `<div class="${hayAmbos ? 'pagebreak' : ''}">
+    ${hayAmbos ? `<div class="contheader">
+      <img src="https://portal.dstac.cl/logo-dstac.png" alt="DSTAC">
+      <span>Cotización ${esc(c.numero || '')} · ${esc(c.cliente_empresa || c.company_name || '')} · Servicios mensuales</span>
+    </div>` : ''}
+    <div class="seclabel">Servicios — Mensual</div>
+    <div class="list">${listaItems(itemsMensual)}</div>
+    ${totBox('mensual')}
+    ${discountBoxFor('mensual')}
   </div>` : ''}
 
   <div class="terms">
