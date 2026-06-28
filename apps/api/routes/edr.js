@@ -6,6 +6,8 @@ const centralDB = require('../db/central')
 const { getTenantDB } = require('../db/tenant')
 const { sendMail } = require('../services/emailService')
 const { clasificar } = require('../utils/macVendor')
+const { geoip } = require('../services/geoip')
+const { buildAlertaEmail, esc: escHtml } = require('../services/notifyTemplate')
 
 // Nivel mínimo de regla Wazuh para abrir un incidente automáticamente (12 = crítico).
 const INCIDENT_MIN_LEVEL = parseInt(process.env.EDR_INCIDENT_MIN_LEVEL, 10) || 12
@@ -76,18 +78,26 @@ async function escalarIncidente({ companyId, wazuhId, agentName, alertId, rule, 
     [ins.insertId, slug, alertId]
   )
 
-  await notificar(
-    `🚨 EDR: incidente ${severidad} — ${comp[0]?.name || slug}`,
-    `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a">
-       <p>Se escaló un incidente automático del EDR.</p>
-       <p><b>Empresa:</b> ${comp[0]?.name || slug}<br>
-          <b>Agente:</b> ${agentName || wazuhId} (${wazuhId})<br>
-          <b>Regla:</b> ${rule.id} · nivel ${level}: ${rule.description || ''}<br>
-          ${tactics ? `<b>MITRE táctica:</b> ${tactics}<br>` : ''}
-          ${srcIp ? `<b>Origen:</b> ${srcIp}<br>` : ''}</p>
-       <p>Revísalo en el portal: módulo Incidentes de ${comp[0]?.name || slug}.</p>
-     </div>`
-  )
+  // Geolocalizar el origen no debe demorar la respuesta del webhook a Wazuh:
+  // se resuelve y se envía en segundo plano.
+  ;(async () => {
+    const geo = srcIp ? await geoip(srcIp) : null
+    await notificar(
+      `🚨 EDR: incidente ${severidad} — ${comp[0]?.name || slug}`,
+      buildAlertaEmail({
+        titulo: `Incidente ${severidad} escalado automáticamente`,
+        icono: '🚨',
+        resumen: 'Se escaló un incidente automático a partir de una alerta grave del EDR. Revísalo en el portal, módulo Incidentes.',
+        campos: [
+          ['Empresa', escHtml(comp[0]?.name || slug)],
+          ['Agente', `${escHtml(agentName || wazuhId)} (${escHtml(wazuhId)})`],
+          ['Regla', `${escHtml(rule.id)} · nivel ${escHtml(level)}: ${escHtml(rule.description || '')}`],
+          tactics ? ['MITRE táctica', escHtml(tactics)] : null,
+        ].filter(Boolean),
+        geo,
+      })
+    )
+  })().catch(() => {})
 }
 
 // Procesa un reporte de descubrimiento de red (lista de IP/MAC vistas en la
@@ -243,15 +253,24 @@ router.post('/alerts', async (req, res) => {
           [companyId, wazuhId, srcIp]
         ).catch(() => {})
         const [comp] = await centralDB.execute(`SELECT name FROM companies WHERE id = ? LIMIT 1`, [companyId])
-        notificar(
-          `⚡ EDR: auto-bloqueo de IP — ${comp[0]?.name || companyId}`,
-          `<div style="font-family:Arial,sans-serif;font-size:14px;color:#1a1a1a">
-             <p>El EDR bloqueó automáticamente una IP por fuerza bruta SSH.</p>
-             <p><b>Empresa:</b> ${comp[0]?.name || companyId}<br>
-                <b>Agente:</b> ${agentName || wazuhId} (${wazuhId})<br>
-                <b>IP bloqueada:</b> ${srcIp}</p>
-           </div>`
-        ).catch(() => {})
+        // Geolocalizar no debe demorar la respuesta del webhook a Wazuh.
+        ;(async () => {
+          const geo = await geoip(srcIp)
+          await notificar(
+            `⚡ EDR: auto-bloqueo de IP — ${comp[0]?.name || companyId}`,
+            buildAlertaEmail({
+              titulo: 'Auto-bloqueo de IP por fuerza bruta SSH',
+              icono: '⚡',
+              resumen: 'El EDR detectó múltiples intentos fallidos de acceso SSH y bloqueó automáticamente la IP de origen mediante respuesta activa de Wazuh.',
+              campos: [
+                ['Empresa', escHtml(comp[0]?.name || companyId)],
+                ['Agente', `${escHtml(agentName || wazuhId)} (${escHtml(wazuhId)})`],
+                ['IP bloqueada', escHtml(srcIp)],
+              ],
+              geo,
+            })
+          )
+        })().catch(() => {})
       }
     }
 

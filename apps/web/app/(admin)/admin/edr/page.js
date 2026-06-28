@@ -100,6 +100,80 @@ function Ring({ pct, size = 92 }) {
   )
 }
 
+// ── Modal de geolocalización (origen de IP en alertas / ubicación de equipo) ──
+// Reemplaza el toast de una línea: muestra país, región, ciudad, ISP/org, ASN,
+// el flag de proxy/hosting (relevante para saber si el origen es un VPN o
+// datacenter usado para encubrir el ataque) y un mapa embebido (OpenStreetMap,
+// sin necesitar una API key) con link directo a Google Maps.
+function GeoFila({ label, value }) {
+  if (value == null || value === '' || value === false) return null
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '7px 0', borderBottom: '1px solid #EFEDE6', fontSize: 12.5 }}>
+      <span style={{ color: '#9A988F', textTransform: 'uppercase', letterSpacing: '.04em', fontSize: 10.5, fontWeight: 700 }}>{label}</span>
+      <span style={{ color: '#2C2C2A', fontWeight: 600, textAlign: 'right' }}>{value}</span>
+    </div>
+  )
+}
+
+function GeoModal({ modal, onClose }) {
+  if (!modal) return null
+  const { titulo, loading, data } = modal
+  const privada = data?.privada
+  const error = data?.error
+  const ok = data && !privada && !error
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(20,18,38,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, width: 420, maxWidth: '100%', maxHeight: '88vh', overflow: 'auto', boxShadow: '0 24px 60px -16px rgba(0,0,0,.4)' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid #EFEDE6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: '#2C2C2A' }}>{titulo}</span>
+          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 18, color: '#9A988F', lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ padding: 20 }}>
+          {loading && <div style={{ color: '#9A988F', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Buscando…</div>}
+          {!loading && (privada || error) && (
+            <div style={{ background: '#F8F7F4', borderRadius: 10, padding: '13px 16px', fontSize: 12.5, color: '#6b6a66' }}>
+              {data.mensaje || error}
+            </div>
+          )}
+          {!loading && ok && (
+            <>
+              <GeoFila label="IP" value={data.ip} />
+              <GeoFila label="País" value={data.pais ? `${data.pais}${data.paisCodigo ? ' (' + data.paisCodigo + ')' : ''}` : null} />
+              <GeoFila label="Región" value={data.region} />
+              <GeoFila label="Ciudad" value={data.ciudad} />
+              <GeoFila label="Código postal" value={data.cp} />
+              <GeoFila label="ISP" value={data.isp} />
+              <GeoFila label="Organización" value={data.org} />
+              <GeoFila label="ASN" value={data.asn} />
+              <GeoFila label="Zona horaria" value={data.timezone} />
+              {(data.proxy || data.hosting) && (
+                <GeoFila label="Tipo de red" value={
+                  <span style={{ color: '#B91C1C' }}>⚠ {[data.proxy && 'Proxy/VPN', data.hosting && 'Datacenter/Hosting'].filter(Boolean).join(' · ')}</span>
+                } />
+              )}
+              {data.lat != null && data.lon != null && (
+                <div style={{ marginTop: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid #EFEDE6' }}>
+                  <iframe
+                    title="Mapa"
+                    width="100%" height="180" frameBorder="0" scrolling="no"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${data.lon - 0.08}%2C${data.lat - 0.06}%2C${data.lon + 0.08}%2C${data.lat + 0.06}&layer=mapnik&marker=${data.lat}%2C${data.lon}`}
+                  />
+                </div>
+              )}
+              {data.maps && (
+                <a href={data.maps} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'block', textAlign: 'center', marginTop: 12, padding: '10px 0', borderRadius: 9, background: '#3C3489', color: '#fff', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+                  📍 Ver en Google Maps
+                </a>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function EdrPage() {
   const [empresaActiva, setEmpresaActiva] = useState(null)
   const [stats,   setStats]   = useState(null)
@@ -118,6 +192,7 @@ export default function EdrPage() {
   const [toast,    setToast]    = useState(null)
   const [showInstaladores, setShowInstaladores] = useState(false)
   const [copiado, setCopiado] = useState('')
+  const [geoModal, setGeoModal] = useState(null)
 
   useEffect(() => {
     const raw = localStorage.getItem('empresa_activa')
@@ -245,24 +320,22 @@ export default function EdrPage() {
     } catch (err) { showToast(err.message || 'Error al mover', 'error') }
   }
 
-  async function ubicar(wazuhId, name) {
+  async function mostrarGeo(titulo, url) {
+    setGeoModal({ titulo, loading: true })
     try {
-      const d = await api.get(`/api/admin/edr/agents/${wazuhId}/ubicacion`, headers)
-      if (d.privada) { showToast(`📍 ${name}: ${d.mensaje}`, 'error'); return }
-      if (d.error)   { showToast(`📍 ${name}: ${d.error}`, 'error'); return }
-      showToast(`📍 ${name}: ${[d.ciudad, d.region, d.pais].filter(Boolean).join(', ')}${d.isp ? ' · ' + d.isp : ''}`)
-      if (d.maps) window.open(d.maps, '_blank')
-    } catch (err) { showToast(err.message || 'Error al ubicar', 'error') }
+      const d = await api.get(url, headers)
+      setGeoModal({ titulo, data: d })
+    } catch (err) {
+      setGeoModal({ titulo, data: { error: err.message || 'No se pudo geolocalizar la IP' } })
+    }
+  }
+
+  async function ubicar(wazuhId, name) {
+    mostrarGeo(`📍 ${name}`, `/api/admin/edr/agents/${wazuhId}/ubicacion`)
   }
 
   async function buscarOrigen(ip) {
-    try {
-      const d = await api.get(`/api/admin/edr/alerts/origen?ip=${encodeURIComponent(ip)}`, headers)
-      if (d.privada) { showToast(`🌐 ${ip}: ${d.mensaje}`, 'error'); return }
-      if (d.error)   { showToast(`🌐 ${ip}: ${d.error}`, 'error'); return }
-      showToast(`🌐 ${ip}: ${[d.ciudad, d.region, d.pais].filter(Boolean).join(', ')}${d.isp ? ' · ' + d.isp : ''}`)
-      if (d.maps) window.open(d.maps, '_blank')
-    } catch (err) { showToast(err.message || 'Error al buscar el origen de la IP', 'error') }
+    mostrarGeo(`🌐 Origen de ${ip}`, `/api/admin/edr/alerts/origen?ip=${encodeURIComponent(ip)}`)
   }
 
   async function renombrar(wazuhId, nombreActual) {
@@ -426,6 +499,8 @@ export default function EdrPage() {
           {toast.msg}
         </div>
       )}
+
+      <GeoModal modal={geoModal} onClose={() => setGeoModal(null)} />
 
       {!protegida && stats && (
         <div style={{ marginBottom: 16, background: '#FCEBEB', border: '1px solid #F0C4C4', borderRadius: 10, padding: '11px 15px', fontSize: 12.5, color: '#791F1F', display: 'flex', alignItems: 'center', gap: 9 }}>
