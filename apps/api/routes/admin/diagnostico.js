@@ -18,24 +18,44 @@ router.get('/cuestionario', (req, res) => {
   })
 })
 
+// Total de preguntas del cuestionario (para mostrar "respondidas / total").
+const TOTAL_PREGUNTAS = DOMINIOS.reduce((n, d) => n + d.preguntas.length, 0)
+
+// Cuenta cuántas preguntas trae un JSON de respuestas (excluye las claves
+// auxiliares 'tamano'/'trabajadores', que no son preguntas del cuestionario).
+function contarRespondidas(respuestas) {
+  let r = respuestas
+  if (typeof r === 'string') { try { r = JSON.parse(r) } catch { r = {} } }
+  if (!r || typeof r !== 'object') return 0
+  return Object.keys(r).filter(k => k !== 'tamano' && k !== 'trabajadores').length
+}
+
 // Último diagnóstico + historial de la empresa activa.
 router.get('/', async (req, res, next) => {
   try {
     const [rows] = await centralDB.execute(
-      `SELECT id, fecha, score_total, nivel, cotizacion_id, created_at
-         FROM diagnosticos WHERE company_id = ? ORDER BY fecha DESC, id DESC LIMIT 20`,
+      `SELECT d.id, d.fecha, d.score_total, d.nivel, d.cotizacion_id, d.created_at, d.respuestas,
+              c.name AS empresa
+         FROM diagnosticos d JOIN companies c ON c.id = d.company_id
+        WHERE d.company_id = ? ORDER BY d.fecha DESC, d.id DESC LIMIT 20`,
       [req.company.id])
-    res.json({ diagnosticos: rows })
+    const diagnosticos = rows.map(({ respuestas, ...r }) => ({
+      ...r,
+      respondidas: contarRespondidas(respuestas),
+      total_preguntas: TOTAL_PREGUNTAS,
+    }))
+    res.json({ diagnosticos })
   } catch (err) { next(err) }
 })
 
 router.get('/:id', async (req, res, next) => {
   try {
     const [[d]] = await centralDB.query(
-      `SELECT * FROM diagnosticos WHERE id = ? AND company_id = ? LIMIT 1`,
+      `SELECT d.*, c.name AS empresa FROM diagnosticos d JOIN companies c ON c.id = d.company_id
+        WHERE d.id = ? AND d.company_id = ? LIMIT 1`,
       [req.params.id, req.company.id])
     if (!d) return res.status(404).json({ error: 'Diagnóstico no encontrado' })
-    res.json(d)
+    res.json({ ...d, respondidas: contarRespondidas(d.respuestas), total_preguntas: TOTAL_PREGUNTAS })
   } catch (err) { next(err) }
 })
 

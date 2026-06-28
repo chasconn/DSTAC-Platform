@@ -5,6 +5,14 @@ import { api } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
+// `fecha` llega como "YYYY-MM-DD" (columna DATE, sin hora). new Date(str) la
+// interpreta como medianoche UTC, y al formatear en hora de Chile (UTC-4) se
+// corre un dia hacia atras. Se parsea a mano para que quede en hora local.
+function fmtFecha(fechaStr) {
+  if (!fechaStr) return ''
+  const [y, m, d] = String(fechaStr).slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d).toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' })
+}
 const CATEGORIA_COLOR = {
   correccion: { bg: '#FCEBEB', color: '#C0392B', label: 'Corrección' },
   feature:    { bg: '#EAF3DE', color: '#1D9E75', label: 'Funcionalidad nueva' },
@@ -79,7 +87,7 @@ export default function ChangelogPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: '#888780' }}>
-                      {new Date(e.fecha).toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {fmtFecha(e.fecha)}
                     </span>
                     <span style={{ background: cat.bg, color: cat.color, fontSize: 10.5, fontWeight: 700, padding: '2px 9px', borderRadius: 999, textTransform: 'uppercase', letterSpacing: 0.4 }}>
                       {cat.label}

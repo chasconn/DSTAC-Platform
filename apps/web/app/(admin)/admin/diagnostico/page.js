@@ -106,6 +106,8 @@ export default function DiagnosticoPage() {
                 <thead>
                   <tr style={{ background: '#f8f7f4' }}>
                     <th style={{ textAlign: 'left', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Fecha</th>
+                    <th style={{ textAlign: 'left', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Empresa</th>
+                    <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Respondidas</th>
                     <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Madurez</th>
                     <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Nivel</th>
                     <th style={{ textAlign: 'center', padding: '8px 10px', fontSize: 11, color: '#888780', textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid #e2e0d8' }}>Cotización</th>
@@ -116,6 +118,8 @@ export default function DiagnosticoPage() {
                   {historial.map(h => (
                     <tr key={h.id}>
                       <td style={{ padding: '8px 10px', fontSize: 13, color: '#2C2C2A', borderBottom: '1px solid #f5f4ef' }}>{new Date(h.fecha).toLocaleDateString('es-CL', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                      <td style={{ padding: '8px 10px', fontSize: 13, color: '#2C2C2A', borderBottom: '1px solid #f5f4ef' }}>{h.empresa || '—'}</td>
+                      <td style={{ padding: '8px 10px', fontSize: 12.5, textAlign: 'center', color: h.respondidas < h.total_preguntas ? '#C98A1E' : '#1D9E75', fontWeight: 600, borderBottom: '1px solid #f5f4ef' }}>{h.respondidas}/{h.total_preguntas}</td>
                       <td style={{ padding: '8px 10px', fontSize: 13, fontWeight: 700, textAlign: 'center', color: scoreColor(h.score_total), borderBottom: '1px solid #f5f4ef' }}>{h.score_total}%</td>
                       <td style={{ padding: '8px 10px', fontSize: 12, textAlign: 'center', borderBottom: '1px solid #f5f4ef' }}>
                         <span style={{ background: '#f1efe8', color: '#444441', borderRadius: 999, padding: '3px 10px', fontWeight: 600 }}>{h.nivel}</span>

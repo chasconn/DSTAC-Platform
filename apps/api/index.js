@@ -105,13 +105,9 @@ const { sincronizarOportunidades } = require('./services/mercadoPublico/sync')
 const correrSyncOportunidades = () => sincronizarOportunidades().catch(err => console.error('[oportunidades] sync error:', err.message))
 setInterval(correrSyncOportunidades, 12 * 60 * 60 * 1000)
 
-// Marketing (pymes-chile): busca empresas nuevas por rubro/ciudad cada 6h,
-// sin que nadie tenga que apretar "Buscar" a mano. Si falta
-// GOOGLE_PLACES_API_KEY, falla en silencio (queda logueado).
-const { ejecutarBusquedaDiaria } = require('./scripts/buscarDiario')
-const correrBusquedaMarketing = () => ejecutarBusquedaDiaria().catch(err => console.error('[buscarDiario] sync error:', err.message))
-setInterval(correrBusquedaMarketing, 6 * 60 * 60 * 1000)
-setTimeout(correrBusquedaMarketing, 60 * 1000)
+// Marketing (pymes-chile): la busqueda diaria de empresas nuevas la dispara
+// solo el cron externo (/opt/dstac-ops/marketing_buscar_diario.sh, 4x/dia) —
+// no duplicar aqui con un setInterval, ya causo corridas dobles.
 setTimeout(correrSyncOportunidades, 45 * 1000)
 
 const PORT = process.env.API_PORT || 3001
