@@ -2,9 +2,11 @@
 // diagnóstico guardado de la empresa. Incluye score, brechas por dominio y
 // servicios recomendados (del catálogo) con valor estimado.
 const { buildHeader, buildFooter, colorFor, wrapDocument } = require('./template')
-const { planDeRespuestas, tamanoPorTrabajadores, precioDiagnostico } = require('../diagnostico/cuestionario')
+const { DOMINIOS, planDeRespuestas, tamanoPorTrabajadores, precioDiagnostico } = require('../diagnostico/cuestionario')
 
 const CLP = (n) => '$' + (Number(n) || 0).toLocaleString('es-CL')
+const TOTAL_PREGUNTAS = DOMINIOS.reduce((n, dm) => n + dm.preguntas.length, 0)
+const RESPUESTA_LABEL = { si: ['Sí', '#1D9E75', '#EAF3DE'], parcial: ['Parcial', '#C98A1E', '#FFF6DD'], no: ['No', '#D8543F', '#FCEBEB'], na: ['N/A', '#888780', '#F1EFE8'] }
 // Columnas JSON: mysql2 las devuelve ya parseadas (array); tolera string también.
 const asArr = (x) => Array.isArray(x) ? x : (typeof x === 'string' && x ? (() => { try { return JSON.parse(x) || [] } catch { return [] } })() : [])
 
@@ -36,10 +38,11 @@ async function getData(tenantDB, centralDB, companyId, company, query = {}) {
       servicios.push(r)
     })
   }
+  const respondidas = Object.keys(resp).filter(k => k !== 'tamano' && k !== 'trabajadores').length
   return {
     company: { name: emp?.name || company?.name || '—' },
     fecha: (d ? new Date(d.fecha) : new Date()).toLocaleDateString('es-CL', { year: 'numeric', month: 'long', day: 'numeric' }),
-    d, dominios, servicios, hayDatos: !!d,
+    d, dominios, servicios, hayDatos: !!d, resp, respondidas, totalPreguntas: TOTAL_PREGUNTAS,
   }
 }
 
@@ -76,7 +79,7 @@ function buildHTML(data) {
     ${buildHeader('Diagnóstico de Madurez')}
     <div class="page-body">
       <div class="title">Diagnóstico de Madurez en Ciberseguridad</div>
-      <div class="subtitle">Informe interno · ${data.company.name}</div>
+      <div class="subtitle">Informe interno · ${data.company.name} · ${data.respondidas}/${data.totalPreguntas} preguntas respondidas</div>
       <div class="card-dark">
         <div><span style="font-size:60px;font-weight:900;color:${colorFor(d.score_total)};line-height:1;">${d.score_total}%</span>
           <div style="font-size:11px;color:rgba(255,255,255,0.45);margin-top:6px;">madurez global · ${data.fecha}</div></div>
@@ -86,7 +89,7 @@ function buildHTML(data) {
       <div class="sec-label">Madurez por dominio</div>
       ${bars}
     </div>
-    ${buildFooter(1, 2)}
+    ${buildFooter(1, 3)}
   </div>`
 
   const page2 = `<div class="page">
@@ -107,10 +110,41 @@ function buildHTML(data) {
       </div>` : `<div class="card">No se detectaron brechas con servicios asociados. La empresa muestra una postura adecuada en los dominios evaluados.</div>`}
       <div class="quote-block" style="margin-top:18px;">Documento interno de DSTAC. Los valores son estimaciones referenciales del catálogo; la cotización formal se genera y ajusta desde el módulo de Cotizaciones.</div>
     </div>
-    ${buildFooter(2, 2)}
+    ${buildFooter(2, 3)}
   </div>`
 
-  return wrapDocument(page1 + page2)
+  // Página 3: detalle pregunta por pregunta, agrupado por dominio, con la
+  // respuesta exacta dada (Sí/Parcial/No/N.A.) — las preguntas sin responder
+  // se marcan aparte para distinguirlas de un "No" real.
+  const detalleDominios = DOMINIOS.map(dom => {
+    const filas = dom.preguntas.map((p, i) => {
+      const v = data.resp[`${dom.id}-${i}`]
+      const [label, color, bg] = v ? (RESPUESTA_LABEL[v] || ['—', '#888780', '#F1EFE8']) : ['Sin responder', '#B4B2A9', '#F5F4EF']
+      return `<tr>
+        <td style="padding:7px 8px;font-size:11px;color:#444441;border-bottom:1px solid #f1efe8;">${p}</td>
+        <td style="padding:7px 8px;text-align:center;border-bottom:1px solid #f1efe8;">
+          <span style="background:${bg};color:${color};border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700;">${label}</span>
+        </td>
+      </tr>`
+    }).join('')
+    return `<div style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:#2C2C2A;margin-bottom:6px;">${dom.nombre}</div>
+      <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;">
+        <tbody>${filas}</tbody>
+      </table>
+    </div>`
+  }).join('')
+
+  const page3 = `<div class="page">
+    ${buildHeader('Diagnóstico de Madurez')}
+    <div class="page-body">
+      <div class="sec-label">Detalle de respuestas · ${data.respondidas}/${data.totalPreguntas} preguntas respondidas</div>
+      ${detalleDominios}
+    </div>
+    ${buildFooter(3, 3)}
+  </div>`
+
+  return wrapDocument(page1 + page2 + page3)
 }
 
 module.exports = { getData, buildHTML }
