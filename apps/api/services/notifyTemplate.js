@@ -37,7 +37,11 @@ function geoCard(geo) {
         ${fila('Zona horaria', esc(geo.timezone))}
         ${tipoRed ? fila('Tipo de red', `<span style="color:${RED}">⚠ ${esc(tipoRed)}</span>`, true) : ''}
       </table>
-      ${geo.maps ? `<div style="margin-top:12px"><a href="${geo.maps}" style="display:inline-block;padding:8px 16px;border-radius:7px;background:${PURPLE};color:#fff;font-size:12px;font-weight:700;text-decoration:none">📍 Ver en el mapa</a></div>` : ''}
+      ${geo.maps ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:12px"><tr>
+        <td bgcolor="${PURPLE}" style="background:${PURPLE};border-radius:7px">
+          <a href="${geo.maps}" style="display:inline-block;padding:8px 18px;font-size:12px;font-weight:700;color:#ffffff;text-decoration:none">📍 Ver en el mapa</a>
+        </td>
+      </tr></table>` : ''}
     </td></tr>
   </table>`
 }
