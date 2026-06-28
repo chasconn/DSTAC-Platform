@@ -91,6 +91,19 @@ router.post('/candidatos/:id/descartar', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// ── Descartar masivamente todos los pendientes sin correo detectado ──────────
+router.post('/candidatos/descartar-sin-correo', async (req, res, next) => {
+  try {
+    const { campana = 'pymes-chile' } = req.body || {}
+    const [r] = await centralDB.execute(
+      `UPDATE marketing_candidatos SET estado = 'descartado'
+        WHERE campana = ? AND estado = 'pendiente' AND (email_sugerido IS NULL OR email_sugerido = '')`,
+      [campana]
+    )
+    res.json({ ok: true, descartados: r.affectedRows })
+  } catch (err) { next(err) }
+})
+
 // ── Enviar a un contacto y dejar registro (con el HTML exacto enviado) ────────
 router.post('/enviar', async (req, res, next) => {
   try {

@@ -104,6 +104,12 @@ export default function MarketingPage() {
   const [buscando, setBuscando] = useState(false)
   const [candidatos, setCandidatos] = useState([])
   const [loadingCandidatos, setLoadingCandidatos] = useState(false)
+  const [filtroCandidato, setFiltroCandidato] = useState('todos') // todos | con_correo | sin_correo
+  const [descartandoSinCorreo, setDescartandoSinCorreo] = useState(false)
+  const [cantidadMasiva, setCantidadMasiva] = useState(30)
+  const [envioMasivoActivo, setEnvioMasivoActivo] = useState(false)
+  const [progresoMasivo, setProgresoMasivo] = useState({ actual: 0, total: 0 })
+  const detenerMasivoRef = useRef(false)
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(''), 4000) }
 
@@ -230,6 +236,68 @@ export default function MarketingPage() {
     } catch (e) { showToast(e.message || 'No se pudo enviar el correo') }
   }
 
+  const sinCorreoCount = candidatos.filter(c => !c.email_sugerido).length
+  const conCorreoCount = candidatos.filter(c => !!c.email_sugerido).length
+  const candidatosFiltrados = candidatos.filter(c => {
+    if (filtroCandidato === 'con_correo') return !!c.email_sugerido
+    if (filtroCandidato === 'sin_correo') return !c.email_sugerido
+    return true
+  })
+
+  async function descartarSinCorreo() {
+    if (sinCorreoCount === 0) { showToast('No hay candidatos sin correo para descartar'); return }
+    if (!confirm(`¿Descartar los ${sinCorreoCount} candidatos pendientes que no tienen correo detectado? Esta acción no se puede deshacer.`)) return
+    setDescartandoSinCorreo(true)
+    try {
+      const r = await api.post('/api/admin/marketing/candidatos/descartar-sin-correo', { campana: 'pymes-chile' })
+      showToast(`${r.descartados} candidatos descartados`)
+      cargarCandidatos()
+    } catch (e) { showToast(e.message || 'No se pudo descartar') }
+    finally { setDescartandoSinCorreo(false) }
+  }
+
+  // Envio masivo "1 a 1": reutiliza el mismo endpoint /enviar de un envio
+  // individual, en una secuencia con pausa entre cada uno (no es un blast) y
+  // se puede detener a mitad de camino. La cantidad es configurable a
+  // proposito -- no se manda a todos los pendientes de una sola vez, para no
+  // quemar la reputacion de envio del dominio (ver conversacion sobre ritmo
+  // diario recomendado).
+  async function enviarMasivo() {
+    const candidatosConCorreo = candidatosFiltrados.filter(c => !!c.email_sugerido)
+    const n = Math.min(Number(cantidadMasiva) || 0, candidatosConCorreo.length)
+    if (n <= 0) { showToast('No hay candidatos con correo para enviar en el filtro actual'); return }
+    if (!confirm(`¿Enviar a los próximos ${n} candidatos con correo, de a 1 (con pausa entre cada envío)? Puedes detenerlo a mitad de camino.`)) return
+
+    detenerMasivoRef.current = false
+    setEnvioMasivoActivo(true)
+    setProgresoMasivo({ actual: 0, total: n })
+
+    let enviados = 0, fallidos = 0
+    for (let i = 0; i < n; i++) {
+      if (detenerMasivoRef.current) break
+      const c = candidatosConCorreo[i]
+      try {
+        await api.post('/api/admin/marketing/enviar', {
+          empresa: c.empresa, nombre: '', email: c.email_sugerido, campana: 'pymes-chile', candidatoId: c.id,
+        })
+        enviados++
+      } catch {
+        fallidos++
+      }
+      setProgresoMasivo({ actual: i + 1, total: n })
+      if (i < n - 1 && !detenerMasivoRef.current) await new Promise(r => setTimeout(r, 2500))
+    }
+
+    setEnvioMasivoActivo(false)
+    showToast(detenerMasivoRef.current
+      ? `Detenido — ${enviados} enviados, ${fallidos} fallidos`
+      : `Envío masivo terminado — ${enviados} enviados, ${fallidos} fallidos`)
+    cargarCandidatos()
+    cargarEnvios()
+  }
+
+  function detenerEnvioMasivo() { detenerMasivoRef.current = true }
+
   async function verCorreo(id) {
     try {
       const r = await api.get(`/api/admin/marketing/envios/${id}/html?campana=${campana}`)
@@ -271,16 +339,63 @@ export default function MarketingPage() {
             </button>
           </div>
 
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#8A877E', marginBottom: 8 }}>
-            Candidatos pendientes ({candidatos.length})
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#8A877E' }}>
+              Candidatos pendientes ({candidatosFiltrados.length} / {candidatos.length})
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <select value={filtroCandidato} onChange={e => setFiltroCandidato(e.target.value)}
+                style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 12.5 }}>
+                <option value="todos">Todos</option>
+                <option value="con_correo">Con correo ({conCorreoCount})</option>
+                <option value="sin_correo">Sin correo ({sinCorreoCount})</option>
+              </select>
+              <button onClick={descartarSinCorreo} disabled={descartandoSinCorreo || sinCorreoCount === 0}
+                style={{ background: 'none', border: '1px solid #ECEAE3', borderRadius: 8, padding: '6px 12px', fontSize: 12, cursor: sinCorreoCount === 0 ? 'not-allowed' : 'pointer', color: '#B23B3B', fontWeight: 700 }}>
+                {descartandoSinCorreo ? 'Descartando…' : `🗑️ Descartar sin correo (${sinCorreoCount})`}
+              </button>
+            </div>
           </div>
+
+          {/* Envio masivo 1 a 1 */}
+          <div style={{ background: '#F7F6F2', border: '1px solid #ECEAE3', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 12.5, color: '#6A675E' }}>Enviar a los próximos</span>
+              <input type="number" min={1} max={conCorreoCount || 1} value={cantidadMasiva}
+                onChange={e => setCantidadMasiva(e.target.value)} disabled={envioMasivoActivo}
+                style={{ width: 64, padding: '6px 8px', borderRadius: 8, border: '1px solid #ECEAE3', fontSize: 13, textAlign: 'center' }} />
+              <span style={{ fontSize: 12.5, color: '#6A675E' }}>candidatos con correo, de a 1 (con pausa entre cada uno)</span>
+              {!envioMasivoActivo ? (
+                <button onClick={enviarMasivo} disabled={conCorreoCount === 0}
+                  style={{ background: '#1d7a3f', color: '#fff', border: 'none', borderRadius: 999, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, cursor: conCorreoCount === 0 ? 'not-allowed' : 'pointer' }}>
+                  🚀 Enviar masivo
+                </button>
+              ) : (
+                <button onClick={detenerEnvioMasivo}
+                  style={{ background: '#B23B3B', color: '#fff', border: 'none', borderRadius: 999, padding: '7px 16px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                  ⏹ Detener
+                </button>
+              )}
+            </div>
+            {envioMasivoActivo && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ height: 6, background: '#ECEAE3', borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: PURPLE, width: `${progresoMasivo.total ? (progresoMasivo.actual / progresoMasivo.total * 100) : 0}%`, transition: 'width .2s' }} />
+                </div>
+                <div style={{ fontSize: 11.5, color: '#8A877E', marginTop: 4 }}>Enviando {progresoMasivo.actual} / {progresoMasivo.total}…</div>
+              </div>
+            )}
+          </div>
+
           {loadingCandidatos ? (
             <div style={{ color: '#8A877E', fontSize: 13 }}>Cargando…</div>
-          ) : candidatos.length === 0 ? (
-            <div style={{ color: '#8A877E', fontSize: 13 }}>Sin candidatos todavía — busca por rubro y ciudad arriba.</div>
+          ) : candidatosFiltrados.length === 0 ? (
+            <div style={{ color: '#8A877E', fontSize: 13 }}>
+              {candidatos.length === 0 ? 'Sin candidatos todavía — busca por rubro y ciudad arriba.' : 'Ningún candidato coincide con el filtro.'}
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {candidatos.map(c => (
+              {candidatosFiltrados.map(c => (
                 <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, border: '1px solid #ECEAE3', borderRadius: 10, padding: '10px 14px' }}>
                   <div style={{ minWidth: 0, flex: '1 1 200px', overflowWrap: 'break-word' }}>
                     <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2C2C2A' }}>{c.empresa}</div>
