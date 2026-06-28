@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { api } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
 
@@ -116,12 +117,16 @@ function GeoFila({ label, value }) {
 }
 
 function GeoModal({ modal, onClose }) {
-  if (!modal) return null
+  if (!modal || typeof document === 'undefined') return null
   const { titulo, loading, data } = modal
   const privada = data?.privada
   const error = data?.error
   const ok = data && !privada && !error
-  return (
+  // Portal a document.body: el panel admin aplica zoom (--ui-zoom) a su
+  // contenedor, y la propiedad CSS "zoom" rompe position:fixed en los hijos
+  // (queda fijo respecto al contenedor zoomeado, no al viewport real). El
+  // portal escapa ese contexto igual que el preview de cotizaciones.
+  return createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 100000, background: 'rgba(20,18,38,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, width: 420, maxWidth: '100%', maxHeight: '88vh', overflow: 'auto', boxShadow: '0 24px 60px -16px rgba(0,0,0,.4)' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #EFEDE6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -170,7 +175,8 @@ function GeoModal({ modal, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
