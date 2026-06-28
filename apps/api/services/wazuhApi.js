@@ -114,13 +114,32 @@ async function getAgentsSummary() {
   }
 }
 
+const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 // Stats del manager (alertas/eventos del día actual, agregadas por hora).
 // Se suman las horas para un total del día — sin desglose por agente ni sigid.
+//
+// El contenedor corre en UTC pero el manager Wazuh nombra sus archivos de
+// stats con su hora local (Chile) — cerca de medianoche UTC "hoy" según el
+// contenedor puede ser un día que el manager aún no generó. Si la API
+// responde 400 "Stats file does not exist", reintentamos con el día anterior.
 async function getTodayStats() {
   const token = await getToken()
   const now = new Date()
-  const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-  const res = await req('GET', `/manager/stats?date=${date}`, { token })
+  let date = fmtDate(now)
+  let res
+  try {
+    res = await req('GET', `/manager/stats?date=${date}`, { token })
+  } catch (e) {
+    if (String(e.message || e).includes('Stats file does not exist')) {
+      const ayer = new Date(now)
+      ayer.setDate(ayer.getDate() - 1)
+      date = fmtDate(ayer)
+      res = await req('GET', `/manager/stats?date=${date}`, { token })
+    } else {
+      throw e
+    }
+  }
   const horas = res?.data?.affected_items || []
   const totales = horas.reduce((acc, h) => ({
     alertas: acc.alertas + (h.totalAlerts || 0),
