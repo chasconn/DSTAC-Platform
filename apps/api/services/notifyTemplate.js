@@ -53,6 +53,14 @@ function buildAlertaEmail({ titulo, icono = '⚡', resumen, campos = [], geo }) 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>${esc(titulo)}</title>
+<style>
+/* Por defecto el navegador no imprime fondos de color salvo que se fuerce —
+   sin esto, al "Guardar como PDF" desde el visor de Outlook, los recuadros
+   y el botón del mapa se ven sin color de fondo. */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+}
+</style>
 </head>
 <body style="margin:0;padding:0;background:${BG};font-family:Arial,Helvetica,sans-serif">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BG}">
