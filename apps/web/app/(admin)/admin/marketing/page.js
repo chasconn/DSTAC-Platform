@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../../../../lib/api'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 
@@ -558,6 +559,7 @@ export default function MarketingPage() {
 
       {/* Modal "Ver correo" */}
       {verCorreoHtml !== null && (
+        <FixedPortal>
         <div onClick={() => setVerCorreoHtml(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,12,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 16, width: '100%', maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
@@ -567,9 +569,10 @@ export default function MarketingPage() {
             <EmailPreviewFrame html={verCorreoHtml} alto={600} />
           </div>
         </div>
+        </FixedPortal>
       )}
 
-      {toast && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div>}
+      {toast && <FixedPortal><div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div></FixedPortal>}
     </div>
   )
 }

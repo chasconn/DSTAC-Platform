@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
+import FixedPortal from '../../../../../../components/admin/FixedPortal'
 
 const STATUS_OPTIONS = [
   { value: 'pendiente',    label: 'Pendiente',    bg: '#FCEBEB', color: '#791F1F' },
@@ -98,6 +99,7 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
   const sources    = (control.data_source || '').split(',').map(s => s.trim()).filter(Boolean)
 
   return (
+    <FixedPortal>
     <div style={{
       position: 'fixed', top: 0, right: 0, width: 'min(480px, 94vw)', height: '100vh',
       background: '#fff', borderLeft: '1px solid #e2e0d8',
@@ -279,5 +281,6 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
         </button>
       </div>
     </div>
+    </FixedPortal>
   )
 }

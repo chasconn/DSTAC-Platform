@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const TIPOS       = ['Servidor', 'Base de datos', 'Red', 'Aplicación', 'Nube', 'Endpoint', 'Otro']
 const CRITICIDADES = [
@@ -106,6 +107,7 @@ export default function ActivoModal({ activo, empresaSlug, onClose, onSave }) {
   }
 
   return (
+    <FixedPortal>
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
@@ -323,6 +325,7 @@ export default function ActivoModal({ activo, empresaSlug, onClose, onSave }) {
         </form>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 export default function IncidenteDeleteModal({ incidente, empresaSlug, onClose, onDeleted }) {
   const [loading, setLoading] = useState(false)
@@ -17,6 +18,7 @@ export default function IncidenteDeleteModal({ incidente, empresaSlug, onClose, 
   }
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
@@ -35,5 +37,6 @@ export default function IncidenteDeleteModal({ incidente, empresaSlug, onClose, 
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }

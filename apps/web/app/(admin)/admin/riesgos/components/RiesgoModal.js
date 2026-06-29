@@ -5,6 +5,7 @@
 import { useState, useMemo } from 'react'
 import { apiFetch } from '../../../../../lib/api'
 import { NIVEL, ESTADO, CATEGORIA, TRATAMIENTO, PROB_LABELS, IMP_LABELS, nivelDe } from './constants'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const inp = { width: '100%', boxSizing: 'border-box', padding: '8px 11px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, color: '#2C2C2A', background: '#fff', outline: 'none' }
 
@@ -73,6 +74,7 @@ export default function RiesgoModal({ riesgo, slug, activos = [], isoControls = 
   }
 
   return (
+    <FixedPortal>
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(38,33,92,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 10px 50px rgba(0,0,0,0.25)' }}>
 
@@ -205,6 +207,7 @@ export default function RiesgoModal({ riesgo, slug, activos = [], isoControls = 
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { apiFetch } from '../../../../../lib/api'
 import { clp, ESTADO, TIPO_LINEA, totales } from './format'
 import { previewCotizacion } from './quotePreview'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const fmt = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
 
@@ -35,7 +36,7 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
   }
 
   return (
-    <>
+    <FixedPortal>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
       <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(640px, 96vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
@@ -134,7 +135,7 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
           </div>
         </div>
       </div>
-    </>
+    </FixedPortal>
   )
 }
 function Row({ l, v }) {

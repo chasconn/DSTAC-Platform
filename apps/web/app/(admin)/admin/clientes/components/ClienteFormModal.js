@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const THEMES = [
   { id: 'purple', color: '#534AB7', light: '#EEEDFE', text: '#3C3489' },
@@ -129,6 +130,7 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
   }, [onClose])
 
   return (
+    <FixedPortal>
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.4)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -336,6 +338,7 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
         </form>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

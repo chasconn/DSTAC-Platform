@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 export default function PersonalDeleteModal({ persona, empresaSlug, onClose, onDeleted }) {
   const [confirmText, setConfirmText]   = useState('')
@@ -48,6 +49,7 @@ export default function PersonalDeleteModal({ persona, empresaSlug, onClose, onD
   const confirmOk = confirmText.trim().toLowerCase() === persona.nombre.trim().toLowerCase()
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 420, boxShadow: '0 8px 40px rgba(0,0,0,0.18)', padding: 24 }}>
 
@@ -95,6 +97,7 @@ export default function PersonalDeleteModal({ persona, empresaSlug, onClose, onD
         )}
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

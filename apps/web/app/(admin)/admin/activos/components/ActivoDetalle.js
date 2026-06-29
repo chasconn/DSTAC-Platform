@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import FixedPortal, { useIsMobile } from '../../../../../components/admin/FixedPortal'
 
 const CRIT = {
   critica: { bg: '#FCEBEB', color: '#791F1F', label: 'Crítica' },
@@ -69,6 +70,7 @@ function formatFecha(ts) {
 
 export default function ActivoDetalle({ activo, onClose, onEdit, onDelete }) {
   const router = useRouter()
+  const isMobile = useIsMobile()
 
   // Extraer campos técnicos desde metadata si vienen como objeto o desde campos planos
   const meta = activo.metadata && typeof activo.metadata === 'object' ? activo.metadata : {}
@@ -78,6 +80,7 @@ export default function ActivoDetalle({ activo, onClose, onEdit, onDelete }) {
   const tieneTecnicos    = ip || sistema_operativo || version
 
   return (
+    <FixedPortal active={isMobile}>
     <div className="detail-side-panel" style={{
       width: 280, flexShrink: 0,
       borderLeft: '1px solid #e2e0d8',
@@ -174,6 +177,7 @@ export default function ActivoDetalle({ activo, onClose, onEdit, onDelete }) {
         </button>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

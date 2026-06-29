@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const ROLES_DSTAC = [
   { value: 'admin_dstac',     label: 'Admin DSTAC'    },
@@ -104,6 +105,7 @@ export default function UsuarioModal({ usuario, onClose, onSaved }) {
   const puedeGuardar    = form.email && form.first_name && form.role && (!requiereEmpresa || form.company_id)
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
@@ -220,6 +222,7 @@ export default function UsuarioModal({ usuario, onClose, onSaved }) {
         </form>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

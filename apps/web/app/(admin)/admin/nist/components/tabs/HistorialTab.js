@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
 import HistorialPanel from '../panels/HistorialPanel'
+import FixedPortal from '../../../../../../components/admin/FixedPortal'
 
 const EVENT_CONFIG = {
   control_actualizado: { icon: '✓', bg: '#EAF3DE', color: '#27500A', label: 'Control actualizado' },
@@ -207,7 +208,9 @@ export default function HistorialTab({ slug, functionId }) {
       {/* Panel lateral */}
       {selected && (
         <>
-          <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 99 }} />
+          <FixedPortal>
+            <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 99 }} />
+          </FixedPortal>
           <HistorialPanel
             evento={selected}
             allHistorial={historial}

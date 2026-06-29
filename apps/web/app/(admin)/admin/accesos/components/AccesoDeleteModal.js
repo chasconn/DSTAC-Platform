@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 export default function AccesoDeleteModal({ acceso, empresaSlug, onClose, onDeleted }) {
   const [loading, setLoading] = useState(false)
@@ -18,6 +19,7 @@ export default function AccesoDeleteModal({ acceso, empresaSlug, onClose, onDele
   }
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
       <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 420, maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
 
@@ -60,5 +62,6 @@ export default function AccesoDeleteModal({ acceso, empresaSlug, onClose, onDele
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }

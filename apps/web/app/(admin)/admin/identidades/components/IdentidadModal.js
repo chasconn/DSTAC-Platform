@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const TIPOS   = ['usuario', 'cuenta_servicio', 'api_key', 'certificado', 'grupo', 'otro']
 const ESTADOS = ['activa', 'inactiva', 'comprometida', 'expirada', 'pendiente']
@@ -94,6 +95,7 @@ export default function IdentidadModal({ identidad, empresaSlug, onClose, onSave
   }
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 580, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
@@ -191,6 +193,7 @@ export default function IdentidadModal({ identidad, empresaSlug, onClose, onSave
         </form>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

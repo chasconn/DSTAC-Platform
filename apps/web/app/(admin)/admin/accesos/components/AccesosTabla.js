@@ -1,5 +1,7 @@
 'use client'
 
+import { useIsMobile } from '../../../../../components/admin/FixedPortal'
+
 const NIVEL_STYLE = {
   root:          { bg: '#FCEBEB', color: '#791F1F' },
   administrador: { bg: '#FAEEDA', color: '#633806' },
@@ -70,6 +72,63 @@ const COLS = [
 ]
 
 export default function AccesosTabla({ accesos, loading, selected, onSelect, onEdit, onDelete }) {
+  const isMobile = useIsMobile()
+
+  if (loading) {
+    return (
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+        {Array.from({ length: 5 }).map((_, i) => isMobile
+          ? <div key={i} style={{ height: 76, margin: 12, borderRadius: 10, background: '#f1efe8', animation: 'pulse 1.5s infinite' }} />
+          : <SkeletonRow key={i} />
+        )}
+      </div>
+    )
+  }
+
+  if (!accesos.length) {
+    return (
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', padding: '40px 16px', textAlign: 'center', color: '#888780', fontSize: 13 }}>
+        No se encontraron accesos
+      </div>
+    )
+  }
+
+  // En mobile, la tabla de columnas fijas obligaba a hacer scroll lateral
+  // para ver el resto de los datos. Se reemplaza por tarjetas apiladas con
+  // lo esencial — el resto de los campos se ve en el panel de detalle.
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {accesos.map(ac => {
+          const isSelected = ac.id === selected?.id
+          const esExpirado  = ac.estado === 'expirado'
+          return (
+            <div key={ac.id} onClick={() => onSelect(ac)} style={{
+              background: esExpirado ? '#FFF5F5' : '#fff', borderRadius: 12,
+              border: `2px solid ${isSelected ? '#534AB7' : '#e2e0d8'}`,
+              padding: 14, cursor: 'pointer',
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#2C2C2A', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>
+                {ac.identidad_valor}
+              </div>
+              <div style={{ fontSize: 12, color: '#888780', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 10 }}>
+                → {ac.activo_nombre}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                <Badge label={NIVEL_LABEL[ac.nivel_acceso] ?? ac.nivel_acceso} style={NIVEL_STYLE[ac.nivel_acceso]} />
+                <Badge label={ESTADO_LABEL[ac.estado] ?? ac.estado} style={ESTADO_STYLE[ac.estado]} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
+                <Btn title="Editar" onClick={() => onEdit(ac)}><IconEdit /></Btn>
+                <Btn title="Eliminar" onClick={() => onDelete(ac)} danger><IconTrash /></Btn>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflowX: 'auto' }}>
 
@@ -81,15 +140,7 @@ export default function AccesosTabla({ accesos, loading, selected, onSelect, onE
         ))}
       </div>
 
-      {loading && Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
-
-      {!loading && accesos.length === 0 && (
-        <div style={{ padding: '40px 16px', textAlign: 'center', color: '#888780', fontSize: 13 }}>
-          No se encontraron accesos
-        </div>
-      )}
-
-      {!loading && accesos.map(ac => {
+      {accesos.map(ac => {
         const isSelected  = ac.id === selected?.id
         const esExpirado  = ac.estado === 'expirado'
         const esRootActivo = ac.nivel_acceso === 'root' && ac.estado === 'activo'

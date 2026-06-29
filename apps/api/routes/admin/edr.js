@@ -6,6 +6,7 @@ const { resolveTenant }                 = require('../../middleware/tenant')
 const centralDB                         = require('../../db/central')
 const wazuhApi                          = require('../../services/wazuhApi')
 const { registrarActividad }            = require('../../utils/activityLogger')
+const { geoip }                         = require('../../services/geoip')
 
 // Acciones de respuesta activa expuestas al portal → comando de Wazuh.
 const ACCIONES_AR = {
@@ -430,17 +431,6 @@ router.post('/agents/:wazuhId/desactivar', async (req, res) => {
 })
 
 // GET /agents/:wazuhId/ubicacion — geolocaliza el equipo por su IP (nivel de red).
-function ipPrivada(ip) {
-  return !ip || /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.|169\.254\.|::1|fe80:|any$)/.test(ip)
-}
-function geoip(ip) {
-  return new Promise(resolve => {
-    require('http').get(
-      `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,regionName,city,lat,lon,isp,query`,
-      r => { let b = ''; r.on('data', c => (b += c)); r.on('end', () => { try { resolve(JSON.parse(b)) } catch { resolve(null) } }) }
-    ).on('error', () => resolve(null))
-  })
-}
 router.get('/agents/:wazuhId/ubicacion', async (req, res) => {
   try {
     const [ag] = await centralDB.execute(
@@ -448,16 +438,7 @@ router.get('/agents/:wazuhId/ubicacion', async (req, res) => {
       [req.params.wazuhId, req.company.id]
     )
     if (!ag.length) return res.status(404).json({ error: 'Equipo no encontrado' })
-    const ip = ag[0].ip
-    if (ipPrivada(ip)) {
-      return res.json({ privada: true, ip, mensaje: 'El equipo reporta una IP de red privada (NAT); no es geolocalizable por IP pública.' })
-    }
-    const g = await geoip(ip)
-    if (!g || g.status !== 'success') return res.json({ ip, error: 'No se pudo geolocalizar la IP' })
-    res.json({
-      ip, ciudad: g.city, region: g.regionName, pais: g.country, isp: g.isp,
-      lat: g.lat, lon: g.lon, maps: `https://www.google.com/maps?q=${g.lat},${g.lon}`,
-    })
+    res.json(await geoip(ag[0].ip))
   } catch (err) { res.status(502).json({ error: err.message }) }
 })
 
@@ -468,15 +449,7 @@ router.get('/alerts/origen', async (req, res) => {
   try {
     const ip = String(req.query.ip || '').trim()
     if (!ip) return res.status(400).json({ error: 'Falta la IP de origen' })
-    if (ipPrivada(ip)) {
-      return res.json({ privada: true, ip, mensaje: 'IP de red privada/local; no es geolocalizable públicamente.' })
-    }
-    const g = await geoip(ip)
-    if (!g || g.status !== 'success') return res.json({ ip, error: 'No se pudo geolocalizar la IP' })
-    res.json({
-      ip, ciudad: g.city, region: g.regionName, pais: g.country, isp: g.isp,
-      lat: g.lat, lon: g.lon, maps: `https://www.google.com/maps?q=${g.lat},${g.lon}`,
-    })
+    res.json(await geoip(ip))
   } catch (err) { res.status(502).json({ error: err.message || 'No se pudo geolocalizar la IP' }) }
 })
 

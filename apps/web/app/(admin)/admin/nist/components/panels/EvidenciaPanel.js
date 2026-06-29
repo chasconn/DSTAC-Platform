@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
+import FixedPortal from '../../../../../../components/admin/FixedPortal'
 
 const STATUS_MAP = {
   pendiente: { bg: '#FAEEDA', color: '#633806', label: 'Pendiente'  },
@@ -106,6 +107,7 @@ export default function EvidenciaPanel({ evidencia, slug, allEvidencias = [], on
   const st = STATUS_MAP[evidencia.status] ?? STATUS_MAP.pendiente
 
   return (
+    <FixedPortal>
     <div style={{
       position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(420px, 94vw)',
       background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
@@ -239,5 +241,6 @@ export default function EvidenciaPanel({ evidencia, slug, allEvidencias = [], on
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }

@@ -3,6 +3,7 @@
 // Gestión del catálogo de servicios reutilizables (para armar cotizaciones rápido).
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const inp = { padding: '7px 9px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 12.5, color: '#2C2C2A', background: '#fff', outline: 'none' }
 const vacio = { nombre: '', detalle: '', tipo: 'unico', nivel: '', precio_sugerido: '' }
@@ -47,6 +48,7 @@ export default function CatalogoModal({ onClose, onChanged }) {
   }
 
   return (
+    <FixedPortal>
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(38,33,92,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 50px rgba(0,0,0,0.25)' }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid #e2e0d8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -99,5 +101,6 @@ export default function CatalogoModal({ onClose, onChanged }) {
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }

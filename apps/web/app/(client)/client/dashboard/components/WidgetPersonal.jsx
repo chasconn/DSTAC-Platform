@@ -46,7 +46,7 @@ export default function WidgetPersonal({ stats }) {
 
       {/* ── KPI tiles ────────────────────────────────────────────── */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(70px, 1fr))',
         gap: 8, padding: '10px 14px 10px',
         borderBottom: '0.5px solid rgba(83,74,183,0.12)',
         flexShrink: 0,

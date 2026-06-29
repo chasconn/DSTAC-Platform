@@ -1,5 +1,7 @@
 'use client'
 
+import FixedPortal, { useIsMobile } from '../../../../../components/admin/FixedPortal'
+
 const SEV_STYLE = {
   critica: { bg: '#FCEBEB', color: '#791F1F' },
   alta:    { bg: '#FAEEDA', color: '#633806' },
@@ -39,9 +41,11 @@ function Row({ label, value }) {
 }
 
 export default function IncidenteDetalle({ incidente, onClose, onEdit, onDelete }) {
+  const isMobile = useIsMobile()
   if (!incidente) return null
 
   return (
+    <FixedPortal active={isMobile}>
     <aside className="detail-side-panel" style={{ width: 300, minWidth: 300, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0, overflowY: 'auto' }}>
 
       <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e0d8' }}>
@@ -115,5 +119,6 @@ export default function IncidenteDetalle({ incidente, onClose, onEdit, onDelete 
         </button>
       </div>
     </aside>
+    </FixedPortal>
   )
 }

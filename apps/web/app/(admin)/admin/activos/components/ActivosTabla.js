@@ -1,5 +1,7 @@
 'use client'
 
+import { useIsMobile } from '../../../../../components/admin/FixedPortal'
+
 // Badges: criticidad
 const CRIT = {
   critica: { bg: '#FCEBEB', color: '#791F1F', label: 'Crítica' },
@@ -69,6 +71,61 @@ function SkeletonRow() {
 }
 
 export default function ActivosTabla({ activos, loading, selected, onSelect, onEdit, onDelete }) {
+  const isMobile = useIsMobile()
+
+  if (loading) {
+    return (
+      <div style={{ background: '#fff', border: '1px solid #e2e0d8', borderRadius: 10, overflow: 'hidden' }}>
+        {Array.from({ length: 6 }).map((_, i) => isMobile
+          ? <div key={i} style={{ height: 76, margin: 12, borderRadius: 10, background: '#f1efe8', animation: 'pulse 1.4s ease-in-out infinite' }} />
+          : <SkeletonRow key={i} />
+        )}
+      </div>
+    )
+  }
+
+  if (!activos.length) {
+    return (
+      <div style={{ background: '#fff', border: '1px solid #e2e0d8', borderRadius: 10, padding: '48px 0', textAlign: 'center', color: '#B4B2A9', fontSize: 13 }}>
+        No se encontraron activos con los filtros actuales.
+      </div>
+    )
+  }
+
+  // En mobile, la tabla de columnas fijas obligaba a hacer scroll lateral
+  // para ver el resto de los datos. Se reemplaza por tarjetas apiladas con
+  // lo esencial — el resto de los campos se ve en el panel de detalle.
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {activos.map(activo => {
+          const isSelected = selected?.id === activo.id
+          return (
+            <div key={activo.id} onClick={() => onSelect(activo)} style={{
+              background: '#fff', borderRadius: 12,
+              border: `2px solid ${isSelected ? '#534AB7' : '#e2e0d8'}`,
+              padding: 14, cursor: 'pointer',
+            }}>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#2C2C2A', marginBottom: 2 }}>{activo.nombre}</div>
+                <div style={{ fontSize: 12, color: '#888780' }}>{activo.tipo}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                <Badge map={CRIT}    value={activo.criticidad} />
+                <Badge map={ESTADO}  value={activo.estado} />
+                <Badge map={AMBIENTE} value={activo.ambiente} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
+                <ActionBtn title="Editar" color="#534AB7" onClick={() => onEdit(activo)}><i className="ti ti-pencil" /></ActionBtn>
+                <ActionBtn title="Eliminar" color="#E24B4A" onClick={() => onDelete(activo)} danger><i className="ti ti-trash" /></ActionBtn>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div style={{
       background: '#fff', border: '1px solid #e2e0d8',
@@ -85,18 +142,8 @@ export default function ActivosTabla({ activos, loading, selected, onSelect, onE
         ))}
       </div>
 
-      {/* Skeleton */}
-      {loading && Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)}
-
-      {/* Vacío */}
-      {!loading && activos.length === 0 && (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: '#B4B2A9', fontSize: 13 }}>
-          No se encontraron activos con los filtros actuales.
-        </div>
-      )}
-
       {/* Filas */}
-      {!loading && activos.map(activo => {
+      {activos.map(activo => {
         const isSelected = selected?.id === activo.id
         return (
           <div

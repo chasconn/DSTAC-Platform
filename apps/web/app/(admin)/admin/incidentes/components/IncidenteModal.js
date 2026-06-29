@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../../../../../lib/api'
 import CvssCalculator from './CvssCalculator'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const INP = { width: '100%', padding: '8px 10px', border: '1px solid #e2e0d8', borderRadius: 8, fontSize: 13, color: '#2C2C2A', outline: 'none', boxSizing: 'border-box', background: '#fff' }
 
@@ -76,6 +77,7 @@ export default function IncidenteModal({ incidente, empresaSlug, onClose, onSave
   }
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
@@ -218,6 +220,7 @@ export default function IncidenteModal({ incidente, empresaSlug, onClose, onSave
         </form>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

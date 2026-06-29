@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 const CLP = (n) => '$' + (Number(n) || 0).toLocaleString('es-CL')
@@ -293,6 +294,7 @@ export default function GastosPage() {
 
       {/* Modal crear/editar */}
       {modalOpen && (
+        <FixedPortal>
         <div onClick={() => setModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(10,10,18,.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 24, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 17, fontWeight: 800, color: '#2C2C2A', marginBottom: 16 }}>{editando ? 'Editar gasto' : 'Registrar gasto'}</div>
@@ -345,10 +347,12 @@ export default function GastosPage() {
             </div>
           </div>
         </div>
+        </FixedPortal>
       )}
 
       {/* Confirmar eliminación */}
       {eliminando && (
+        <FixedPortal>
         <div onClick={() => setEliminando(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(10,10,18,.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 22, width: '100%', maxWidth: 380 }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', marginBottom: 8 }}>¿Eliminar este gasto?</div>
@@ -359,9 +363,10 @@ export default function GastosPage() {
             </div>
           </div>
         </div>
+        </FixedPortal>
       )}
 
-      {toast && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1300 }}>{toast}</div>}
+      {toast && <FixedPortal><div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1300 }}>{toast}</div></FixedPortal>}
     </div>
   )
 }

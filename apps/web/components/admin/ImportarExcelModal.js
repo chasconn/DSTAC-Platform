@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import FixedPortal from './FixedPortal'
 
 // Pasos: upload → preview → importando → resultado
 const PASO = { UPLOAD: 'upload', PREVIEW: 'preview', IMPORTANDO: 'importando', RESULTADO: 'resultado' }
@@ -129,6 +130,7 @@ export default function ImportarExcelModal({ modulo, empresaSlug, onClose, onImp
   }
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)' }}>
       <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 640, maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
 
@@ -401,6 +403,7 @@ export default function ImportarExcelModal({ modulo, empresaSlug, onClose, onImp
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

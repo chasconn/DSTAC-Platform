@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { api } from '../../../../lib/api'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 
@@ -130,7 +131,7 @@ export default function OnboardingPage() {
         ))}
       </div>
 
-      {toast && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div>}
+      {toast && <FixedPortal><div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div></FixedPortal>}
     </div>
   )
 }

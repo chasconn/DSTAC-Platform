@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 import PendientesSubnav from '../components/PendientesSubnav'
 
 // Color por prioridad de tarea (capa de solo lectura sobre el calendario).
@@ -400,6 +401,7 @@ function EventoModal({ evento, fechaInicial, empresas, onClose, onSaved, onDelet
   }
 
   return (
+    <FixedPortal>
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(38,33,92,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 10px 50px rgba(0,0,0,0.25)' }}>
 
@@ -473,6 +475,7 @@ function EventoModal({ evento, fechaInicial, empresas, onClose, onSaved, onDelet
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

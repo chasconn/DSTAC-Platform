@@ -1,5 +1,7 @@
 'use client'
 
+import { useIsMobile } from '../../../../../components/admin/FixedPortal'
+
 // Colores de estado para badges y avatares
 const ESTADO_STYLE = {
   activo:       { bg: '#EAF3DE', color: '#27500A' },
@@ -69,6 +71,66 @@ const COLS = [
 ]
 
 export default function PersonalTabla({ personal, loading, selected, onSelect, onEdit, onDelete }) {
+  const isMobile = useIsMobile()
+
+  if (loading) {
+    return (
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+        {Array.from({ length: 5 }).map((_, i) => isMobile
+          ? <div key={i} style={{ height: 70, margin: 12, borderRadius: 10, background: '#f1efe8', animation: 'pulse 1.5s infinite' }} />
+          : <SkeletonRow key={i} />
+        )}
+      </div>
+    )
+  }
+
+  if (!personal.length) {
+    return (
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', padding: '40px 16px', textAlign: 'center', color: '#888780', fontSize: 13 }}>
+        No se encontró personal
+      </div>
+    )
+  }
+
+  // En mobile, la tabla de columnas fijas obligaba a hacer scroll lateral
+  // para ver el resto de los datos. Se reemplaza por tarjetas apiladas con
+  // lo esencial — el resto de los campos se ve en el panel de detalle.
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {personal.map(p => {
+          const isSelected = p.id === selected?.id
+          const avatarStyle = ESTADO_STYLE[p.estado] || { bg: '#F1EFE8', color: '#444441' }
+          return (
+            <div key={p.id} onClick={() => onSelect(p)} style={{
+              background: '#fff', borderRadius: 12,
+              border: `2px solid ${isSelected ? '#534AB7' : '#e2e0d8'}`,
+              padding: 14, cursor: 'pointer',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: avatarStyle.bg, color: avatarStyle.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
+                  {getInitials(p.nombre)}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#2C2C2A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</div>
+                  <div style={{ fontSize: 12, color: '#888780', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.rol_empresarial || '—'}</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                <EstadoBadge estado={p.estado} />
+                <NivelBadge nivel={p.nivel_responsabilidad} />
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
+                <ActionBtn title="Editar" onClick={() => onEdit(p)}><IconEdit /></ActionBtn>
+                <ActionBtn title="Eliminar" onClick={() => onDelete(p)} danger><IconTrash /></ActionBtn>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflowX: 'auto' }}>
 
@@ -81,15 +143,7 @@ export default function PersonalTabla({ personal, loading, selected, onSelect, o
         ))}
       </div>
 
-      {loading && Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
-
-      {!loading && personal.length === 0 && (
-        <div style={{ padding: '40px 16px', textAlign: 'center', color: '#888780', fontSize: 13 }}>
-          No se encontró personal
-        </div>
-      )}
-
-      {!loading && personal.map(p => {
+      {personal.map(p => {
         const isSelected = p.id === selected?.id
         const avatarStyle = ESTADO_STYLE[p.estado] || { bg: '#F1EFE8', color: '#444441' }
 

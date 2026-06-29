@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { api } from '../../../../lib/api'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 import ClientesToolbar from './components/ClientesToolbar'
 import ClientesTabla from './components/ClientesTabla'
 import ClienteFormModal from './components/ClienteFormModal'
@@ -197,6 +198,7 @@ export default function ClientesPage() {
 
       {/* Toast */}
       {toast && (
+        <FixedPortal>
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
           background: '#2C2C2A', color: '#fff', padding: '10px 16px',
@@ -206,6 +208,7 @@ export default function ClientesPage() {
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: TOAST_COLORS[toast.type], flexShrink: 0 }} />
           {toast.msg}
         </div>
+        </FixedPortal>
       )}
     </div>
   )
