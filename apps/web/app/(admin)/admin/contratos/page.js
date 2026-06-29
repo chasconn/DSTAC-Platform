@@ -70,6 +70,15 @@ export default function ContratosPage() {
     finally { setGenerando(false) }
   }
 
+  async function eliminarBorrador(id, numero) {
+    if (!confirm(`¿Eliminar el borrador ${numero}? Esta acción no se puede deshacer.`)) return
+    try {
+      await api.delete(`/api/admin/contratos/${id}`)
+      showToast('Borrador eliminado')
+      cargar()
+    } catch (e) { showToast(e.message || 'No se pudo eliminar') }
+  }
+
   async function enviarAFirma(id) {
     try {
       await api.post(`/api/admin/contratos/${id}/enviar`, {})
@@ -215,6 +224,12 @@ export default function ContratosPage() {
                       <button onClick={() => enviarAFirma(c.id)}
                         style={{ background: '#534AB7', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                         Enviar a firma
+                      </button>
+                    )}
+                    {c.estado === 'borrador' && (
+                      <button onClick={() => eliminarBorrador(c.id, c.numero)}
+                        style={{ background: 'none', color: '#B23B3B', border: '1px solid #F3C5C5', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                        Eliminar
                       </button>
                     )}
                     {c.estado !== 'borrador' && !c.firmado_dstac && (

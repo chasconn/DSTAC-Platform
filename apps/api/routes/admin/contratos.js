@@ -110,6 +110,22 @@ router.get('/:id', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// ── Eliminar un contrato borrador ────────────────────────────────────────────
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const [[d]] = await centralDB.query(`SELECT id, numero, estado, company_id FROM contratos WHERE id = ? LIMIT 1`, [req.params.id])
+    if (!d) return res.status(404).json({ error: 'Contrato no encontrado' })
+    if (d.estado !== 'borrador') return res.status(400).json({ error: 'Solo se pueden eliminar contratos en estado borrador' })
+    await centralDB.execute(`DELETE FROM contratos WHERE id = ?`, [d.id])
+    await registrarActividad({
+      req, accion: 'eliminar', modulo: 'contratos',
+      descripcion: `Eliminó el borrador de contrato ${d.numero}`,
+      entidad_id: d.id, company_id: d.company_id,
+    })
+    res.json({ ok: true })
+  } catch (err) { next(err) }
+})
+
 // ── Editar el Anexo A (alcance autorizado) mientras está en borrador ─────────
 router.put('/:id/alcance', async (req, res, next) => {
   try {
