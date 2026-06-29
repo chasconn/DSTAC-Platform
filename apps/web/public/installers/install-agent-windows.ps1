@@ -387,10 +387,18 @@ $btnInstalar.Add_Click({
 function Resolver-Nombre($ip) {
   try { return ([System.Net.Dns]::GetHostEntry($ip)).HostName } catch { return $null }
 }
+function Es-BroadcastOMulticast($ip, $mac) {
+  if ($ip.EndsWith(".255")) { return $true }
+  $primerOcteto = [int]($ip.Split(".")[0])
+  if ($primerOcteto -ge 224 -and $primerOcteto -le 239) { return $true }
+  if ($mac -like "01:00:5E:*" -or $mac -like "33:33:*" -or $mac -eq "FF:FF:FF:FF:FF:FF") { return $true }
+  return $false
+}
 $items = @()
 try {
   Get-NetNeighbor -AddressFamily IPv4 -ErrorAction Stop | Where-Object { $_.LinkLayerAddress -match "^[0-9a-fA-F]{2}(-[0-9a-fA-F]{2}){5}$" } | ForEach-Object {
     $mac = ($_.LinkLayerAddress -replace "-", ":").ToUpper()
+    if (Es-BroadcastOMulticast $_.IPAddress $mac) { return }
     $obj = [PSCustomObject]@{ ip = $_.IPAddress; mac = $mac }
     $host_ = Resolver-Nombre $_.IPAddress
     if ($host_) { $obj | Add-Member -NotePropertyName hostname -NotePropertyValue $host_ }
@@ -400,6 +408,7 @@ try {
   arp -a | Select-String "(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+([0-9a-fA-F-]{17})" | ForEach-Object {
     $ip = $_.Matches[0].Groups[1].Value
     $mac = ($_.Matches[0].Groups[2].Value -replace "-", ":").ToUpper()
+    if (Es-BroadcastOMulticast $ip $mac) { return }
     $obj = [PSCustomObject]@{ ip = $ip; mac = $mac }
     $host_ = Resolver-Nombre $ip
     if ($host_) { $obj | Add-Member -NotePropertyName hostname -NotePropertyValue $host_ }
