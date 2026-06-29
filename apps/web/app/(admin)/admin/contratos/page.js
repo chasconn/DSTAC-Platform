@@ -166,6 +166,7 @@ export default function ContratosPage() {
                   </div>
                   <span style={{ background: e.bg, color: e.color, borderRadius: 999, padding: '3px 10px', fontSize: 11.5, fontWeight: 700 }}>{e.label}</span>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                    <BotonInforme tipo="contrato" slug={slug} label="Previsualizar" query={{ id: c.id }} />
                     {c.estado === 'borrador' && (
                       <button onClick={() => enviarAFirma(c.id)}
                         style={{ background: '#534AB7', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
@@ -178,7 +179,6 @@ export default function ContratosPage() {
                         Firmar (DSTAC)
                       </button>
                     )}
-                    {c.estado !== 'borrador' && <BotonInforme tipo="contrato" slug={slug} label="Ver" query={{ id: c.id }} />}
                   </div>
                 </div>
               )
