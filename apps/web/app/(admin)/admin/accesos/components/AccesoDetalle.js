@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { apiFetch } from '../../../../../lib/api'
+import FixedPortal, { useIsMobile } from '../../../../../components/admin/FixedPortal'
 
 const NIVEL_LABEL  = { root: 'Root', administrador: 'Administrador', escritura: 'Escritura', lectura: 'Lectura', otro: 'Otro' }
 const ESTADO_LABEL = { activo: 'Activo', expirado: 'Expirado', suspendido: 'Suspendido', pendiente_revision: 'Pendiente revisión', inactivo: 'Inactivo' }
@@ -53,6 +54,7 @@ function Field({ label, children }) {
 }
 
 export default function AccesoDetalle({ acceso, empresaSlug, onClose, onEdit, onDeleted }) {
+  const isMobile = useIsMobile()
   const [suspending, setSuspending] = useState(false)
 
   const esExpirado = acceso.estado === 'expirado'
@@ -84,6 +86,7 @@ export default function AccesoDetalle({ acceso, empresaSlug, onClose, onEdit, on
   }
 
   return (
+    <FixedPortal active={isMobile}>
     <div className="detail-side-panel" style={{ width: 300, minWidth: 300, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%' }}>
 
       {/* Header */}
@@ -181,5 +184,6 @@ export default function AccesoDetalle({ acceso, empresaSlug, onClose, onEdit, on
         )}
       </div>
     </div>
+    </FixedPortal>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '../../../../../lib/api'
 import { getUser } from '../../../../../lib/auth'
 import { StatusBadge, PlanBadge, getInitials } from './badges'
+import FixedPortal, { useIsMobile } from '../../../../../components/admin/FixedPortal'
 
 const THEMES = [
   { id: 'purple', color: '#534AB7', light: '#EEEDFE', text: '#3C3489' },
@@ -26,6 +27,7 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
   const [editForm, setEditForm]   = useState(null)
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState('')
+  const isMobile = useIsMobile()
 
   function handleOperar() {
     localStorage.setItem('empresa_activa', JSON.stringify({
@@ -120,6 +122,7 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
     : '—'
 
   return (
+    <FixedPortal active={isMobile}>
     <div className="detail-side-panel" style={{
       width: 296, minWidth: 296, background: '#fff',
       borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column',
@@ -370,6 +373,7 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
         )}
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

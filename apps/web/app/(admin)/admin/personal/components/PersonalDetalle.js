@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '../../../../../lib/api'
+import FixedPortal, { useIsMobile } from '../../../../../components/admin/FixedPortal'
 
 const ESTADO_STYLE = {
   activo:       { bg: '#EAF3DE', color: '#27500A' },
@@ -29,6 +30,7 @@ function fmt(fecha) {
 
 export default function PersonalDetalle({ persona, empresaSlug, onClose, onEdit, onDelete }) {
   const router = useRouter()
+  const isMobile = useIsMobile()
   const [detalle, setDetalle] = useState(null)
 
   useEffect(() => {
@@ -42,6 +44,7 @@ export default function PersonalDetalle({ persona, empresaSlug, onClose, onEdit,
   const avatarStyle = ESTADO_STYLE[p.estado] || { bg: '#F1EFE8', color: '#444441' }
 
   return (
+    <FixedPortal active={isMobile}>
     <div className="detail-side-panel" style={{
       width: 280, minWidth: 280, background: '#fff',
       borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column',
@@ -133,6 +136,7 @@ export default function PersonalDetalle({ persona, empresaSlug, onClose, onEdit,
         </button>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

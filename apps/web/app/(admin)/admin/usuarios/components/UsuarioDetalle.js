@@ -1,5 +1,7 @@
 'use client'
 
+import FixedPortal, { useIsMobile } from '../../../../../components/admin/FixedPortal'
+
 const ROL_STYLE = {
   super_admin:     { bg: '#FCEBEB', color: '#791F1F' },
   admin_dstac:     { bg: '#FAEEDA', color: '#633806' },
@@ -45,6 +47,7 @@ function Row({ label, value, children }) {
 }
 
 export default function UsuarioDetalle({ usuario, onClose, onEdit, onReset, onDelete }) {
+  const isMobile = useIsMobile()
   if (!usuario) return null
 
   const expirado = usuario.temp_password_expires_at && new Date(usuario.temp_password_expires_at) < new Date()
@@ -63,6 +66,7 @@ export default function UsuarioDetalle({ usuario, onClose, onEdit, onReset, onDe
     : usuario.email
 
   return (
+    <FixedPortal active={isMobile}>
     <aside className="detail-side-panel" style={{ width: 280, minWidth: 280, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', flexShrink: 0 }}>
 
       {/* Header */}
@@ -133,6 +137,7 @@ export default function UsuarioDetalle({ usuario, onClose, onEdit, onReset, onDe
         </button>
       </div>
     </aside>
+    </FixedPortal>
   )
 }
 

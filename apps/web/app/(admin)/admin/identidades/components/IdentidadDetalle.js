@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '../../../../../lib/api'
+import FixedPortal, { useIsMobile } from '../../../../../components/admin/FixedPortal'
 
 const ESTADO_STYLE = {
   activa:       { bg: '#EAF3DE', color: '#27500A' },
@@ -25,6 +26,7 @@ function getInitials(nombre) {
 
 export default function IdentidadDetalle({ identidad, empresaSlug, onClose, onEdit, onDelete }) {
   const router  = useRouter()
+  const isMobile = useIsMobile()
   const [detalle, setDetalle] = useState(null)
   const [copiado, setCopiado] = useState(false)
 
@@ -49,6 +51,7 @@ export default function IdentidadDetalle({ identidad, empresaSlug, onClose, onEd
   }
 
   return (
+    <FixedPortal active={isMobile}>
     <div className="detail-side-panel" style={{ width: 300, minWidth: 300, background: '#fff', borderLeft: '1px solid #e2e0d8', display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
       {/* Header */}
@@ -158,6 +161,7 @@ export default function IdentidadDetalle({ identidad, empresaSlug, onClose, onEd
         </button>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 
