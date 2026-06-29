@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 // `fecha` llega como "YYYY-MM-DD" (columna DATE, sin hora). new Date(str) la
@@ -157,7 +158,7 @@ export default function ChangelogPage() {
         <NuevoRegistroModal onClose={() => setShowForm(false)} onCreated={() => { setShowForm(false); cargar(); showToast('Registro creado') }} />
       )}
 
-      {toast && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div>}
+      {toast && <FixedPortal><div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div></FixedPortal>}
     </div>
   )
 }
@@ -192,6 +193,7 @@ function NuevoRegistroModal({ onClose, onCreated }) {
   const inputStyle = { width: '100%', padding: '9px 11px', border: '1px solid #e2e0d8', borderRadius: 8, fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit' }
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 'min(640px, 94vw)', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
@@ -237,5 +239,6 @@ function NuevoRegistroModal({ onClose, onCreated }) {
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }

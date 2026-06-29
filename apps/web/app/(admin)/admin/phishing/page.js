@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 const ESTADO = { borrador: { label: 'Borrador', bg: '#F1EFE8', text: '#444441' }, enviada: { label: 'Enviada', bg: '#E6F1FB', text: '#0C447C' } }
@@ -245,6 +246,7 @@ export default function PhishingPage() {
       </div>
 
       {detalle && (
+        <FixedPortal>
         <>
           <div onClick={() => setDetalle(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
           <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(480px, 96vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 24 }}>
@@ -271,9 +273,10 @@ export default function PhishingPage() {
             ))}
           </div>
         </>
+        </FixedPortal>
       )}
 
-      {toast && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div>}
+      {toast && <FixedPortal><div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div></FixedPortal>}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import FixedPortal from '../../../../../../components/admin/FixedPortal'
 
 const EVENT_CONFIG = {
   control_actualizado: { icon: '✓', bg: '#EAF3DE', color: '#27500A', label: 'Control actualizado' },
@@ -97,6 +98,7 @@ export default function HistorialPanel({ evento, allHistorial = [], onClose }) {
   }, [allHistorial, evento.control_id])
 
   return (
+    <FixedPortal>
     <div style={{
       position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(420px, 94vw)',
       background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
@@ -210,5 +212,6 @@ export default function HistorialPanel({ evento, allHistorial = [], onClose }) {
         )}
       </div>
     </div>
+    </FixedPortal>
   )
 }

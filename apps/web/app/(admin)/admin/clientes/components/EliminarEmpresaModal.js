@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 // Acción irreversible: borra la BD operacional completa de la empresa (todos
 // sus activos, identidades, personal, incidentes, diagnósticos, etc.) y el
@@ -32,6 +33,7 @@ export default function EliminarEmpresaModal({ empresa, onClose, onDone }) {
   }
 
   return (
+    <FixedPortal>
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -100,5 +102,6 @@ export default function EliminarEmpresaModal({ empresa, onClose, onDone }) {
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }

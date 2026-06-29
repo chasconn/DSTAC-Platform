@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const EFECTOS_SUSPENDER = [
   { icon: '🔒', text: 'Todos los usuarios quedan bloqueados en el login' },
@@ -44,6 +45,7 @@ export default function SuspenderModal({ empresa, onClose, onDone }) {
   }
 
   return (
+    <FixedPortal>
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -121,6 +123,7 @@ export default function SuspenderModal({ empresa, onClose, onDone }) {
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

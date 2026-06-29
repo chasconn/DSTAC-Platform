@@ -5,6 +5,7 @@
 import { useState, useRef } from 'react'
 import { apiFetch } from '../../../../../lib/api'
 import { clp, totales, TIPO_LINEA } from './format'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const inp = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 14, color: '#2C2C2A', background: '#fff', outline: 'none' }
 const lbl = { fontSize: 12, fontWeight: 600, color: '#888780', display: 'block', marginBottom: 5 }
@@ -103,6 +104,7 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
   const vinc = f.company_id ? `company:${f.company_id}` : (f.lead_id ? `lead:${f.lead_id}` : '')
 
   return (
+    <FixedPortal>
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(38,33,92,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 980, maxHeight: '94vh', overflowY: 'auto', boxShadow: '0 10px 50px rgba(0,0,0,0.25)' }}>
 
@@ -257,6 +259,7 @@ export default function CotizacionModal({ cotizacion, companies = [], leads = []
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

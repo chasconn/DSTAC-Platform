@@ -3,6 +3,7 @@
 // Panel lateral de detalle de un riesgo. Recibe el riesgo completo (con historial).
 import { useState } from 'react'
 import { NIVEL, ESTADO, CATEGORIA, TRATAMIENTO } from './constants'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const fmt = (d) => { try { return new Date(d).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
 const fmtH = (d) => { try { return new Date(d).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) } catch { return d } }
@@ -40,6 +41,7 @@ export default function RiesgoDetalle({ riesgo, isoControls = [], onClose, onEdi
   }
 
   return (
+    <FixedPortal>
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
       <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(460px, 96vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 24 }}>
@@ -147,6 +149,7 @@ export default function RiesgoDetalle({ riesgo, isoControls = [], onClose, onEdi
         </div>
       </div>
     </>
+    </FixedPortal>
   )
 }
 

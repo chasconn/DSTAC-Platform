@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const NIVELES  = ['lectura', 'escritura', 'administrador', 'root', 'otro']
 const ESTADOS  = ['activo', 'inactivo', 'suspendido', 'pendiente_revision']
@@ -110,6 +111,7 @@ export default function AccesoModal({ acceso, empresaSlug, onClose, onSave }) {
   })
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
       <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: 560, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
 
@@ -224,6 +226,7 @@ export default function AccesoModal({ acceso, empresaSlug, onClose, onSave }) {
         </form>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

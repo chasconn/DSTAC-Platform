@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { api } from '../../../../../lib/api'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 const ESTADOS = ['activo', 'inactivo', 'vacaciones', 'desvinculado']
 const NIVELES = ['alto', 'medio', 'bajo']
@@ -72,6 +73,7 @@ export default function PersonalModal({ persona, empresaSlug, empresaNombre, onC
   }
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.18)' }}>
 
@@ -150,6 +152,7 @@ export default function PersonalModal({ persona, empresaSlug, empresaNombre, onC
         </form>
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import FixedPortal from '../../../../../components/admin/FixedPortal'
 
 export default function ActivoDeleteModal({ activo, empresaSlug, onClose, onDeleted }) {
   const [tieneAsociaciones, setTieneAsociaciones] = useState(false)
@@ -75,6 +76,7 @@ export default function ActivoDeleteModal({ activo, empresaSlug, onClose, onDele
   }
 
   return (
+    <FixedPortal>
     <div
       style={{
         position: 'fixed', inset: 0, zIndex: 1100,
@@ -197,6 +199,7 @@ export default function ActivoDeleteModal({ activo, empresaSlug, onClose, onDele
         )}
       </div>
     </div>
+    </FixedPortal>
   )
 }
 

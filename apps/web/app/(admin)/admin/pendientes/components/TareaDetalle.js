@@ -1,5 +1,7 @@
 'use client'
 
+import FixedPortal from '../../../../../components/admin/FixedPortal'
+
 // Panel de detalle de una tarea — SOLO LECTURA.
 // Permite ver título completo, descripción y metadatos sin entrar a editar.
 // Recibe la tarea ya cargada (objeto de la lista), así que no hace fetch extra.
@@ -42,7 +44,7 @@ export default function TareaDetalle({ tarea, onClose, onEdit }) {
   ].filter(([, v]) => v)
 
   return (
-    <>
+    <FixedPortal>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
       <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(460px, 94vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 24 }}>
 
@@ -83,6 +85,6 @@ export default function TareaDetalle({ tarea, onClose, onEdit }) {
           <button onClick={() => onEdit(t)} style={{ flex: 1, padding: '10px', borderRadius: 8, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 13.5, fontWeight: 600 }}>Editar</button>
         </div>
       </div>
-    </>
+    </FixedPortal>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 
@@ -142,6 +143,7 @@ export default function MdmPage() {
 
       {/* Selector de modo de inscripción */}
       {chooser && (
+        <FixedPortal>
         <div onClick={() => setChooser(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,12,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, maxWidth: 460 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: NAVY, marginBottom: 4 }}>¿Qué tipo de equipo vas a inscribir?</div>
@@ -157,10 +159,12 @@ export default function MdmPage() {
             <button onClick={() => setChooser(false)} style={{ marginTop: 14, background: 'transparent', color: '#6A675E', border: 'none', cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
           </div>
         </div>
+        </FixedPortal>
       )}
 
       {/* Modal de inscripción (QR) */}
       {enroll && (
+        <FixedPortal>
         <div onClick={() => setEnroll(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,12,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 26, maxWidth: 440, textAlign: 'center' }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: NAVY }}>
@@ -186,9 +190,10 @@ export default function MdmPage() {
             <button onClick={() => setEnroll(null)} style={{ marginTop: 14, background: NAVY, color: '#fff', border: 'none', borderRadius: 999, padding: '9px 22px', fontWeight: 700, cursor: 'pointer' }}>Cerrar</button>
           </div>
         </div>
+        </FixedPortal>
       )}
 
-      {toast && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div>}
+      {toast && <FixedPortal><div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1100 }}>{toast}</div></FixedPortal>}
     </div>
   )
 }

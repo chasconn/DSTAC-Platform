@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
+import FixedPortal from '../../../../../../components/admin/FixedPortal'
 
 const PRIORITY_MAP = {
   critica: { bg: '#FCEBEB', color: '#791F1F', label: 'Crítica'   },
@@ -165,6 +166,7 @@ function EditModal({ tarea, onClose, onSave }) {
   }
 
   return (
+    <FixedPortal>
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ background: '#fff', borderRadius: 14, padding: '26px', width: 'min(420px, 92vw)', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 700, color: '#2C2C2A' }}>Editar tarea — {tarea.control_id}</h3>
@@ -211,5 +213,6 @@ function EditModal({ tarea, onClose, onSave }) {
         </div>
       </div>
     </div>
+    </FixedPortal>
   )
 }

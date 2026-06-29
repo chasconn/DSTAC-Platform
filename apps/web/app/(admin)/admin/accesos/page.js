@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { api, apiFetch } from '../../../../lib/api'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 import AccesosStats      from './components/AccesosStats'
 import AccesosToolbar    from './components/AccesosToolbar'
 import AccesosTabla      from './components/AccesosTabla'
@@ -260,10 +261,12 @@ export default function AccesosPage() {
 
       {/* Toast */}
       {toast && (
+        <FixedPortal>
         <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: '#2C2C2A', color: '#fff', padding: '10px 16px', borderRadius: 10, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.2)', maxWidth: 320 }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: TOAST_COLORS[toast.type], flexShrink: 0 }} />
           {toast.msg}
         </div>
+        </FixedPortal>
       )}
     </div>
   )

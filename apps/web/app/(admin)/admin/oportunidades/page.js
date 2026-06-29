@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 const CLP = (n) => n ? '$' + Number(n).toLocaleString('es-CL') : '—'
@@ -228,6 +229,7 @@ export default function OportunidadesPage() {
 
       {/* Modal detalle */}
       {detalle && (
+        <FixedPortal>
         <div onClick={() => setDetalle(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(10,10,18,.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 24, width: '100%', maxWidth: 720, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 6 }}>
@@ -296,10 +298,12 @@ export default function OportunidadesPage() {
             </div>
           </div>
         </div>
+        </FixedPortal>
       )}
 
       {/* Modal palabras clave */}
       {keywordsOpen && (
+        <FixedPortal>
         <div onClick={() => setKeywordsOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(10,10,18,.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 24, width: '100%', maxWidth: 480, maxHeight: '80vh', overflowY: 'auto' }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#2C2C2A', marginBottom: 4 }}>Palabras clave de relevancia</div>
@@ -328,9 +332,10 @@ export default function OportunidadesPage() {
             </div>
           </div>
         </div>
+        </FixedPortal>
       )}
 
-      {toast && <div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1300 }}>{toast}</div>}
+      {toast && <FixedPortal><div style={{ position: 'fixed', bottom: 22, left: '50%', transform: 'translateX(-50%)', background: NAVY, color: '#fff', padding: '11px 20px', borderRadius: 999, fontSize: 13, zIndex: 1300 }}>{toast}</div></FixedPortal>}
     </div>
   )
 }

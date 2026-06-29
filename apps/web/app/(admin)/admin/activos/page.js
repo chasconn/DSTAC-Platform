@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { api } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
+import FixedPortal from '../../../../components/admin/FixedPortal'
 import ActivosStats       from './components/ActivosStats'
 import ActivosToolbar     from './components/ActivosToolbar'
 import ActivosTabla       from './components/ActivosTabla'
@@ -228,6 +229,7 @@ export default function ActivosPage() {
 
       {/* Toast */}
       {toast && (
+        <FixedPortal>
         <div style={{
           position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
           background: '#2C2C2A', color: '#fff', padding: '10px 16px',
@@ -240,6 +242,7 @@ export default function ActivosPage() {
           }} />
           {toast.msg}
         </div>
+        </FixedPortal>
       )}
     </div>
   )

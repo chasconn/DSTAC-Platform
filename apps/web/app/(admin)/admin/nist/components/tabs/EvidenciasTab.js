@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
 import EvidenciaPanel from '../panels/EvidenciaPanel'
+import FixedPortal from '../../../../../../components/admin/FixedPortal'
 
 const STATUS_MAP = {
   pendiente: { bg: '#FAEEDA', color: '#633806', label: 'Pendiente' },
@@ -249,7 +250,9 @@ export default function EvidenciasTab({ slug, functionId, categories }) {
       {/* Panel lateral de evidencia */}
       {selected && (
         <>
-          <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 99 }} />
+          <FixedPortal>
+            <div onClick={() => setSelected(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 99 }} />
+          </FixedPortal>
           <EvidenciaPanel
             evidencia={selected}
             slug={slug}
