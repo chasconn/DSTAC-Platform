@@ -37,8 +37,8 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
 
   return (
     <FixedPortal>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(640px, 96vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 28 }}>
+      <div className="cot-fixed-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(12,10,20,.35)', zIndex: 80 }} />
+      <div className="cot-fixed-overlay" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(640px, 96vw)', background: '#fff', zIndex: 81, boxShadow: '-8px 0 30px rgba(0,0,0,.18)', overflowY: 'auto', padding: 28 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: '#2C2C2A' }}>{cot.numero}</h2>
