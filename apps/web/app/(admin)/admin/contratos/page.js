@@ -13,8 +13,10 @@ const ESTADO_COLOR = {
   rechazado:        { bg: '#FCEBEB', color: '#D8543F', label: 'Rechazado' },
 }
 
+// Este módulo es deliberadamente GLOBAL (no depende de "empresa activa"):
+// la empresa de cada contrato se toma de la cotización elegida, para poder
+// gestionar contratos de todos los clientes desde una sola pantalla.
 export default function ContratosPage() {
-  const [empresaActiva, setEmpresaActiva] = useState(null)
   const [contratos, setContratos] = useState([])
   const [cotizaciones, setCotizaciones] = useState([])
   const [datosLegales, setDatosLegales] = useState(null)
@@ -24,38 +26,30 @@ export default function ContratosPage() {
   const [cotizacionElegida, setCotizacionElegida] = useState('')
   const [firmando, setFirmando] = useState(null)
   const [firmaForm, setFirmaForm] = useState({ nombre: '', rut: '', cargo: '' })
+  const [filtroEmpresa, setFiltroEmpresa] = useState('')
   const [toast, setToast] = useState('')
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(''), 4000) }
 
-  useEffect(() => {
-    const raw = localStorage.getItem('empresa_activa')
-    if (raw) { try { setEmpresaActiva(JSON.parse(raw)) } catch {} }
-  }, [])
-
-  const slug = empresaActiva?.slug
-  const headers = slug ? { 'X-Company-Slug': slug } : {}
-
   const cargar = useCallback(async () => {
-    if (!slug) return
     setLoading(true)
     try {
       const [r1, r2, r3] = await Promise.all([
-        api.get('/api/admin/contratos', headers),
-        api.get('/api/admin/cotizaciones?estado=aceptada', headers),
-        api.get('/api/admin/contratos/datos-legales', headers),
+        api.get('/api/admin/contratos'),
+        api.get('/api/admin/contratos/cotizaciones-disponibles'),
+        api.get('/api/admin/contratos/datos-legales'),
       ])
       setContratos(r1.contratos ?? [])
-      setCotizaciones((r2.cotizaciones ?? []).filter(c => c.company_id === empresaActiva?.id))
+      setCotizaciones(r2.cotizaciones ?? [])
       setDatosLegales(r3)
     } catch { showToast('No se pudo cargar el módulo de contratos') }
     finally { setLoading(false) }
-  }, [slug, empresaActiva])
+  }, [])
   useEffect(() => { cargar() }, [cargar])
 
   async function guardarDatosLegales() {
     try {
-      await api.put('/api/admin/contratos/datos-legales', datosLegales, headers)
+      await api.put('/api/admin/contratos/datos-legales', datosLegales)
       showToast('Datos legales de DSTAC actualizados')
       setShowDatosLegales(false)
     } catch (e) { showToast(e.message || 'No se pudo guardar') }
@@ -65,7 +59,7 @@ export default function ContratosPage() {
     if (!cotizacionElegida) return showToast('Selecciona una cotización aceptada')
     setGenerando(true)
     try {
-      await api.post('/api/admin/contratos', { cotizacion_id: cotizacionElegida }, headers)
+      await api.post('/api/admin/contratos', { cotizacion_id: cotizacionElegida })
       showToast('Contrato generado como borrador')
       setCotizacionElegida('')
       cargar()
@@ -75,7 +69,7 @@ export default function ContratosPage() {
 
   async function enviarAFirma(id) {
     try {
-      await api.post(`/api/admin/contratos/${id}/enviar`, {}, headers)
+      await api.post(`/api/admin/contratos/${id}/enviar`, {})
       showToast('Contrato enviado a firma')
       cargar()
     } catch (e) {
@@ -87,7 +81,7 @@ export default function ContratosPage() {
   async function firmarDstac() {
     if (!firmaForm.nombre.trim() || !firmaForm.rut.trim()) return showToast('Nombre y RUT son obligatorios')
     try {
-      await api.post(`/api/admin/contratos/${firmando}/firmar-dstac`, firmaForm, headers)
+      await api.post(`/api/admin/contratos/${firmando}/firmar-dstac`, firmaForm)
       showToast('Firmado por DSTAC')
       setFirmando(null)
       setFirmaForm({ nombre: '', rut: '', cargo: '' })
@@ -95,14 +89,15 @@ export default function ContratosPage() {
     } catch (e) { showToast(e.message || 'No se pudo firmar') }
   }
 
-  if (!slug) return <div style={{ padding: 24 }}>Selecciona una empresa para gestionar sus contratos.</div>
+  const empresas = [...new Set(contratos.map(c => c.company_name))].sort()
+  const contratosFiltrados = filtroEmpresa ? contratos.filter(c => c.company_name === filtroEmpresa) : contratos
 
   return (
-    <div style={{ padding: 24, maxWidth: 1000 }}>
+    <div style={{ padding: 24, maxWidth: 1100 }}>
       <div style={{ background: `linear-gradient(120deg, ${NAVY}, ${PURPLE})`, borderRadius: 14, padding: '22px 26px', color: '#fff', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontSize: 22, fontWeight: 800 }}>📜 Contratos</div>
-          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>{empresaActiva?.name} · autorización de intervención y firma electrónica</div>
+          <div style={{ fontSize: 13, opacity: 0.85, marginTop: 2 }}>Todas las empresas · autorización de intervención y firma electrónica</div>
         </div>
         <button onClick={() => setShowDatosLegales(s => !s)}
           style={{ background: 'rgba(255,255,255,.14)', border: '1px solid rgba(255,255,255,.3)', color: '#fff', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -113,7 +108,7 @@ export default function ContratosPage() {
       {showDatosLegales && datosLegales && (
         <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 18, marginBottom: 20 }}>
           <div style={{ fontWeight: 700, color: '#2C2C2A', marginBottom: 4 }}>Datos legales de DSTAC</div>
-          <div style={{ fontSize: 12, color: '#888780', marginBottom: 14 }}>Aparecen como "el Prestador" en todos los contratos generados. Complétalos antes de enviar el primer contrato a firma.</div>
+          <div style={{ fontSize: 12, color: '#888780', marginBottom: 14 }}>Aparecen como "el Prestador" en todos los contratos generados.</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <LegalField label="Razón social" value={datosLegales.razon_social} onChange={v => setDatosLegales(d => ({ ...d, razon_social: v }))} />
             <LegalField label="RUT" value={datosLegales.rut} onChange={v => setDatosLegales(d => ({ ...d, rut: v }))} placeholder="76.xxx.xxx-x" />
@@ -132,13 +127,13 @@ export default function ContratosPage() {
       <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 18, marginBottom: 20 }}>
         <div style={{ fontWeight: 700, color: '#2C2C2A', marginBottom: 12 }}>Generar contrato desde una cotización aceptada</div>
         {cotizaciones.length === 0 ? (
-          <div style={{ fontSize: 13, color: '#888780' }}>No hay cotizaciones en estado "aceptada" para esta empresa todavía.</div>
+          <div style={{ fontSize: 13, color: '#888780' }}>No hay cotizaciones en estado "aceptada" sin contrato todavía (de ninguna empresa).</div>
         ) : (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <select value={cotizacionElegida} onChange={e => setCotizacionElegida(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, minWidth: 260 }}>
+              style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, minWidth: 320 }}>
               <option value="">Selecciona una cotización…</option>
-              {cotizaciones.map(c => <option key={c.id} value={c.id}>{c.numero} · ${Number(c.total).toLocaleString('es-CL')}</option>)}
+              {cotizaciones.map(c => <option key={c.id} value={c.id}>{c.numero} · {c.company_name} · ${Number(c.total).toLocaleString('es-CL')}</option>)}
             </select>
             <button onClick={generarContrato} disabled={generando || !cotizacionElegida}
               style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', fontWeight: 700, cursor: 'pointer', opacity: cotizacionElegida ? 1 : 0.5 }}>
@@ -149,24 +144,33 @@ export default function ContratosPage() {
       </div>
 
       <div style={{ background: '#fff', border: '1px solid #ECEAE3', borderRadius: 12, padding: 18 }}>
-        <div style={{ fontWeight: 700, color: '#2C2C2A', marginBottom: 12 }}>Contratos ({contratos.length})</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+          <div style={{ fontWeight: 700, color: '#2C2C2A' }}>Contratos ({contratosFiltrados.length})</div>
+          {empresas.length > 1 && (
+            <select value={filtroEmpresa} onChange={e => setFiltroEmpresa(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 12.5 }}>
+              <option value="">Todas las empresas</option>
+              {empresas.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+          )}
+        </div>
         {loading ? (
           <div style={{ fontSize: 13, color: '#888780' }}>Cargando…</div>
-        ) : contratos.length === 0 ? (
-          <div style={{ fontSize: 13, color: '#888780' }}>Aún no hay contratos generados para esta empresa.</div>
+        ) : contratosFiltrados.length === 0 ? (
+          <div style={{ fontSize: 13, color: '#888780' }}>Aún no hay contratos generados.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {contratos.map(c => {
+            {contratosFiltrados.map(c => {
               const e = ESTADO_COLOR[c.estado] || ESTADO_COLOR.borrador
               return (
                 <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, border: '1px solid #ECEAE3', borderRadius: 10, padding: '10px 14px' }}>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2C2C2A' }}>{c.numero}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13.5, color: '#2C2C2A' }}>{c.numero} <span style={{ fontWeight: 400, color: '#6A675E' }}>· {c.company_name}</span></div>
                     <div style={{ fontSize: 11.5, color: '#888780' }}>{new Date(c.created_at).toLocaleDateString('es-CL')} · código {c.codigo_verificacion}</div>
                   </div>
                   <span style={{ background: e.bg, color: e.color, borderRadius: 999, padding: '3px 10px', fontSize: 11.5, fontWeight: 700 }}>{e.label}</span>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                    <BotonInforme tipo="contrato" slug={slug} label="Previsualizar" query={{ id: c.id }} />
+                    <BotonInforme tipo="contrato" slug={c.company_slug} label="Previsualizar" query={{ id: c.id }} />
                     {c.estado === 'borrador' && (
                       <button onClick={() => enviarAFirma(c.id)}
                         style={{ background: '#534AB7', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
