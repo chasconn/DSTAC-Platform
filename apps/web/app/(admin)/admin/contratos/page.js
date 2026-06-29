@@ -27,6 +27,9 @@ export default function ContratosPage() {
   const [firmando, setFirmando] = useState(null)
   const [firmaForm, setFirmaForm] = useState({ nombre: '', rut: '', cargo: '' })
   const [filtroEmpresa, setFiltroEmpresa] = useState('')
+  const [editandoAlcance, setEditandoAlcance] = useState(null) // id del contrato
+  const [alcanceForm, setAlcanceForm] = useState([])
+  const [guardandoAlcance, setGuardandoAlcance] = useState(false)
   const [toast, setToast] = useState('')
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(''), 4000) }
@@ -87,6 +90,37 @@ export default function ContratosPage() {
       setFirmaForm({ nombre: '', rut: '', cargo: '' })
       cargar()
     } catch (e) { showToast(e.message || 'No se pudo firmar') }
+  }
+
+  async function abrirAlcance(id) {
+    try {
+      const d = await api.get(`/api/admin/contratos/${id}`)
+      setAlcanceForm(d.alcance?.length ? d.alcance : [{ activo: '', tipo_prueba: '', periodo: '', horario: '' }])
+      setEditandoAlcance(id)
+    } catch (e) { showToast(e.message || 'No se pudo cargar el contrato') }
+  }
+
+  function setFilaAlcance(i, campo, valor) {
+    setAlcanceForm(prev => prev.map((row, idx) => idx === i ? { ...row, [campo]: valor } : row))
+  }
+  function agregarFilaAlcance() {
+    setAlcanceForm(prev => [...prev, { activo: '', tipo_prueba: '', periodo: '', horario: '' }])
+  }
+  function quitarFilaAlcance(i) {
+    setAlcanceForm(prev => prev.filter((_, idx) => idx !== i))
+  }
+
+  async function guardarAlcance() {
+    const alcance = alcanceForm.filter(r => r.activo?.trim())
+    if (!alcance.length) return showToast('Agrega al menos un activo autorizado')
+    setGuardandoAlcance(true)
+    try {
+      await api.put(`/api/admin/contratos/${editandoAlcance}/alcance`, { alcance })
+      showToast('Anexo A guardado')
+      setEditandoAlcance(null)
+      cargar()
+    } catch (e) { showToast(e.message || 'No se pudo guardar el alcance') }
+    finally { setGuardandoAlcance(false) }
   }
 
   const empresas = [...new Set(contratos.map(c => c.company_name))].sort()
@@ -172,6 +206,12 @@ export default function ContratosPage() {
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <BotonInforme tipo="contrato" slug={c.company_slug} label="Previsualizar" query={{ id: c.id }} />
                     {c.estado === 'borrador' && (
+                      <button onClick={() => abrirAlcance(c.id)}
+                        style={{ background: 'none', color: '#534AB7', border: '1px solid #CECBF6', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                        Editar alcance (Anexo A)
+                      </button>
+                    )}
+                    {c.estado === 'borrador' && (
                       <button onClick={() => enviarAFirma(c.id)}
                         style={{ background: '#534AB7', color: '#fff', border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                         Enviar a firma
@@ -190,6 +230,48 @@ export default function ContratosPage() {
           </div>
         )}
       </div>
+
+      {editandoAlcance && (
+        <div onClick={() => setEditandoAlcance(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,12,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, padding: 22, width: '100%', maxWidth: 700, maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ fontWeight: 700, color: NAVY, marginBottom: 4 }}>Anexo A — Alcance del servicio y autorización de intervención</div>
+            <div style={{ fontSize: 12, color: '#888780', marginBottom: 14 }}>
+              Indica IPs públicas, dominios/subdominios, segmentos de red (VLAN) o equipos específicos — nunca términos genéricos como "redes corporativas". Lo que no quede listado aquí queda fuera de la autorización.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+              {alcanceForm.map((row, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', flexWrap: 'wrap', border: '1px solid #ECEAE3', borderRadius: 8, padding: 10 }}>
+                  <input value={row.activo} onChange={e => setFilaAlcance(i, 'activo', e.target.value)}
+                    placeholder="Ej: 200.27.xx.xx, vpn.cliente.cl, VLAN 10"
+                    style={{ flex: '1 1 220px', height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e0d8', fontSize: 12.5 }} />
+                  <input value={row.tipo_prueba} onChange={e => setFilaAlcance(i, 'tipo_prueba', e.target.value)}
+                    placeholder="Pentest / Escaneo / EDR / Monitoreo"
+                    style={{ flex: '1 1 160px', height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e0d8', fontSize: 12.5 }} />
+                  <input value={row.periodo} onChange={e => setFilaAlcance(i, 'periodo', e.target.value)}
+                    placeholder="Período (ej: 01-07 al 15-07-2026)"
+                    style={{ flex: '1 1 160px', height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e0d8', fontSize: 12.5 }} />
+                  <input value={row.horario} onChange={e => setFilaAlcance(i, 'horario', e.target.value)}
+                    placeholder="Horario (ej: 09:00-18:00)"
+                    style={{ flex: '1 1 140px', height: 32, padding: '0 8px', borderRadius: 6, border: '1px solid #e2e0d8', fontSize: 12.5 }} />
+                  <button onClick={() => quitarFilaAlcance(i)} title="Quitar fila"
+                    style={{ background: 'none', border: 'none', color: '#D8543F', cursor: 'pointer', fontSize: 16, padding: '4px 6px' }}>×</button>
+                </div>
+              ))}
+            </div>
+            <button onClick={agregarFilaAlcance}
+              style={{ background: 'none', border: '1px dashed #CECBF6', color: '#534AB7', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', marginBottom: 14 }}>
+              + Agregar activo
+            </button>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditandoAlcance(null)} style={{ background: 'none', border: '1px solid #e2e0d8', borderRadius: 8, padding: '8px 14px', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={guardarAlcance} disabled={guardandoAlcance}
+                style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', fontWeight: 700, cursor: 'pointer', opacity: guardandoAlcance ? 0.7 : 1 }}>
+                {guardandoAlcance ? 'Guardando…' : 'Guardar Anexo A'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {firmando && (
         <div onClick={() => setFirmando(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(5,5,12,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 24 }}>
