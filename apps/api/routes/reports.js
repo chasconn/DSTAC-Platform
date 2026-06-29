@@ -23,6 +23,7 @@ const REPORT_MODULES = {
   certificado: () => require('../services/reports/certificado'),
   changelog:   () => require('../services/reports/changelog'),
   propuesta:   () => require('../services/reports/propuesta'),
+  contrato:    () => require('../services/reports/contrato'),
 }
 
 router.get('/:reporteId', requireAuth, requireDstacRole, resolveTenant, async (req, res, next) => {

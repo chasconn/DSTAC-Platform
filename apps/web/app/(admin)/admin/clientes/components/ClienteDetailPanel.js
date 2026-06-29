@@ -78,6 +78,10 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
       contacto_nombre: empresa.contacto_nombre || '',
       billing_email: empresa.billing_email || '',
       contact_phone: empresa.contact_phone || '',
+      domicilio:                 empresa.domicilio                 || '',
+      representante_legal:       empresa.representante_legal       || '',
+      representante_legal_rut:   empresa.representante_legal_rut   || '',
+      representante_legal_cargo: empresa.representante_legal_cargo || '',
       plan_id:       empresa.plan_id       || 1,
       status:        empresa.status        || 'active',
       max_users:     empresa.max_users     || 5,
@@ -101,6 +105,10 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
         contacto_nombre: editForm.contacto_nombre || undefined,
         billing_email: editForm.billing_email || undefined,
         contact_phone: editForm.contact_phone || undefined,
+        domicilio:                 editForm.domicilio || undefined,
+        representante_legal:       editForm.representante_legal || undefined,
+        representante_legal_rut:   editForm.representante_legal_rut || undefined,
+        representante_legal_cargo: editForm.representante_legal_cargo || undefined,
         plan_id:       editForm.plan_id,
         max_users:     editForm.max_users,
         theme_color:   editForm.theme.color,
@@ -200,6 +208,13 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
               <InfoRow label="Máx. usuarios" value={empresa.max_users} />
             </Section>
 
+            <Section title="Datos legales (contratos)">
+              <InfoRow label="Domicilio" value={empresa.domicilio || '—'} />
+              <InfoRow label="Representante legal" value={empresa.representante_legal || '—'} />
+              <InfoRow label="RUT representante" value={empresa.representante_legal_rut || '—'} />
+              <InfoRow label="Cargo" value={empresa.representante_legal_cargo || '—'} />
+            </Section>
+
             {/* BD operacional */}
             <Section title="BD operacional">
               <code style={{ fontSize: 11, color: '#3C3489', fontFamily: 'monospace', wordBreak: 'break-all' }}>
@@ -242,6 +257,18 @@ export default function ClienteDetailPanel({ empresa, onClose, onUpdated, onSusp
             </EditField>
             <EditField label="Teléfono">
               <input value={editForm.contact_phone} onChange={e => setEditForm(f => ({ ...f, contact_phone: e.target.value }))} style={inputSm} />
+            </EditField>
+            <EditField label="Domicilio (para contratos)">
+              <input value={editForm.domicilio} onChange={e => setEditForm(f => ({ ...f, domicilio: e.target.value }))} placeholder="Av. Ejemplo 1234, Antofagasta" style={inputSm} />
+            </EditField>
+            <EditField label="Representante legal">
+              <input value={editForm.representante_legal} onChange={e => setEditForm(f => ({ ...f, representante_legal: e.target.value }))} placeholder="Nombre completo" style={inputSm} />
+            </EditField>
+            <EditField label="RUT del representante">
+              <input value={editForm.representante_legal_rut} onChange={e => setEditForm(f => ({ ...f, representante_legal_rut: e.target.value }))} placeholder="12.345.678-9" style={inputSm} />
+            </EditField>
+            <EditField label="Cargo del representante">
+              <input value={editForm.representante_legal_cargo} onChange={e => setEditForm(f => ({ ...f, representante_legal_cargo: e.target.value }))} placeholder="Gerente General" style={inputSm} />
             </EditField>
             <EditField label="Plan">
               <select value={editForm.plan_id} onChange={e => setEditForm(f => ({ ...f, plan_id: parseInt(e.target.value) }))} style={inputSm}>

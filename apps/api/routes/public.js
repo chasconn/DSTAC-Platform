@@ -197,4 +197,35 @@ router.get('/security-activity', async (req, res) => {
   }
 })
 
+// GET /api/public/verificar-contrato/:codigo — confirma que un contrato
+// firmado electrónicamente es auténtico (mismo patrón que /verificar para
+// certificados Ley 21.663/21.719). No expone el contenido del contrato ni
+// RUTs — solo lo necesario para validar que la firma existe y corresponde.
+router.get('/verificar-contrato/:codigo', async (req, res) => {
+  try {
+    const [[d]] = await centralDB.query(
+      `SELECT co.numero, co.estado, co.hash_documento, co.created_at,
+              co.firma_dstac, co.firma_cliente, c.name AS empresa
+         FROM contratos co JOIN companies c ON c.id = co.company_id
+        WHERE co.codigo_verificacion = ? LIMIT 1`,
+      [req.params.codigo])
+    if (!d) return res.json({ valido: false })
+
+    const fd = d.firma_dstac && typeof d.firma_dstac === 'string' ? JSON.parse(d.firma_dstac) : d.firma_dstac
+    const fc = d.firma_cliente && typeof d.firma_cliente === 'string' ? JSON.parse(d.firma_cliente) : d.firma_cliente
+    res.json({
+      valido: true,
+      empresa: d.empresa,
+      numero: d.numero,
+      estado: d.estado,
+      firmado_por_dstac: !!fd, firmado_dstac_at: fd?.fecha || null,
+      firmado_por_cliente: !!fc, firmado_cliente_at: fc?.fecha || null,
+      hash: d.hash_documento ? `${d.hash_documento.slice(0, 16)}…` : null,
+    })
+  } catch (e) {
+    console.error('public/verificar-contrato error:', e.message)
+    res.status(500).json({ valido: false })
+  }
+})
+
 module.exports = router

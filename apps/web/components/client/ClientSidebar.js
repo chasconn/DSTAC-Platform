@@ -24,6 +24,7 @@ const NAV_GESTION = [
   { href: '/client/capacitaciones', label: 'Capacitaciones', icon: IconCapacitaciones },
   { href: '/client/documentos',     label: 'Documentos',     icon: IconDocumentos    },
   { href: '/client/certificados',   label: 'Certificados',   icon: IconCertificados  },
+  { href: '/client/contratos',      label: 'Contratos',      icon: IconContratos     },
 ]
 
 const SECTION_LABEL = {
@@ -337,6 +338,15 @@ function IconCertificados({ active }) {
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ic(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <circle cx="12" cy="8" r="6"/>
       <path d="M9 13.5 7.5 22l4.5-2.5 4.5 2.5-1.5-8.5"/>
+    </svg>
+  )
+}
+function IconContratos({ active }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ic(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+      <path d="M14 3v6h6"/>
+      <path d="M9 17l2-2 2 2 3-3"/>
     </svg>
   )
 }
