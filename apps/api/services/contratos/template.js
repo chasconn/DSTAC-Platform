@@ -169,7 +169,7 @@ function renderContrato(data) {
   suscripción.</p>
 
   <p>Código de verificación pública de este contrato: <b>${codigoVerificacion || '—'}</b>
-  (verificable en portal.dstac.cl/verificar).</p>
+  (verificable en portal.dstac.cl/verificar — ingresa este código en el buscador de esa página).</p>
 
   <div style="display:flex;gap:40px;margin-top:30px;">
     <div style="flex:1;">${bloqueFirma('el Prestador', firmaDstac)}</div>
