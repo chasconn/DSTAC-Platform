@@ -9,7 +9,7 @@ const STATS_CONFIG = [
 
 export default function PersonalStats({ stats }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
       {STATS_CONFIG.map(({ key, label, border, color }) => (
         <div key={key} style={{
           background: '#fff',

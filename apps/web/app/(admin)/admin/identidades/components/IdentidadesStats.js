@@ -10,7 +10,7 @@ const STATS_CONFIG = [
 
 export default function IdentidadesStats({ stats }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
       {STATS_CONFIG.map(({ key, label, border, color }) => {
         const valor = stats ? (stats[key] ?? 0) : null
         // Cards de alerta con fondo coloreado cuando hay problemas
