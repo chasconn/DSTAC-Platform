@@ -388,9 +388,9 @@ function Section({ title, children }) {
 
 function InfoRow({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #f1efe8' }}>
-      <span style={{ fontSize: 12, color: '#888780' }}>{label}</span>
-      <span style={{ fontSize: 12, color: '#2C2C2A', fontWeight: 500 }}>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, padding: '5px 0', borderBottom: '1px solid #f1efe8' }}>
+      <span style={{ fontSize: 12, color: '#888780', flexShrink: 0 }}>{label}</span>
+      <span style={{ fontSize: 12, color: '#2C2C2A', fontWeight: 500, textAlign: 'right', minWidth: 0, wordBreak: 'break-word' }}>{value}</span>
     </div>
   )
 }
