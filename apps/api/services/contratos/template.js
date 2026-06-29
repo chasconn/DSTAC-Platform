@@ -62,7 +62,7 @@ function renderContrato(data) {
   const { numero, fecha, dstac, cliente, cotizacion, alcance = [], codigoVerificacion, firmaDstac, firmaCliente } = data
   const alcanceFilas = alcance.length
     ? alcance.map(filaAlcance).join('')
-    : `<tr><td colspan="4" style="padding:8px;border:1px solid #ddd;font-size:11.5px;color:#B23B3B;font-weight:700;">[COMPLETAR — describir IPs/dominios/VLANs específicos autorizados, no usar términos genéricos]</td></tr>`
+    : `<tr><td colspan="4" style="padding:8px;border:1px solid #ddd;font-size:11.5px;">Todos los equipos, servidores y redes de la empresa cliente, más los dominios que el cliente coordine con el Prestador antes del inicio del servicio.</td></tr>`
 
   return `
 <div style="font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;line-height:1.55;font-size:12.5px;max-width:760px;margin:0 auto;padding:40px 10px;">

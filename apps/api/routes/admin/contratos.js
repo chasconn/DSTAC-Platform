@@ -151,7 +151,6 @@ router.post('/:id/enviar', async (req, res, next) => {
     const alcance = datosAlcance(d)
 
     const faltan = [...camposFaltantes(dstac, 'DSTAC'), ...camposFaltantes(cliente, 'Cliente')]
-    if (!alcance.length) faltan.push('Anexo A: agrega al menos un activo autorizado')
     if (faltan.length) return res.status(400).json({ error: 'Faltan datos legales para enviar a firma', detalle: faltan })
 
     let cotizacion = null
