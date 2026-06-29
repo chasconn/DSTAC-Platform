@@ -1,5 +1,7 @@
 'use client'
 
+import { useIsMobile } from '../../../../../components/admin/FixedPortal'
+
 const ESTADO_STYLE = {
   activa:       { bg: '#EAF3DE', color: '#27500A' },
   inactiva:     { bg: '#F1EFE8', color: '#444441' },
@@ -68,6 +70,67 @@ const COLS = [
 ]
 
 export default function IdentidadesTabla({ identidades, loading, selected, onSelect, onEdit, onDelete }) {
+  const isMobile = useIsMobile()
+
+  if (loading) {
+    return (
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflow: 'hidden' }}>
+        {Array.from({ length: 5 }).map((_, i) => isMobile
+          ? <div key={i} style={{ height: 76, margin: 12, borderRadius: 10, background: '#f1efe8', animation: 'pulse 1.5s infinite' }} />
+          : <SkeletonRow key={i} />
+        )}
+      </div>
+    )
+  }
+
+  if (!identidades.length) {
+    return (
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', padding: '40px 16px', textAlign: 'center', color: '#888780', fontSize: 13 }}>
+        No se encontraron identidades
+      </div>
+    )
+  }
+
+  // En mobile, la tabla de columnas fijas obligaba a hacer scroll lateral
+  // para ver el resto de los datos. Se reemplaza por tarjetas apiladas con
+  // lo esencial — el resto de los campos se ve en el panel de detalle.
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {identidades.map(ident => {
+          const isSelected     = ident.id === selected?.id
+          const esComprometida = ident.estado === 'comprometida'
+          return (
+            <div key={ident.id} onClick={() => onSelect(ident)} style={{
+              background: esComprometida ? '#FFF5F5' : '#fff', borderRadius: 12,
+              border: `2px solid ${isSelected ? '#534AB7' : '#e2e0d8'}`,
+              padding: 14, cursor: 'pointer',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <span style={{ color: '#888780', flexShrink: 0 }}>{TIPO_ICONS[ident.tipo_identidad] || <IconOtro />}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#2C2C2A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ident.nombre}</span>
+                {esComprometida && <span title="Comprometida" style={{ color: '#E24B4A', fontSize: 12 }}>⚠</span>}
+              </div>
+              <div style={{ fontSize: 11, color: '#888780', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 10 }}>
+                {ident.identidad}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                <span style={{ background: ESTADO_STYLE[ident.estado]?.bg ?? '#F1EFE8', color: ESTADO_STYLE[ident.estado]?.color ?? '#444441', fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20, whiteSpace: 'nowrap' }}>
+                  {ESTADO_LABEL[ident.estado] ?? ident.estado}
+                </span>
+                <span style={{ fontSize: 11, color: '#888780', padding: '3px 0' }}>{TIPO_LABEL[ident.tipo_identidad] ?? ident.tipo_identidad ?? '—'}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }} onClick={e => e.stopPropagation()}>
+                <ActionBtn title="Editar" onClick={() => onEdit(ident)}><IconEdit /></ActionBtn>
+                <ActionBtn title="Eliminar" onClick={() => onDelete(ident)} danger><IconTrash /></ActionBtn>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e0d8', overflowX: 'auto' }}>
 
@@ -80,15 +143,7 @@ export default function IdentidadesTabla({ identidades, loading, selected, onSel
         ))}
       </div>
 
-      {loading && Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
-
-      {!loading && identidades.length === 0 && (
-        <div style={{ padding: '40px 16px', textAlign: 'center', color: '#888780', fontSize: 13 }}>
-          No se encontraron identidades
-        </div>
-      )}
-
-      {!loading && identidades.map(ident => {
+      {identidades.map(ident => {
         const isSelected    = ident.id === selected?.id
         const esComprometida = ident.estado === 'comprometida'
         const esExpirada    = ident.estado === 'expirada'
