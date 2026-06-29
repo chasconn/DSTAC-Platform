@@ -107,7 +107,7 @@ function ResumenTab({ domain, controls }) {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Implementados', v: impl, color: '#27500A', bg: '#EAF3DE' },
           { label: 'Parciales',     v: parc, color: '#633806', bg: '#FAEEDA' },
@@ -246,7 +246,7 @@ function EvidenciasTab({ domainId }) {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {[
           { l: 'Total',     v: evidencias.length, c: '#534AB7' },
           { l: 'Aprobadas', v: aprobadas,          c: '#27500A' },
@@ -324,7 +324,7 @@ function PlanAccionTab({ domainId }) {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {[
           { l: 'Total',      v: plan.length, c: '#534AB7' },
           { l: 'Pendiente',  v: pend,        c: '#791F1F' },

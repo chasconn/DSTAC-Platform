@@ -238,7 +238,7 @@ function EvidenciasTab({ evaluationId, functionId }) {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {[{ l: 'Total', v: total, c: '#534AB7' }, { l: 'Aprobadas', v: aprobadas, c: '#27500A' }, { l: 'Pendientes', v: pendientes, c: '#633806' }, { l: 'Rechazadas', v: rechazadas, c: '#791F1F' }].map(s => (
           <div key={s.l} style={{ background: '#fff', borderRadius: 10, border: '1px solid #e2e0d8', padding: '10px 12px', textAlign: 'center' }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: s.c }}>{s.v}</div>
@@ -308,7 +308,7 @@ function PlanAccionTab({ evaluationId, functionId }) {
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 14 }}>
         {[{ l: 'Total', v: plan.length, c: '#534AB7' }, { l: 'Pendiente', v: pend, c: '#791F1F' }, { l: 'En progreso', v: prog, c: '#633806' }, { l: 'Completadas', v: comp, c: '#27500A' }].map(s => (
           <div key={s.l} style={{ background: '#fff', borderRadius: 10, border: '1px solid #e2e0d8', padding: '10px 12px', textAlign: 'center' }}>
             <div style={{ fontSize: 20, fontWeight: 800, color: s.c }}>{s.v}</div>

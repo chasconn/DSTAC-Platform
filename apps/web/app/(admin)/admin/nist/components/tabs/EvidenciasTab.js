@@ -120,7 +120,7 @@ export default function EvidenciasTab({ slug, functionId, categories }) {
   return (
     <div>
       {/* Stats cards — 5 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 10, marginBottom: 16 }}>
         {[
           { label: 'Total',         value: total,         color: '#534AB7' },
           { label: 'Aprobadas',     value: aprobadas,     color: '#27500A' },

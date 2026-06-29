@@ -51,7 +51,7 @@ export default function GapIndicator({ scoreTotal = 0, gapTotal = 100, domains =
 
       {/* Minibarra por dominio */}
       {domains.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(60px, 1fr))', gap: 10 }}>
           {domains.map(d => {
             const ds = Math.round(Number(d.score) || 0)
             const dl = gapLevel(ds)

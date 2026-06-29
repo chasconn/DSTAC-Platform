@@ -30,7 +30,7 @@ export default function ResumenTab({ domain, controls, evaluationId }) {
   return (
     <div>
       {/* Fila de stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Implementados', value: impl,     color: '#27500A', bg: '#EAF3DE' },
           { label: 'Parciales',     value: parcial,  color: '#633806', bg: '#FAEEDA' },
