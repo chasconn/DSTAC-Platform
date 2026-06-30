@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../../../../lib/api'
 import FixedPortal from '../../../../components/admin/FixedPortal'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 
@@ -226,7 +227,7 @@ export default function MarketingPage() {
   // antes de enviar" por completo.
   async function enviarRapido(c) {
     if (!c.email_sugerido) { showToast('Este candidato no tiene correo — usa "Usar" y complétalo a mano'); return }
-    if (!confirm(`¿Enviar correo a ${c.email_sugerido} (${c.empresa})?`)) return
+    if (!await confirmDstac(`¿Enviar correo a ${c.email_sugerido} (${c.empresa})?`, { titulo: 'Enviar correo', textoConfirmar: 'Enviar' })) return
     try {
       await api.post('/api/admin/marketing/enviar', {
         empresa: c.empresa, nombre: '', email: c.email_sugerido, campana: 'pymes-chile', candidatoId: c.id,
@@ -247,7 +248,7 @@ export default function MarketingPage() {
 
   async function descartarSinCorreo() {
     if (sinCorreoCount === 0) { showToast('No hay candidatos sin correo para descartar'); return }
-    if (!confirm(`¿Descartar los ${sinCorreoCount} candidatos pendientes que no tienen correo detectado? Esta acción no se puede deshacer.`)) return
+    if (!await confirmDstac(`¿Descartar los ${sinCorreoCount} candidatos pendientes que no tienen correo detectado? Esta acción no se puede deshacer.`, { titulo: 'Descartar candidatos', textoConfirmar: 'Descartar', peligro: true })) return
     setDescartandoSinCorreo(true)
     try {
       const r = await api.post('/api/admin/marketing/candidatos/descartar-sin-correo', { campana: 'pymes-chile' })
@@ -267,7 +268,7 @@ export default function MarketingPage() {
     const candidatosConCorreo = candidatosFiltrados.filter(c => !!c.email_sugerido)
     const n = Math.min(Number(cantidadMasiva) || 0, candidatosConCorreo.length)
     if (n <= 0) { showToast('No hay candidatos con correo para enviar en el filtro actual'); return }
-    if (!confirm(`¿Enviar a los próximos ${n} candidatos con correo, de a 1 (con pausa entre cada envío)? Puedes detenerlo a mitad de camino.`)) return
+    if (!await confirmDstac(`¿Enviar a los próximos ${n} candidatos con correo, de a 1 (con pausa entre cada envío)? Puedes detenerlo a mitad de camino.`, { titulo: 'Envío masivo', textoConfirmar: 'Enviar' })) return
 
     detenerMasivoRef.current = false
     setEnvioMasivoActivo(true)
