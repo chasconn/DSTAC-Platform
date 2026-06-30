@@ -24,8 +24,9 @@ const NAV_GESTION = [
   { href: '/client/capacitaciones', label: 'Capacitaciones', icon: IconCapacitaciones },
   { href: '/client/documentos',     label: 'Documentos',     icon: IconDocumentos    },
   { href: '/client/certificados',   label: 'Certificados',   icon: IconCertificados  },
-  { href: '/client/contratos',      label: 'Contratos',      icon: IconContratos     },
-  { href: '/client/ordenes-compra', label: 'Órdenes de Compra', icon: IconOrdenCompra },
+  { href: '/client/contratos',      label: 'Contratos',      icon: IconContratos,    roleRequired: 'cliente_admin' },
+  { href: '/client/ordenes-compra', label: 'Órdenes de Compra', icon: IconOrdenCompra, roleRequired: 'cliente_admin' },
+  { href: '/client/equipo',         label: 'Mi equipo',      icon: IconEquipo,       roleRequired: 'cliente_admin' },
 ]
 
 const SECTION_LABEL = {
@@ -168,7 +169,7 @@ export default function ClientSidebar({ user, collapsed, onToggle }) {
           <div style={{ ...SECTION_LABEL, marginTop: 6 }}>Gestión</div>
         )}
         {effCollapsed && <div style={{ height: 8 }} />}
-        {NAV_GESTION.map(item => (
+        {NAV_GESTION.filter(item => !item.roleRequired || item.roleRequired === user?.role).map(item => (
           <NavItem key={item.href} {...item} />
         ))}
       </nav>
@@ -348,6 +349,16 @@ function IconContratos({ active }) {
       <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
       <path d="M14 3v6h6"/>
       <path d="M9 17l2-2 2 2 3-3"/>
+    </svg>
+  )
+}
+function IconEquipo({ active }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ic(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   )
 }
