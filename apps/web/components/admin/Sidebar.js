@@ -19,8 +19,9 @@ const NAV_GROUPS = [
     titulo: 'Comercial',
     items: [
       { href: '/admin/prospectos',     label: 'Prospectos',     icon: IconProspectos     },
-      { href: '/admin/cotizaciones',   label: 'Cotizaciones',   icon: IconCotizaciones   },
-      { href: '/admin/oportunidades',  label: 'Oportunidades',  icon: IconOportunidades  },
+      { href: '/admin/cotizaciones',    label: 'Cotizaciones',    icon: IconCotizaciones   },
+      { href: '/admin/ordenes-compra', label: 'Órdenes de Compra', icon: IconOrdenCompra },
+      { href: '/admin/oportunidades',  label: 'Oportunidades',   icon: IconOportunidades  },
       { href: '/admin/sitio',          label: 'Sitio web',      icon: IconSitio          },
       { href: '/admin/marketing',      label: 'Marketing',      icon: IconMarketing      },
       { href: '/admin/contratos',      label: 'Contratos',      icon: IconContratos      },
@@ -776,6 +777,15 @@ function IconContratos({ color }) {
       <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
       <path d="M14 3v6h6"/>
       <path d="M9 17l2-2 2 2 3-3"/>
+    </svg>
+  )
+}
+function IconOrdenCompra({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <path d="M8 21h8M12 17v4"/>
+      <path d="M7 8h10M7 12h6"/>
     </svg>
   )
 }
