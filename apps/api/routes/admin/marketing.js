@@ -29,7 +29,7 @@ const CAMPANAS = {
   'pymes-ruben': {
     render: ({ empresa, nombre }) => renderPymesEmail({ empresa, nombre, referido: 'Rubén Olivares' }),
     asunto: () => 'Ciberseguridad aplicada para tu empresa — DSTAC',
-    cc: 'rsol1821@gmail.com',
+    cc: 'ruben.dstac@outlook.es',
   },
 }
 
