@@ -216,10 +216,16 @@ resolver_nombre() {
 json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\n\r'
 }
+es_broadcast_o_multicast() {
+  case "$1" in *.255) return 0 ;; esac
+  case "$1" in 22[4-9].*|23[0-9].*) return 0 ;; esac
+  case "$2" in [Oo]1:00:5[Ee]:*|33:33:*|[Ff][Ff]:[Ff][Ff]:[Ff][Ff]:[Ff][Ff]:[Ff][Ff]:[Ff][Ff]) return 0 ;; esac
+  return 1
+}
 OUT=$( (ip neighbor show 2>/dev/null || arp -an 2>/dev/null) | while read -r line; do
   ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
   mac=$(echo "$line" | grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}')
-  if [ -n "$ip" ] && [ -n "$mac" ]; then
+  if [ -n "$ip" ] && [ -n "$mac" ] && ! es_broadcast_o_multicast "$ip" "$mac"; then
     host=$(resolver_nombre "$ip")
     if [ -n "$host" ]; then
       host=$(json_escape "$host")

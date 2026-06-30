@@ -60,6 +60,7 @@ app.use('/api/client/nist',        require('./routes/client/nist'))
 app.use('/api/client/iso',         require('./routes/client/iso'))
 app.use('/api/reports/client',     require('./routes/client/reportes'))
 app.use('/api/client/certificados', require('./routes/client/certificados'))
+app.use('/api/client/contratos',   require('./routes/client/contratos'))
 app.use('/api/admin/usuarios',     require('./routes/admin/usuarios'))
 app.use('/api/admin/nist',         require('./routes/admin/nist'))
 app.use('/api/admin/iso',          require('./routes/admin/iso'))
@@ -84,6 +85,7 @@ app.use('/api/admin/onboarding',   require('./routes/admin/onboarding'))
 app.use('/api/admin/gastos',       require('./routes/admin/gastos'))
 app.use('/api/admin/phishing',     require('./routes/admin/phishing'))
 app.use('/api/admin/oportunidades', require('./routes/admin/oportunidades'))
+app.use('/api/admin/contratos',    require('./routes/admin/contratos'))
 
 // Health check
 app.get('/api/health', (req, res) => {

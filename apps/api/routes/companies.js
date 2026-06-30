@@ -101,7 +101,8 @@ router.get('/:slug', requireAuth, requireRole(...READERS), async (req, res) => {
 router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
   try {
     const { name, slug, plan_id, billing_email, contact_phone, max_users,
-            theme_color, theme_light, theme_mid, rut, contacto_nombre } = req.body
+            theme_color, theme_light, theme_mid, rut, contacto_nombre,
+            domicilio, representante_legal, representante_legal_rut, representante_legal_cargo } = req.body
 
     if (!name || !slug || !plan_id) {
       return res.status(400).json({ error: 'name, slug y plan_id son requeridos' })
@@ -125,8 +126,9 @@ router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
     const [result] = await centralDB.execute(
       `INSERT INTO companies
          (name, slug, plan_id, db_name, status, billing_email, contact_phone,
-          max_users, theme_color, theme_light, theme_mid, rut, contacto_nombre)
-       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?)`,
+          max_users, theme_color, theme_light, theme_mid, rut, contacto_nombre,
+          domicilio, representante_legal, representante_legal_rut, representante_legal_cargo)
+       VALUES (?, ?, ?, ?, 'active', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name, slug, parseInt(plan_id, 10), dbName,
         billing_email  || null,
@@ -136,7 +138,11 @@ router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
         theme_light || '#EEEDFE',
         theme_mid   || '#534AB7',
         rut || null,
-        contacto_nombre || null
+        contacto_nombre || null,
+        domicilio || null,
+        representante_legal || null,
+        representante_legal_rut || null,
+        representante_legal_cargo || null,
       ]
     )
 
@@ -170,7 +176,8 @@ router.post('/', requireAuth, requireRole(...MANAGERS), async (req, res) => {
 router.put('/:slug', requireAuth, requireRole(...MANAGERS), async (req, res) => {
   try {
     const { name, plan_id, billing_email, contact_phone, max_users,
-            theme_color, theme_light, theme_mid, rut, contacto_nombre } = req.body
+            theme_color, theme_light, theme_mid, rut, contacto_nombre,
+            domicilio, representante_legal, representante_legal_rut, representante_legal_cargo } = req.body
 
     if (plan_id && !VALID_PLANS.includes(parseInt(plan_id, 10))) {
       return res.status(400).json({ error: 'Plan inválido' })
@@ -190,6 +197,10 @@ router.put('/:slug', requireAuth, requireRole(...MANAGERS), async (req, res) => 
     if (theme_color   !== undefined) { fields.push('theme_color = ?');   values.push(theme_color) }
     if (theme_light   !== undefined) { fields.push('theme_light = ?');   values.push(theme_light) }
     if (theme_mid     !== undefined) { fields.push('theme_mid = ?');     values.push(theme_mid) }
+    if (domicilio     !== undefined) { fields.push('domicilio = ?');     values.push(domicilio || null) }
+    if (representante_legal      !== undefined) { fields.push('representante_legal = ?');      values.push(representante_legal || null) }
+    if (representante_legal_rut  !== undefined) { fields.push('representante_legal_rut = ?');  values.push(representante_legal_rut || null) }
+    if (representante_legal_cargo !== undefined) { fields.push('representante_legal_cargo = ?'); values.push(representante_legal_cargo || null) }
 
     if (fields.length === 0) {
       return res.status(400).json({ error: 'Nada que actualizar' })

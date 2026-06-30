@@ -18,10 +18,21 @@ resolver_nombre() {
   echo "$name"
 }
 
+# Descarta broadcast (x.x.x.255) y multicast (224.0.0.0-239.255.255.255, MAC
+# 01:00:5E:*/33:33:*) — son entradas de protocolo de la tabla ARP/vecinos, no
+# equipos reales, y antes se reportaban como "dispositivos" con fabricante
+# desconocido.
+es_broadcast_o_multicast() {
+  case "$1" in *.255) return 0 ;; esac
+  case "$1" in 22[4-9].*|23[0-9].*) return 0 ;; esac
+  case "$2" in [Oo]1:00:5[Ee]:*|33:33:*|[Ff][Ff]:[Ff][Ff]:[Ff][Ff]:[Ff][Ff]:[Ff][Ff]:[Ff][Ff]) return 0 ;; esac
+  return 1
+}
+
 OUT=$( (ip neighbor show 2>/dev/null || arp -an 2>/dev/null) | while read -r line; do
   ip=$(echo "$line" | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
   mac=$(echo "$line" | grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}')
-  if [ -n "$ip" ] && [ -n "$mac" ]; then
+  if [ -n "$ip" ] && [ -n "$mac" ] && ! es_broadcast_o_multicast "$ip" "$mac"; then
     host=$(resolver_nombre "$ip")
     if [ -n "$host" ]; then
       printf '{"ip":"%s","mac":"%s","hostname":"%s"},' "$ip" "$mac" "$host"

@@ -381,10 +381,18 @@ namespace DstacEdrInstaller
                     "function Resolver-Nombre($ip) {\r\n" +
                     "  try { return ([System.Net.Dns]::GetHostEntry($ip)).HostName } catch { return $null }\r\n" +
                     "}\r\n" +
+                    "function Es-BroadcastOMulticast($ip, $mac) {\r\n" +
+                    "  if ($ip.EndsWith(\".255\")) { return $true }\r\n" +
+                    "  $primerOcteto = [int]($ip.Split(\".\")[0])\r\n" +
+                    "  if ($primerOcteto -ge 224 -and $primerOcteto -le 239) { return $true }\r\n" +
+                    "  if ($mac -like \"01:00:5E:*\" -or $mac -like \"33:33:*\" -or $mac -eq \"FF:FF:FF:FF:FF:FF\") { return $true }\r\n" +
+                    "  return $false\r\n" +
+                    "}\r\n" +
                     "$items = @()\r\n" +
                     "try {\r\n" +
                     "  Get-NetNeighbor -AddressFamily IPv4 -ErrorAction Stop | Where-Object { $_.LinkLayerAddress -match \"^[0-9a-fA-F]{2}(-[0-9a-fA-F]{2}){5}$\" } | ForEach-Object {\r\n" +
                     "    $mac = ($_.LinkLayerAddress -replace \"-\", \":\").ToUpper()\r\n" +
+                    "    if (Es-BroadcastOMulticast $_.IPAddress $mac) { return }\r\n" +
                     "    $obj = [PSCustomObject]@{ ip = $_.IPAddress; mac = $mac }\r\n" +
                     "    $host_ = Resolver-Nombre $_.IPAddress\r\n" +
                     "    if ($host_) { $obj | Add-Member -NotePropertyName hostname -NotePropertyValue $host_ }\r\n" +
@@ -394,6 +402,7 @@ namespace DstacEdrInstaller
                     "  arp -a | Select-String \"(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\s+([0-9a-fA-F-]{17})\" | ForEach-Object {\r\n" +
                     "    $ip = $_.Matches[0].Groups[1].Value\r\n" +
                     "    $mac = ($_.Matches[0].Groups[2].Value -replace \"-\", \":\").ToUpper()\r\n" +
+                    "    if (Es-BroadcastOMulticast $ip $mac) { return }\r\n" +
                     "    $obj = [PSCustomObject]@{ ip = $ip; mac = $mac }\r\n" +
                     "    $host_ = Resolver-Nombre $ip\r\n" +
                     "    if ($host_) { $obj | Add-Member -NotePropertyName hostname -NotePropertyValue $host_ }\r\n" +

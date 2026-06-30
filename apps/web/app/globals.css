@@ -326,6 +326,18 @@ body[data-modal-open] button:focus {
   filter: invert(1) hue-rotate(180deg);
 }
 
+/* Overlays con position:fixed (CotizacionDetalle, CotizacionModal, CatalogoModal)
+   se renderizan via React portal en document.body — fuera de .admin-shell-main —
+   por lo que el filtro del ancestro no los alcanza. Se les aplica directamente. */
+[data-theme="dark"] .cot-fixed-overlay {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+[data-theme="dark"] .cot-fixed-overlay img,
+[data-theme="dark"] .cot-fixed-overlay video,
+[data-theme="dark"] .cot-fixed-overlay [data-noinvert] {
+  filter: invert(1) hue-rotate(180deg);
+}
+
 /* Interruptor de tema en el sidebar */
 .theme-toggle {
   display: flex;

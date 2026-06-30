@@ -42,6 +42,10 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
     contacto_nombre: initial?.contacto_nombre || '',
     billing_email: initial?.billing_email || '',
     contact_phone: initial?.contact_phone || '',
+    domicilio:                 initial?.domicilio || '',
+    representante_legal:       initial?.representante_legal || '',
+    representante_legal_rut:   initial?.representante_legal_rut || '',
+    representante_legal_cargo: initial?.representante_legal_cargo || '',
     theme:         THEMES[0],
   })
   const [slugEditado, setSlugEditado] = useState(false)
@@ -102,6 +106,10 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
         contacto_nombre: form.contacto_nombre || undefined,
         billing_email: form.billing_email || undefined,
         contact_phone: form.contact_phone || undefined,
+        domicilio:                 form.domicilio || undefined,
+        representante_legal:       form.representante_legal || undefined,
+        representante_legal_rut:   form.representante_legal_rut || undefined,
+        representante_legal_cargo: form.representante_legal_cargo || undefined,
         theme_color:   form.theme.color,
         theme_light:   form.theme.light,
         theme_mid:     form.theme.color,
@@ -237,6 +245,46 @@ export default function ClienteFormModal({ onClose, onCreated, initial }) {
               style={inputStyle}
             />
           </Field>
+
+          {/* Datos legales para contratos */}
+          <Field label="Domicilio" hint="Para contratos y autorizaciones de intervención">
+            <input
+              value={form.domicilio}
+              onChange={e => setForm(f => ({ ...f, domicilio: e.target.value }))}
+              placeholder="Av. Ejemplo 1234, of. 56, Antofagasta"
+              style={inputStyle}
+            />
+          </Field>
+          <Field label="Representante legal" hint="Nombre de quien tiene poder para firmar contratos por la empresa">
+            <input
+              value={form.representante_legal}
+              onChange={e => setForm(f => ({ ...f, representante_legal: e.target.value }))}
+              placeholder="Nombre completo"
+              style={inputStyle}
+            />
+          </Field>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <Field label="RUT del representante">
+                <input
+                  value={form.representante_legal_rut}
+                  onChange={e => setForm(f => ({ ...f, representante_legal_rut: e.target.value }))}
+                  placeholder="12.345.678-9"
+                  style={inputStyle}
+                />
+              </Field>
+            </div>
+            <div style={{ flex: 1 }}>
+              <Field label="Cargo">
+                <input
+                  value={form.representante_legal_cargo}
+                  onChange={e => setForm(f => ({ ...f, representante_legal_cargo: e.target.value }))}
+                  placeholder="Gerente General"
+                  style={inputStyle}
+                />
+              </Field>
+            </div>
+          </div>
 
           {/* Tema del portal */}
           <Field label="Tema del portal cliente">
