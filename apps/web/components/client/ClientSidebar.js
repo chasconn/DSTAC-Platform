@@ -25,6 +25,7 @@ const NAV_GESTION = [
   { href: '/client/documentos',     label: 'Documentos',     icon: IconDocumentos    },
   { href: '/client/certificados',   label: 'Certificados',   icon: IconCertificados  },
   { href: '/client/contratos',      label: 'Contratos',      icon: IconContratos     },
+  { href: '/client/ordenes-compra', label: 'Órdenes de Compra', icon: IconOrdenCompra },
 ]
 
 const SECTION_LABEL = {
@@ -347,6 +348,15 @@ function IconContratos({ active }) {
       <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
       <path d="M14 3v6h6"/>
       <path d="M9 17l2-2 2 2 3-3"/>
+    </svg>
+  )
+}
+function IconOrdenCompra({ active }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ic(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <path d="M8 21h8M12 17v4"/>
+      <path d="M7 8h10M7 12h6"/>
     </svg>
   )
 }
