@@ -299,7 +299,7 @@ router.post('/ver-como-cliente', requireAuth, requireDstacRole, async (req, res)
         user_id: req.user.user_id || req.user.id,
         id: req.user.user_id || req.user.id,
         email: req.user.email,
-        role: 'cliente_lectura',
+        role: 'cliente_admin',
         company_id: company.id,
         company_slug: company.slug,
         plan: company.plan_name || null,
