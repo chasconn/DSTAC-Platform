@@ -10,6 +10,7 @@ const NAVY = '#1a1740', PURPLE = '#534AB7'
 const CAMPANAS = {
   'exponor-2026': { label: 'Exponor 2026', subtitulo: 'Seguimiento a contactos conocidos en la feria — envía uno por uno.' },
   'pymes-chile':  { label: 'Prospección pymes Chile', subtitulo: 'Busca empresas por rubro/ciudad y envía a los candidatos que apruebes.' },
+  'pymes-ruben':  { label: 'Referidos de Rubén Olivares', subtitulo: 'Contactos que Rubén ya conversó por su cuenta — escribe los datos a mano. Le llega copia para que haga seguimiento.' },
 }
 
 function fechaHora(d) {
@@ -449,7 +450,7 @@ export default function MarketingPage() {
             style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ECEAE3', marginBottom: 12, fontSize: 14, boxSizing: 'border-box' }} />
 
           <label style={{ fontSize: 12, fontWeight: 600, color: '#8A877E', display: 'block', marginBottom: 4 }}>
-            Nombre del contacto{campana === 'pymes-chile' ? ' (opcional)' : ''}
+            Nombre del contacto{campana !== 'exponor-2026' ? ' (opcional)' : ''}
           </label>
           <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: María Pérez"
             style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ECEAE3', marginBottom: 12, fontSize: 14, boxSizing: 'border-box' }} />
@@ -472,6 +473,8 @@ export default function MarketingPage() {
           <div style={{ fontSize: 11.5, color: '#8A877E', marginTop: 10, lineHeight: 1.5 }}>
             {campana === 'exponor-2026'
               ? 'La vista previa se actualiza automáticamente. "Escanear tarjeta" usa la cámara del celular y completa los campos — siempre revisa antes de enviar.'
+              : campana === 'pymes-ruben'
+              ? 'Completa los datos del contacto a mano. El correo se envía con copia a Rubén para que pueda hacer seguimiento.'
               : 'Usa un candidato de la lista de arriba o completa los datos a mano. Siempre revisa antes de enviar.'}
           </div>
         </div>

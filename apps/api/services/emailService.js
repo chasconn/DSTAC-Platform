@@ -39,14 +39,18 @@ async function getToken() {
 // mailbox opcional: buzón emisor distinto a MAIL_FROM (necesita permiso "Enviar
 // como" sobre ese buzón) — se usa para que el phishing no salga siempre desde
 // la casilla personal del usuario.
-async function sendMail(to, subject, html, attachments = [], mailbox = null) {
+// cc opcional: string o array de strings — copia visible, para que alguien
+// pueda hacer seguimiento sin ser el destinatario principal.
+async function sendMail(to, subject, html, attachments = [], mailbox = null, cc = null) {
   const token = await getToken()
   const destinatarios = (Array.isArray(to) ? to : [to]).filter(Boolean)
+  const copia = (Array.isArray(cc) ? cc : [cc]).filter(Boolean)
   const message = {
     subject,
     body: { contentType: 'HTML', content: html },
     toRecipients: destinatarios.map(addr => ({ emailAddress: { address: addr } }))
   }
+  if (copia.length) message.ccRecipients = copia.map(addr => ({ emailAddress: { address: addr } }))
   if (attachments.length) {
     message.attachments = attachments.map(a => ({
       '@odata.type': '#microsoft.graph.fileAttachment',

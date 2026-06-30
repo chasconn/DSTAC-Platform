@@ -3,6 +3,9 @@
 // su propia plantilla:
 //   - exponor-2026: seguimiento a contactos conocidos en la feria Exponor
 //   - pymes-chile:  prospeccion fria, candidatos encontrados via Google Places
+//   - pymes-ruben:  contactos que Ruben Olivares ya converso por su cuenta —
+//                   misma plantilla que pymes-chile, mencionandolo, con copia
+//                   a su correo para que pueda hacer seguimiento
 const router  = require('express').Router()
 const { requireAuth, requireDstacRole } = require('../../middleware/auth')
 const centralDB = require('../../db/central')
@@ -22,6 +25,11 @@ const CAMPANAS = {
   'pymes-chile': {
     render: renderPymesEmail,
     asunto: () => 'Ciberseguridad aplicada para tu empresa — DSTAC',
+  },
+  'pymes-ruben': {
+    render: ({ empresa, nombre }) => renderPymesEmail({ empresa, nombre, referido: 'Rubén Olivares' }),
+    asunto: () => 'Ciberseguridad aplicada para tu empresa — DSTAC',
+    cc: 'rsol1821@gmail.com',
   },
 }
 
@@ -114,11 +122,11 @@ router.post('/enviar', async (req, res, next) => {
     }
 
     const nombreFinal = nombre?.trim() || 'equipo'
-    const { render, asunto } = CAMPANAS[campana]
+    const { render, asunto, cc } = CAMPANAS[campana]
     const html = render({ empresa, nombre: nombreFinal })
 
     try {
-      await sendMail(email.trim(), asunto(nombreFinal), html)
+      await sendMail(email.trim(), asunto(nombreFinal), html, [], null, cc || null)
       await centralDB.execute(
         `INSERT INTO marketing_envios (campana, empresa, contacto_nombre, contacto_email, estado, html_enviado, created_by)
          VALUES (?,?,?,?,'enviado',?,?)`,

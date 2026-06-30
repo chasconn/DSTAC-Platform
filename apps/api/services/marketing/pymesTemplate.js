@@ -4,13 +4,19 @@
 // encuentro previo con el contacto.
 const { FIRMA_HTML } = require('./firma')
 
-function renderPymesEmail({ nombre, empresa }) {
+// referido (opcional): nombre de quien ya tuvo el primer contacto humano con
+// esta empresa (ej. Rubén Olivares, vía sus propios contactos) — agrega una
+// línea de apertura distinta, antes del resto del correo (idéntico al resto).
+function renderPymesEmail({ nombre, empresa, referido }) {
   const nombreLimpio = (nombre || '').trim()
   const safeEmpresa = (empresa || '').trim() || 'tu empresa'
   // La mayoria de las empresas encontradas por busqueda no tienen un nombre de
   // contacto (solo un correo generico de la pagina). "Hola estimado contacto"
   // suena forzado -- si no hay nombre, se saluda a la empresa directamente.
   const saludo = nombreLimpio ? `Hola ${nombreLimpio},` : `Hola, equipo de ${safeEmpresa}`
+  const lineaReferido = referido
+    ? `<p style="margin:0 0 14px 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.65; color:#3a3a3a;">Según lo conversado con <strong>${referido}</strong>, te escribimos para contarte más sobre cómo podemos ayudar a ${safeEmpresa}.</p>`
+    : ''
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -51,6 +57,7 @@ function renderPymesEmail({ nombre, empresa }) {
         <tr>
           <td style="padding:40px 40px 12px 40px;">
             <h1 style="margin:0 0 18px 0; font-family:Arial, Helvetica, sans-serif; font-size:25px; line-height:1.35; color:#1a1530;">${saludo}</h1>
+            ${lineaReferido}
             <p style="margin:0 0 14px 0; font-family:Arial, Helvetica, sans-serif; font-size:15px; line-height:1.65; color:#3a3a3a;">
               Somos DSTAC, una consultora chilena de ciberseguridad. Trabajamos con empresas
               como ${safeEmpresa} para identificar y cerrar brechas de seguridad antes de que
