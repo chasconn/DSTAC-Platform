@@ -171,11 +171,13 @@ router.get('/security-activity', async (req, res) => {
     const [agentes, stats, [[bloqueos]]] = await Promise.all([
       wazuhApi.getAgentsSummary(),
       wazuhApi.getTodayStats(),
-      // Regla 651 "Host Blocked": total histórico de intentos de fuerza bruta
-      // que el EDR bloqueó automáticamente (active response), agregado de
+      // Regla 651 "Host Blocked": intentos de fuerza bruta que el EDR bloqueó
+      // automáticamente (active response) en los últimos 7 días, agregado de
       // todos los clientes — solo el conteo, nunca IPs ni nombres de empresa.
+      // Antes era un total histórico acumulado (creció una sola vez y luego
+      // quedó estático); la ventana de 7 días sí se mueve con la actividad real.
       centralDB.query(
-        `SELECT COUNT(*) AS n FROM edr_alerts WHERE rule_id = 651`
+        `SELECT COUNT(*) AS n FROM edr_alerts WHERE rule_id = 651 AND created_at >= (NOW() - INTERVAL 7 DAY)`
       ),
     ])
     const data = {
@@ -183,7 +185,7 @@ router.get('/security-activity', async (req, res) => {
       endpoints_monitoreados: agentes.activos,
       alertas_hoy: stats.alertas,
       eventos_hoy: stats.eventos,
-      fuerza_bruta_bloqueada_total: bloqueos?.n || 0,
+      fuerza_bruta_bloqueada_7d: bloqueos?.n || 0,
       serie_horas: stats.serie,
       actualizado_at: new Date().toISOString(),
     }
