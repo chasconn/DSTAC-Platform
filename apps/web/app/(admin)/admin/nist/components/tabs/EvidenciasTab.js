@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
 import EvidenciaPanel from '../panels/EvidenciaPanel'
 import FixedPortal from '../../../../../../components/admin/FixedPortal'
+import { confirmDstac, alertDstac } from '../../../../../../components/admin/ConfirmDialog'
 
 const STATUS_MAP = {
   pendiente: { bg: '#FAEEDA', color: '#633806', label: 'Pendiente' },
@@ -66,7 +67,7 @@ export default function EvidenciasTab({ slug, functionId, categories }) {
 
   async function handleUpload(e) {
     const file = e.target.files?.[0]
-    if (!file || !uploadCtrl) return alert('Selecciona un control primero')
+    if (!file || !uploadCtrl) return alertDstac('Selecciona un control primero', { titulo: 'Falta el control' })
     const form = new FormData()
     form.append('file', file)
     form.append('control_id', uploadCtrl)
@@ -77,7 +78,7 @@ export default function EvidenciasTab({ slug, functionId, categories }) {
         { method: 'POST', credentials: 'include', headers: { 'X-Company-Slug': slug }, body: form }
       )
       await cargar()
-    } catch { alert('Error al subir evidencia') }
+    } catch { alertDstac('Error al subir evidencia', { titulo: 'Error', tipo: 'error' }) }
     finally { setUploading(false); e.target.value = '' }
   }
 
@@ -90,16 +91,16 @@ export default function EvidenciasTab({ slug, functionId, categories }) {
       })
       setEvidencias(prev => prev.map(ev => ev.id === id ? { ...ev, status } : ev))
       if (selected?.id === id) setSelected(prev => ({ ...prev, status }))
-    } catch (err) { alert(err.message) }
+    } catch (err) { alertDstac(err.message, { titulo: 'Error', tipo: 'error' }) }
   }
 
   async function handleEliminar(id) {
-    if (!confirm('¿Eliminar esta evidencia?')) return
+    if (!await confirmDstac('¿Eliminar esta evidencia?', { titulo: 'Eliminar evidencia', textoConfirmar: 'Eliminar', peligro: true })) return
     try {
       await apiFetch(`/api/admin/nist/evidencias/${id}`, { method: 'DELETE', headers })
       setEvidencias(prev => prev.filter(ev => ev.id !== id))
       if (selected?.id === id) setSelected(null)
-    } catch (err) { alert(err.message) }
+    } catch (err) { alertDstac(err.message, { titulo: 'Error', tipo: 'error' }) }
   }
 
   // Stats

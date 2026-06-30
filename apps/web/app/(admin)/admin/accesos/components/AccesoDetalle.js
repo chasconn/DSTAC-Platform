@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { apiFetch } from '../../../../../lib/api'
 import FixedPortal, { useIsMobile } from '../../../../../components/admin/FixedPortal'
+import { alertDstac } from '../../../../../components/admin/ConfirmDialog'
 
 const NIVEL_LABEL  = { root: 'Root', administrador: 'Administrador', escritura: 'Escritura', lectura: 'Lectura', otro: 'Otro' }
 const ESTADO_LABEL = { activo: 'Activo', expirado: 'Expirado', suspendido: 'Suspendido', pendiente_revision: 'Pendiente revisión', inactivo: 'Inactivo' }
@@ -71,7 +72,7 @@ export default function AccesoDetalle({ acceso, empresaSlug, onClose, onEdit, on
       })
       onDeleted()
     } catch (err) {
-      alert(err.message || 'Error al suspender')
+      alertDstac(err.message || 'Error al suspender', { titulo: 'Error', tipo: 'error' })
     } finally {
       setSuspending(false)
     }

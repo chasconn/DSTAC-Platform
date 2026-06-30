@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
+import { confirmDstac, alertDstac } from '../../../../components/admin/ConfirmDialog'
 import { NIVEL, ESTADO, CATEGORIA } from './components/constants'
 import RiesgosStats  from './components/RiesgosStats'
 import MatrizRiesgos from './components/MatrizRiesgos'
@@ -107,7 +108,7 @@ export default function RiesgosPage() {
   }
 
   async function eliminar(r) {
-    if (!confirm(`¿Eliminar el riesgo "${r.nombre}"?`)) return
+    if (!await confirmDstac(`¿Eliminar el riesgo "${r.nombre}"?`, { titulo: 'Eliminar riesgo', textoConfirmar: 'Eliminar', peligro: true })) return
     try { await apiFetch(`/api/admin/riesgos/${r.id}`, { method: 'DELETE', headers }); setViendo(null); showToast('Riesgo eliminado'); cargar() }
     catch (err) { showToast(err.message || 'Error', 'error') }
   }
@@ -238,7 +239,7 @@ function abrirPdf(b64, filename = 'Informe.pdf') {
     const close = () => { ov.remove(); URL.revokeObjectURL(url); document.removeEventListener('keydown', k) }
     const k = (e) => { if (e.key === 'Escape') close() }
     cl.onclick = close; ov.addEventListener('click', e => { if (e.target === ov) close() }); document.addEventListener('keydown', k)
-  } catch (e) { alert('No se pudo abrir el PDF: ' + e) }
+  } catch (e) { alertDstac('No se pudo abrir el PDF: ' + e, { titulo: 'Error', tipo: 'error' }) }
 }
 
 function useIsMobile(bp = 820) {

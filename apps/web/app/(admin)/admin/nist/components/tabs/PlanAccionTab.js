@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
 import FixedPortal from '../../../../../../components/admin/FixedPortal'
+import { alertDstac } from '../../../../../../components/admin/ConfirmDialog'
 
 const PRIORITY_MAP = {
   critica: { bg: '#FCEBEB', color: '#791F1F', label: 'Crítica'   },
@@ -65,7 +66,7 @@ export default function PlanAccionTab({ slug, evaluationId }) {
       })
       await cargar()
       setEditing(null)
-    } catch (err) { alert(err.message) }
+    } catch (err) { alertDstac(err.message, { titulo: 'Error', tipo: 'error' }) }
   }
 
   return (

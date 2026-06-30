@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 import FunctionCard  from './components/FunctionCard'
 import NistScoreRing from './components/NistScoreRing'
 
@@ -68,7 +69,7 @@ export default function NistPage() {
   }
 
   async function nuevaEvaluacion() {
-    if (!confirm('¿Crear una nueva evaluación? La evaluación activa actual será archivada.')) return
+    if (!await confirmDstac('¿Crear una nueva evaluación? La evaluación activa actual será archivada.', { titulo: 'Nueva evaluación', textoConfirmar: 'Crear' })) return
     setCreating(true)
     try {
       await apiFetch('/api/admin/nist/evaluacion', {

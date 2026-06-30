@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
 import FixedPortal from '../../../../components/admin/FixedPortal'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 const ESTADO = { borrador: { label: 'Borrador', bg: '#F1EFE8', text: '#444441' }, enviada: { label: 'Enviada', bg: '#E6F1FB', text: '#0C447C' } }
@@ -76,7 +77,7 @@ export default function PhishingPage() {
   }
 
   async function eliminarCampana(id) {
-    if (!confirm('¿Eliminar esta campaña y sus destinatarios?')) return
+    if (!await confirmDstac('¿Eliminar esta campaña y sus destinatarios?', { titulo: 'Eliminar campaña', textoConfirmar: 'Eliminar', peligro: true })) return
     try { await api.delete(`/api/admin/phishing/${id}`, headers); showToast('Campaña eliminada'); setDetalle(null); cargarCampanas() }
     catch (e) { showToast(e.message || 'Error al eliminar') }
   }

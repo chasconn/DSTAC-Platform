@@ -5,6 +5,7 @@
 // y las imágenes siguen viviendo en el sitio; el home no cambia).
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../../../../lib/api'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 
 export default function SitioPage() {
   const [data,    setData]    = useState(null)   // { enabled, heading, items }
@@ -68,7 +69,7 @@ export default function SitioPage() {
   }
 
   async function eliminar(id) {
-    if (!confirm('¿Eliminar este logo del home?')) return
+    if (!await confirmDstac('¿Eliminar este logo del home?', { titulo: 'Eliminar logo', textoConfirmar: 'Eliminar', peligro: true })) return
     try { await api.delete(`/api/admin/trustbar/logo/${id}`); showToast('Logo eliminado'); cargar() }
     catch (err) { showToast(err.message || 'Error', 'error') }
   }

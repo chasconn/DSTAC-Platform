@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 import GapIndicator from './components/GapIndicator'
 import DomainCard   from './components/DomainCard'
 
@@ -66,7 +67,7 @@ export default function IsoPage() {
   }
 
   async function nuevaEvaluacion() {
-    if (!confirm('¿Crear una nueva evaluación ISO? La evaluación activa será archivada.')) return
+    if (!await confirmDstac('¿Crear una nueva evaluación ISO? La evaluación activa será archivada.', { titulo: 'Nueva evaluación', textoConfirmar: 'Crear' })) return
     setCreating(true)
     try {
       await apiFetch('/api/admin/iso/evaluacion', {

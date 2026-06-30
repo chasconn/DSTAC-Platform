@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
 import FixedPortal from '../../../../../../components/admin/FixedPortal'
+import { alertDstac } from '../../../../../../components/admin/ConfirmDialog'
 
 const STATUS_OPTIONS = [
   { value: 'pendiente',    label: 'Pendiente',    bg: '#FCEBEB', color: '#791F1F' },
@@ -89,7 +90,7 @@ export default function ControlPanel({ control, slug, evaluationId, onClose, onS
       })
       onSaved?.()
     } catch (err) {
-      alert(err.message || 'Error al guardar')
+      alertDstac(err.message || 'Error al guardar', { titulo: 'Error', tipo: 'error' })
     } finally {
       setSaving(false)
     }

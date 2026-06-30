@@ -6,6 +6,7 @@ import UsuariosTabla       from './components/UsuariosTabla'
 import UsuarioDetalle      from './components/UsuarioDetalle'
 import UsuarioModal        from './components/UsuarioModal'
 import UsuarioDeleteModal  from './components/UsuarioDeleteModal'
+import { confirmDstac, alertDstac } from '../../../../components/admin/ConfirmDialog'
 
 const STATS_CONFIG = [
   { key: 'total',        label: 'Total usuarios',    borderColor: '#534AB7' },
@@ -111,7 +112,7 @@ export default function UsuariosPage() {
   }
 
   async function handleReset(u) {
-    if (!confirm(`¿Enviar nueva contraseña temporal a ${u.email}?`)) return
+    if (!await confirmDstac(`¿Enviar nueva contraseña temporal a ${u.email}?`, { titulo: 'Reenviar credenciales', textoConfirmar: 'Enviar' })) return
     try {
       const data = await apiFetch(`/api/admin/usuarios/${u.id}/reset-password`, { method: 'POST' })
       if (data?._dev_password) {
@@ -122,7 +123,7 @@ export default function UsuariosPage() {
       }
       cargarUsuarios(page)
     } catch (err) {
-      alert(err.message || 'Error al reenviar')
+      alertDstac(err.message || 'Error al reenviar', { titulo: 'Error', tipo: 'error' })
     }
   }
 

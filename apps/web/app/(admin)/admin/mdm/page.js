@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
 import FixedPortal from '../../../../components/admin/FixedPortal'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 
@@ -71,7 +72,7 @@ export default function MdmPage() {
 
   async function comando(device_name, type) {
     const txt = { LOCK: 'bloquear', RESET_PASSWORD: 'resetear el PIN de', REBOOT: 'reiniciar', WIPE: 'BORRAR (restaurar de fábrica)' }[type]
-    if (!confirm(`¿Seguro que quieres ${txt} este dispositivo?`)) return
+    if (!await confirmDstac(`¿Seguro que quieres ${txt} este dispositivo?`, { titulo: 'Comando MDM', textoConfirmar: 'Confirmar', peligro: type === 'WIPE' })) return
     try { await api.post('/api/admin/mdm/devices/comando', { device_name, type }, headers); showToast('Comando enviado'); setTimeout(cargar, 1200) }
     catch (e) { showToast(e.message || 'No se pudo enviar el comando') }
   }

@@ -6,6 +6,7 @@ import { clp, ESTADO } from './components/format'
 import CotizacionModal   from './components/CotizacionModal'
 import CotizacionDetalle from './components/CotizacionDetalle'
 import CatalogoModal     from './components/CatalogoModal'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 
 const SEL = { padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, color: '#2C2C2A', background: '#fff', outline: 'none' }
 
@@ -67,7 +68,7 @@ export default function CotizacionesPage() {
     catch (err) { showToast(err.message || 'Error', 'error') }
   }
   async function eliminar(cot) {
-    if (!confirm(`¿Eliminar la cotización ${cot.numero}?`)) return
+    if (!await confirmDstac(`¿Eliminar la cotización ${cot.numero}?`, { titulo: 'Eliminar cotización', textoConfirmar: 'Eliminar', peligro: true })) return
     try { await apiFetch(`/api/admin/cotizaciones/${cot.id}`, { method: 'DELETE' }); setViendo(null); showToast('Cotización eliminada'); cargar() }
     catch (err) { showToast(err.message || 'Error', 'error') }
   }

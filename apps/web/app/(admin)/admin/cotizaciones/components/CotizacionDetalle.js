@@ -6,6 +6,7 @@ import { apiFetch } from '../../../../../lib/api'
 import { clp, ESTADO, TIPO_LINEA, totales } from './format'
 import { previewCotizacion } from './quotePreview'
 import FixedPortal from '../../../../../components/admin/FixedPortal'
+import { confirmDstac, alertDstac } from '../../../../../components/admin/ConfirmDialog'
 
 const fmt = (d) => { try { return new Date(String(d).slice(0, 10) + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' }) } catch { return d } }
 
@@ -18,18 +19,18 @@ export default function CotizacionDetalle({ cot, onClose, onEditar, onEliminar, 
 
   async function enviarAlCliente() {
     const lista = destinatarios.split(/[,;\s]+/).map(s => s.trim()).filter(Boolean)
-    if (!lista.length) { alert('Ingresa al menos un correo de destino'); return }
-    if (!confirm(`¿Enviar la cotización ${cot.numero} a ${lista.join(', ')}?`)) return
+    if (!lista.length) { await alertDstac('Ingresa al menos un correo de destino', { titulo: 'Falta el destinatario' }); return }
+    if (!await confirmDstac(`¿Enviar la cotización ${cot.numero} a ${lista.join(', ')}?`, { titulo: 'Enviar cotización', textoConfirmar: 'Enviar' })) return
     setEnviando(true)
     try {
       await apiFetch(`/api/admin/cotizaciones/${cot.id}/enviar`, {
         method: 'POST',
         body: JSON.stringify({ to: lista, adjuntar_muestra_edr: adjuntarMuestraEdr }),
       })
-      alert(`Cotización enviada a ${lista.join(', ')}`)
+      await alertDstac(`Cotización enviada a ${lista.join(', ')}`, { titulo: 'Enviada' })
       onEnviada?.()
     } catch (err) {
-      alert(err.message || 'No se pudo enviar la cotización')
+      await alertDstac(err.message || 'No se pudo enviar la cotización', { titulo: 'Error', tipo: 'error' })
     } finally {
       setEnviando(false)
     }

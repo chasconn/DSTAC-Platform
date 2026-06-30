@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { alertDstac } from './ConfirmDialog'
 
 // Vista previa in-page con zoom (idéntica a la del módulo Prospectos / panel de leads).
 function dstacReportPreview(html) {
@@ -47,7 +48,7 @@ function dstacReportPreview(html) {
   setTimeout(fit, 500)
   zin.onclick = () => setZ(zoom + 0.1); zout.onclick = () => setZ(zoom - 0.1); zlbl.onclick = fit
   box.addEventListener('wheel', (e) => { if (e.ctrlKey) { e.preventDefault(); setZ(zoom + (e.deltaY < 0 ? 0.1 : -0.1)) } }, { passive: false })
-  dl.onclick = () => { try { ifr.contentWindow.focus(); ifr.contentWindow.print() } catch (e) { alert('No se pudo abrir el guardado: ' + e) } }
+  dl.onclick = () => { try { ifr.contentWindow.focus(); ifr.contentWindow.print() } catch (e) { alertDstac('No se pudo abrir el guardado: ' + e, { titulo: 'Error', tipo: 'error' }) } }
   const close = () => { ov.remove(); document.removeEventListener('keydown', onKey) }
   const onKey = (e) => { if (e.key === 'Escape') close() }
   cl.onclick = close; ov.addEventListener('click', (e) => { if (e.target === ov) close() }); document.addEventListener('keydown', onKey)
@@ -63,7 +64,7 @@ export default function BotonInforme({ tipo, slug, label = 'Generar informe', qu
     if (!sl && typeof window !== 'undefined') {
       try { sl = JSON.parse(localStorage.getItem('empresa_activa') || '{}').slug } catch {}
     }
-    if (!sl) { alert('Selecciona una empresa primero'); return }
+    if (!sl) { await alertDstac('Selecciona una empresa primero', { titulo: 'Falta la empresa' }); return }
     setLoading(true)
     try {
       const qs = new URLSearchParams({ format: 'html', ...query }).toString()
@@ -71,13 +72,13 @@ export default function BotonInforme({ tipo, slug, label = 'Generar informe', qu
       if (!res.ok) {
         let msg = 'No se pudo generar el informe'
         try { const j = await res.json(); msg = j.message || j.error || msg } catch {}
-        alert(msg)
+        await alertDstac(msg, { titulo: 'Error', tipo: 'error' })
         return
       }
       const html = await res.text()
       dstacReportPreview(html)
     } catch {
-      alert('Error generando el informe')
+      await alertDstac('Error generando el informe', { titulo: 'Error', tipo: 'error' })
     } finally {
       setLoading(false)
     }

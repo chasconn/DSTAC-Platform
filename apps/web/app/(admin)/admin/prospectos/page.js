@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { api } from '../../../../lib/api'
 import ClienteFormModal from '../clientes/components/ClienteFormModal'
+import { alertDstac } from '../../../../components/admin/ConfirmDialog'
 
 const ESTADOS = [
   { v: 'nuevo',      label: 'Nuevo',      color: '#534AB7', bg: '#EEEDFE' },
@@ -99,7 +100,7 @@ function dstacReportPreview(html) {
   setTimeout(fit, 500)
   zin.onclick = () => setZ(zoom + 0.1); zout.onclick = () => setZ(zoom - 0.1); zlbl.onclick = fit
   box.addEventListener('wheel', (e) => { if (e.ctrlKey) { e.preventDefault(); setZ(zoom + (e.deltaY < 0 ? 0.1 : -0.1)) } }, { passive: false })
-  dl.onclick = () => { try { ifr.contentWindow.focus(); ifr.contentWindow.print() } catch (e) { alert('No se pudo abrir el guardado: ' + e) } }
+  dl.onclick = () => { try { ifr.contentWindow.focus(); ifr.contentWindow.print() } catch (e) { alertDstac('No se pudo abrir el guardado: ' + e, { titulo: 'Error', tipo: 'error' }) } }
   const close = () => { ov.remove(); document.removeEventListener('keydown', onKey) }
   const onKey = (e) => { if (e.key === 'Escape') close() }
   cl.onclick = close; ov.addEventListener('click', (e) => { if (e.target === ov) close() }); document.addEventListener('keydown', onKey)

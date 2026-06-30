@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { getUser, clearSession } from '../../lib/auth'
 import EmpresaSelectorModal from './EmpresaSelectorModal'
+import { alertDstac } from './ConfirmDialog'
 
 const NAV_GROUPS = [
   {
@@ -114,7 +115,7 @@ export default function Sidebar() {
       if (!r.ok) throw new Error(d.error || 'No se pudo entrar al portal cliente')
       window.location.href = '/client/dashboard'
     } catch (e) {
-      alert(e.message || 'No se pudo entrar al portal cliente')
+      alertDstac(e.message || 'No se pudo entrar al portal cliente', { titulo: 'Error', tipo: 'error' })
       setViendoComoCliente(false)
     }
   }

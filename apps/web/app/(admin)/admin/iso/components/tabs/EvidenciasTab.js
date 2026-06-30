@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
+import { confirmDstac } from '../../../../../../components/admin/ConfirmDialog'
 
 const STATUS_STYLE = {
   aprobada:  { label: 'Aprobada',  color: '#27500A', bg: '#EAF3DE' },
@@ -100,7 +101,7 @@ export default function EvidenciasTab({ domainId, slug }) {
   }
 
   async function eliminar(id) {
-    if (!confirm('¿Eliminar esta evidencia?')) return
+    if (!await confirmDstac('¿Eliminar esta evidencia?', { titulo: 'Eliminar evidencia', textoConfirmar: 'Eliminar', peligro: true })) return
     try {
       await apiFetch(`/api/admin/iso/evidencias/${id}`, { method: 'DELETE', headers })
       showToast('Evidencia eliminada')

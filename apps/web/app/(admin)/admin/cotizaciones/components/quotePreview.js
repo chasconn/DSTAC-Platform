@@ -1,6 +1,7 @@
 // Construye el HTML branded de la cotización y lo muestra en una vista previa
 // con zoom + "Guardar PDF" (impresión del navegador). 100% cliente.
 import { totales } from './format'
+import { alertDstac } from '../../../../../components/admin/ConfirmDialog'
 
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const clp = (n) => '$' + new Intl.NumberFormat('es-CL').format(Number(n) || 0)
@@ -219,7 +220,7 @@ export function previewCotizacion(c) {
   setTimeout(fit, 400)
   zin.onclick = () => setZ(zoom + 0.1); zout.onclick = () => setZ(zoom - 0.1); zlbl.onclick = fit
   box.addEventListener('wheel', (e) => { if (e.ctrlKey) { e.preventDefault(); setZ(zoom + (e.deltaY < 0 ? 0.1 : -0.1)) } }, { passive: false })
-  dl.onclick = () => { try { ifr.contentWindow.focus(); ifr.contentWindow.print() } catch (e) { alert('No se pudo abrir el guardado: ' + e) } }
+  dl.onclick = () => { try { ifr.contentWindow.focus(); ifr.contentWindow.print() } catch (e) { alertDstac('No se pudo abrir el guardado: ' + e, { titulo: 'Error', tipo: 'error' }) } }
   const close = () => { ov.remove(); document.removeEventListener('keydown', onKey) }
   const onKey = (e) => { if (e.key === 'Escape') close() }
   cl.onclick = close; ov.addEventListener('click', e => { if (e.target === ov) close() }); document.addEventListener('keydown', onKey)

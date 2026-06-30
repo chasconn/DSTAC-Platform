@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
+import { confirmDstac } from '../../../../../../components/admin/ConfirmDialog'
 
 // Estilos por estado del documento de política
 const STATUS_STYLE = {
@@ -143,7 +144,7 @@ export default function PoliticasTab({ domainId, slug }) {
   }
 
   async function eliminarDocumento(p) {
-    if (!confirm(`¿Eliminar el documento de política de ${p.id}?`)) return
+    if (!await confirmDstac(`¿Eliminar el documento de política de ${p.id}?`, { titulo: 'Eliminar documento', textoConfirmar: 'Eliminar', peligro: true })) return
     setBusy(p.id)
     try {
       await apiFetch(`/api/admin/iso/politicas/${encodeURIComponent(p.id)}/documento`, {

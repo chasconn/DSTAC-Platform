@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 
 const NAVY = '#1a1740', PURPLE = '#534AB7'
 const ESTADO_COLOR = {
@@ -71,7 +72,7 @@ export default function ContratosPage() {
   }
 
   async function eliminarBorrador(id, numero) {
-    if (!confirm(`¿Eliminar el borrador ${numero}? Esta acción no se puede deshacer.`)) return
+    if (!await confirmDstac(`¿Eliminar el borrador ${numero}? Esta acción no se puede deshacer.`, { titulo: 'Eliminar borrador', textoConfirmar: 'Eliminar', peligro: true })) return
     try {
       await api.delete(`/api/admin/contratos/${id}`)
       showToast('Borrador eliminado')

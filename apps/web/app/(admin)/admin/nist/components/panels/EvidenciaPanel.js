@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
 import FixedPortal from '../../../../../../components/admin/FixedPortal'
+import { alertDstac } from '../../../../../../components/admin/ConfirmDialog'
 
 const STATUS_MAP = {
   pendiente: { bg: '#FAEEDA', color: '#633806', label: 'Pendiente'  },
@@ -99,7 +100,7 @@ export default function EvidenciaPanel({ evidencia, slug, allEvidencias = [], on
         body: JSON.stringify({ status, comments: comment })
       })
       onUpdated?.({ ...evidencia, status, comments: comment })
-    } catch (err) { alert(err.message) }
+    } catch (err) { alertDstac(err.message, { titulo: 'Error', tipo: 'error' }) }
     finally { setSaving(false) }
   }
 

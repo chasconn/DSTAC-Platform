@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import ClientSidebar from './ClientSidebar'
+import { alertDstac } from '../admin/ConfirmDialog'
 
 // Genera blanco plomito: 93% blanco + 7% del color del tema → tinte muy sutil
 function dashboardBg(hex) {
@@ -58,7 +59,7 @@ export default function ClientShell({ user, theme, children, suplantando, empres
       if (!r.ok) throw new Error((await r.json()).error || 'No se pudo volver')
       window.location.href = '/admin/dashboard'
     } catch (e) {
-      alert(e.message || 'No se pudo volver al panel admin')
+      alertDstac(e.message || 'No se pudo volver al panel admin', { titulo: 'Error', tipo: 'error' })
       setVolviendo(false)
     }
   }

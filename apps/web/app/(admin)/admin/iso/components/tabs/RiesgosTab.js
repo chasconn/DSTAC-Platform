@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiFetch } from '../../../../../../lib/api'
 import RiesgoPanel from '../panels/RiesgoPanel'
+import { confirmDstac } from '../../../../../../components/admin/ConfirmDialog'
 
 const RISK_COLORS = {
   critico: { color: '#E24B4A', bg: '#FCEBEB', label: 'Crítico' },
@@ -104,7 +105,7 @@ export default function RiesgosTab({ domainId, slug }) {
   useEffect(() => { cargar() }, [cargar])
 
   async function eliminar(id) {
-    if (!confirm('¿Eliminar este riesgo?')) return
+    if (!await confirmDstac('¿Eliminar este riesgo?', { titulo: 'Eliminar riesgo', textoConfirmar: 'Eliminar', peligro: true })) return
     try {
       await apiFetch(`/api/admin/iso/riesgos/${id}`, { method: 'DELETE', headers })
       showToast('Riesgo eliminado')

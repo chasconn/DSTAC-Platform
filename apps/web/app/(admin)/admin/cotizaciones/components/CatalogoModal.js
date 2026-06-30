@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react'
 import { apiFetch } from '../../../../../lib/api'
 import FixedPortal from '../../../../../components/admin/FixedPortal'
+import { confirmDstac } from '../../../../../components/admin/ConfirmDialog'
 
 const inp = { padding: '7px 9px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 12.5, color: '#2C2C2A', background: '#fff', outline: 'none' }
 const vacio = { nombre: '', detalle: '', tipo: 'unico', nivel: '', precio_sugerido: '' }
@@ -43,7 +44,7 @@ export default function CatalogoModal({ onClose, onChanged }) {
     try { await apiFetch(`/api/admin/cotizaciones/catalogo/${c.id}`, { method: 'PUT', body: JSON.stringify({ activo: c.activo ? 0 : 1 }) }); await refrescar() } catch {}
   }
   async function eliminar(id) {
-    if (!confirm('¿Eliminar este servicio del catálogo?')) return
+    if (!await confirmDstac('¿Eliminar este servicio del catálogo?', { titulo: 'Eliminar servicio', textoConfirmar: 'Eliminar', peligro: true })) return
     try { await apiFetch(`/api/admin/cotizaciones/catalogo/${id}`, { method: 'DELETE' }); await refrescar() } catch {}
   }
 

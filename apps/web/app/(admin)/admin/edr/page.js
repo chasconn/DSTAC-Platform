@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../../../../lib/api'
 import BotonInforme from '../../../../components/admin/BotonInforme'
+import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 
 // ── Instaladores de agente — comandos listos para copiar/pegar. La clave de
 // enrolamiento NO se expone aquí (vive en /var/ossec/etc/authd.pass del
@@ -280,7 +281,7 @@ export default function EdrPage() {
   }
 
   async function responder(wazuhId, action, target, label) {
-    if (!confirm(`¿${label}${target ? ' ' + target : ''}?\nEsta acción se ejecuta en el endpoint (${wazuhId}).`)) return
+    if (!await confirmDstac(`¿${label}${target ? ' ' + target : ''}?\nEsta acción se ejecuta en el endpoint (${wazuhId}).`, { titulo: 'Respuesta activa', textoConfirmar: 'Ejecutar', peligro: true })) return
     try {
       const data = await api.post(`/api/admin/edr/agents/${wazuhId}/responder`, { action, target }, headers)
       showToast(data.message || 'Acción enviada')
@@ -293,9 +294,10 @@ export default function EdrPage() {
 
   async function toggleProteccion() {
     const next = !protegida
-    if (!confirm(next
-      ? '¿Activar la protección EDR de esta empresa?'
-      : '¿Desactivar la protección EDR?\n\nSe dejarán de ingestar alertas de sus agentes y no se podrá ejecutar respuesta activa hasta reactivarla.')) return
+    if (!await confirmDstac(
+      next ? '¿Activar la protección EDR de esta empresa?' : '¿Desactivar la protección EDR?\n\nSe dejarán de ingestar alertas de sus agentes y no se podrá ejecutar respuesta activa hasta reactivarla.',
+      { titulo: next ? 'Activar protección' : 'Desactivar protección', textoConfirmar: next ? 'Activar' : 'Desactivar', peligro: !next }
+    )) return
     try {
       await api.put('/api/admin/edr/proteccion', { enabled: next }, headers)
       showToast(next ? 'Protección ACTIVADA' : 'Protección DESACTIVADA')
@@ -306,7 +308,7 @@ export default function EdrPage() {
   }
 
   async function bloquearTodo() {
-    if (!confirm('¿Bloquear TODAS las IPs de origen detectadas en las alertas de esta empresa?\n\nSe ejecuta firewall-drop en los endpoints correspondientes (solo agentes activos).')) return
+    if (!await confirmDstac('¿Bloquear TODAS las IPs de origen detectadas en las alertas de esta empresa?\n\nSe ejecuta firewall-drop en los endpoints correspondientes (solo agentes activos).', { titulo: 'Bloqueo masivo', textoConfirmar: 'Bloquear todo', peligro: true })) return
     try {
       const data = await api.post('/api/admin/edr/bloquear-todo', {}, headers)
       showToast(data.message || 'Bloqueo masivo enviado')
@@ -318,7 +320,8 @@ export default function EdrPage() {
 
   async function mover(wazuhId, name, companyId) {
     const dest = empresas.find(e => String(e.id) === String(companyId))
-    if (!dest || !confirm(`¿Mover "${name}" a ${dest.name}?`)) return
+    if (!dest) return
+    if (!await confirmDstac(`¿Mover "${name}" a ${dest.name}?`, { titulo: 'Mover equipo', textoConfirmar: 'Mover' })) return
     try {
       const d = await api.post(`/api/admin/edr/agents/${wazuhId}/mover`, { company_id: companyId }, headers)
       showToast(d.message || 'Equipo movido')
@@ -355,7 +358,7 @@ export default function EdrPage() {
   }
 
   async function darDeBaja(wazuhId, name) {
-    if (!confirm(`¿Dar de baja el equipo "${name}"?\n\nSe eliminará del EDR (Wazuh + portal). Úsalo si el equipo fue robado, reemplazado o retirado. Si vuelve, hay que reinstalar el agente.`)) return
+    if (!await confirmDstac(`¿Dar de baja el equipo "${name}"?\n\nSe eliminará del EDR (Wazuh + portal). Úsalo si el equipo fue robado, reemplazado o retirado. Si vuelve, hay que reinstalar el agente.`, { titulo: 'Dar de baja', textoConfirmar: 'Dar de baja', peligro: true })) return
     try {
       const d = await api.post(`/api/admin/edr/agents/${wazuhId}/desactivar`, {}, headers)
       showToast(d.message || 'Equipo dado de baja')
