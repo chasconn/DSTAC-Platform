@@ -19,7 +19,7 @@ async function migrate() {
       id              INT AUTO_INCREMENT PRIMARY KEY,
       titulo          VARCHAR(255) NOT NULL,
       slug            VARCHAR(255) NOT NULL,
-      contenido       MEDIUMTEXT NOT NULL DEFAULT '',
+      contenido       MEDIUMTEXT NOT NULL,
       carpeta         VARCHAR(150) NULL,
       tags            JSON NULL,
       visibilidad     ENUM('privada','equipo') NOT NULL DEFAULT 'privada',
