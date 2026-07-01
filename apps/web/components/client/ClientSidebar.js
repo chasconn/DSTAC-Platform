@@ -24,9 +24,8 @@ const NAV_GESTION = [
   { href: '/client/capacitaciones', label: 'Capacitaciones', icon: IconCapacitaciones },
   { href: '/client/documentos',     label: 'Documentos',     icon: IconDocumentos    },
   { href: '/client/certificados',   label: 'Certificados',   icon: IconCertificados  },
-  { href: '/client/contratos',      label: 'Contratos',      icon: IconContratos,    roleRequired: 'cliente_admin' },
-  { href: '/client/ordenes-compra', label: 'Órdenes de Compra', icon: IconOrdenCompra, roleRequired: 'cliente_admin' },
-  { href: '/client/equipo',         label: 'Mi equipo',      icon: IconEquipo,       roleRequired: 'cliente_admin' },
+  { href: '/client/cotizaciones',   label: 'Cotizaciones',   icon: IconCotizaciones  },
+  { href: '/client/contratos',      label: 'Contratos',      icon: IconContratos     },
 ]
 
 const SECTION_LABEL = {
@@ -169,7 +168,7 @@ export default function ClientSidebar({ user, collapsed, onToggle }) {
           <div style={{ ...SECTION_LABEL, marginTop: 6 }}>Gestión</div>
         )}
         {effCollapsed && <div style={{ height: 8 }} />}
-        {NAV_GESTION.filter(item => !item.roleRequired || item.roleRequired === user?.role).map(item => (
+        {NAV_GESTION.map(item => (
           <NavItem key={item.href} {...item} />
         ))}
       </nav>
@@ -343,31 +342,21 @@ function IconCertificados({ active }) {
     </svg>
   )
 }
+function IconCotizaciones({ active }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ic(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>
+    </svg>
+  )
+}
 function IconContratos({ active }) {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ic(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
       <path d="M14 3v6h6"/>
       <path d="M9 17l2-2 2 2 3-3"/>
-    </svg>
-  )
-}
-function IconEquipo({ active }) {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ic(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-    </svg>
-  )
-}
-function IconOrdenCompra({ active }) {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ic(active)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <rect x="2" y="3" width="20" height="14" rx="2"/>
-      <path d="M8 21h8M12 17v4"/>
-      <path d="M7 8h10M7 12h6"/>
     </svg>
   )
 }
