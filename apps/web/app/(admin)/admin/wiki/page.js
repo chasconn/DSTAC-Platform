@@ -7,6 +7,7 @@ import { apiFetch } from '../../../../lib/api'
 import { confirmDstac } from '../../../../components/admin/ConfirmDialog'
 import WikiViewer from '../../../../components/admin/wiki/WikiViewer'
 import WikiEditorForm from '../../../../components/admin/wiki/WikiEditorForm'
+import WikiImportModal from '../../../../components/admin/wiki/WikiImportModal'
 import { slugify } from '../../../../components/admin/wiki/wikiSlug'
 
 const SEL = { padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e0d8', fontSize: 13, color: '#2C2C2A', background: '#fff', outline: 'none' }
@@ -41,6 +42,7 @@ export default function WikiPage() {
 
   const [notaActiva, setNotaActiva] = useState(null) // detalle completo
   const [modo, setModo] = useState('viendo') // viendo | creando | editando
+  const [importOpen, setImportOpen] = useState(false)
   const [subiendoAdjunto, setSubiendoAdjunto] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -163,6 +165,9 @@ export default function WikiPage() {
           <Link href="/admin/wiki/grafo" style={{ ...SEL, display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', color: '#444441', fontWeight: 600 }}>
             🕸️ Ver grafo
           </Link>
+          <button onClick={() => setImportOpen(true)} style={{ ...SEL, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: '#444441', fontWeight: 600 }}>
+            📥 Importar .md
+          </button>
           <button onClick={nuevaNota} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#3C3489', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>+ Nueva nota</button>
         </div>
       </div>
@@ -237,6 +242,10 @@ export default function WikiPage() {
           )}
         </div>
       </div>
+
+      {importOpen && (
+        <WikiImportModal onClose={() => setImportOpen(false)} onImportado={cargarLista} />
+      )}
     </div>
   )
 }

@@ -33,6 +33,16 @@ const upload = multer({
   },
 })
 
+const uploadMd = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024, files: 100 },
+  fileFilter: (req, file, cb) => {
+    const ext = file.originalname.split('.').pop().toLowerCase()
+    if (['md', 'markdown', 'txt'].includes(ext)) return cb(null, true)
+    cb(new Error('Solo se pueden importar archivos .md, .markdown o .txt'))
+  },
+})
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
 function slugify(str) {
@@ -247,46 +257,53 @@ router.get('/:id', async (req, res, next) => {
 
 // ─── CREAR ──────────────────────────────────────────────────────────────────────
 // POST /api/admin/wiki  { titulo, contenido?, carpeta?, tags?, visibilidad? }
+// Crea una nota o reclama la fantasma propia con el mismo slug. Corre dentro de
+// una transacción ya abierta por el caller (no hace commit/rollback). Lanza un
+// Error con .status=409 si ya existe una nota real propia con ese título.
+async function crearOReclamarNota(conn, { titulo, contenido, carpeta, tags, visibilidad, userId }) {
+  const slug = slugify(titulo)
+  if (!slug) { const e = new Error('Título inválido'); e.status = 400; throw e }
+
+  const [existentes] = await conn.execute('SELECT * FROM wiki_notes WHERE slug = ? AND creado_por = ?', [slug, userId])
+  let notaId, reclamada = false
+
+  if (existentes.length && !existentes[0].es_fantasma) {
+    const e = new Error(`Ya tienes una nota con el título "${titulo}"`)
+    e.status = 409
+    throw e
+  }
+
+  if (existentes.length && existentes[0].es_fantasma) {
+    notaId = existentes[0].id
+    reclamada = true
+    await conn.execute(
+      `UPDATE wiki_notes SET titulo=?, contenido=?, carpeta=?, tags=?, visibilidad=?, es_fantasma=0,
+         actualizado_por=? WHERE id=?`,
+      [titulo.trim(), contenido, carpeta, tags ? JSON.stringify(tags) : null, visibilidad, userId, notaId]
+    )
+  } else {
+    const [ins] = await conn.execute(
+      `INSERT INTO wiki_notes (titulo, slug, contenido, carpeta, tags, visibilidad, es_fantasma, creado_por, actualizado_por)
+       VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+      [titulo.trim(), slug, contenido, carpeta, tags ? JSON.stringify(tags) : null, visibilidad, userId, userId]
+    )
+    notaId = ins.insertId
+  }
+
+  await sincronizarEnlaces(conn, notaId, contenido, userId, visibilidad)
+  return { notaId, slug, reclamada }
+}
+
 router.post('/', async (req, res, next) => {
   const { titulo, contenido = '', carpeta = null, tags = null, visibilidad = 'privada' } = req.body || {}
   if (!titulo?.trim()) return res.status(400).json({ error: 'El título es obligatorio' })
   if (!['privada', 'equipo'].includes(visibilidad)) return res.status(400).json({ error: 'Visibilidad inválida' })
 
-  const slug = slugify(titulo)
-  if (!slug) return res.status(400).json({ error: 'Título inválido' })
   const userId = req.user.user_id || req.user.id
-
   const conn = await centralDB.getConnection()
   try {
     await conn.beginTransaction()
-
-    // Reclama nota fantasma propia con el mismo slug (creada por un enlace previo mío)
-    const [existentes] = await conn.execute('SELECT * FROM wiki_notes WHERE slug = ? AND creado_por = ?', [slug, userId])
-    let notaId, reclamada = false
-
-    if (existentes.length && !existentes[0].es_fantasma) {
-      await conn.rollback()
-      return res.status(409).json({ error: 'Ya tienes una nota con ese título' })
-    }
-
-    if (existentes.length && existentes[0].es_fantasma) {
-      notaId = existentes[0].id
-      reclamada = true
-      await conn.execute(
-        `UPDATE wiki_notes SET titulo=?, contenido=?, carpeta=?, tags=?, visibilidad=?, es_fantasma=0,
-           actualizado_por=? WHERE id=?`,
-        [titulo.trim(), contenido, carpeta, tags ? JSON.stringify(tags) : null, visibilidad, userId, notaId]
-      )
-    } else {
-      const [ins] = await conn.execute(
-        `INSERT INTO wiki_notes (titulo, slug, contenido, carpeta, tags, visibilidad, es_fantasma, creado_por, actualizado_por)
-         VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-        [titulo.trim(), slug, contenido, carpeta, tags ? JSON.stringify(tags) : null, visibilidad, userId, userId]
-      )
-      notaId = ins.insertId
-    }
-
-    await sincronizarEnlaces(conn, notaId, contenido, userId, visibilidad)
+    const { notaId, slug, reclamada } = await crearOReclamarNota(conn, { titulo, contenido, carpeta, tags, visibilidad, userId })
     await conn.commit()
 
     await registrarActividad({
@@ -297,10 +314,50 @@ router.post('/', async (req, res, next) => {
     res.status(201).json({ id: notaId, slug, reclamada })
   } catch (err) {
     await conn.rollback()
+    if (err.status) return res.status(err.status).json({ error: err.message })
     next(err)
   } finally {
     conn.release()
   }
+})
+
+// ─── IMPORTAR ARCHIVOS .MD ───────────────────────────────────────────────────────
+// POST /api/admin/wiki/import — multipart, campo "archivos" (múltiples .md/.markdown/.txt)
+// Body además: carpeta? (destino común), visibilidad? (privada|equipo, para todo el lote)
+router.post('/import', uploadMd.array('archivos', 100), async (req, res, next) => {
+  const userId = req.user.user_id || req.user.id
+  const carpeta = req.body?.carpeta?.trim() || null
+  const visibilidad = ['privada', 'equipo'].includes(req.body?.visibilidad) ? req.body.visibilidad : 'privada'
+
+  if (!req.files?.length) return res.status(400).json({ error: 'Sin archivos' })
+
+  const creadas = [], reclamadas = [], omitidas = []
+
+  for (const file of req.files) {
+    const titulo = file.originalname.replace(/\.(md|markdown|txt)$/i, '').trim()
+    const contenido = file.buffer.toString('utf8')
+    if (!titulo) { omitidas.push({ archivo: file.originalname, motivo: 'Nombre de archivo inválido' }); continue }
+
+    const conn = await centralDB.getConnection()
+    try {
+      await conn.beginTransaction()
+      const { notaId, reclamada } = await crearOReclamarNota(conn, { titulo, contenido, carpeta, tags: null, visibilidad, userId })
+      await conn.commit()
+      if (reclamada) reclamadas.push({ id: notaId, titulo })
+      else creadas.push({ id: notaId, titulo })
+    } catch (err) {
+      await conn.rollback()
+      omitidas.push({ archivo: file.originalname, motivo: err.status === 409 ? 'Ya existe una nota con ese título' : (err.message || 'Error al importar') })
+    } finally {
+      conn.release()
+    }
+  }
+
+  await registrarActividad({
+    req, accion: 'crear', modulo: 'wiki',
+    descripcion: `Importó ${creadas.length + reclamadas.length} nota(s) desde archivos .md${omitidas.length ? ` (${omitidas.length} omitidas)` : ''}`,
+  })
+  res.status(201).json({ creadas, reclamadas, omitidas })
 })
 
 // ─── ACTUALIZAR ─────────────────────────────────────────────────────────────────
