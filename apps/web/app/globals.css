@@ -406,3 +406,20 @@ body[data-modal-open] button:focus {
     z-index: 150;
   }
 }
+
+/* ── Wiki interna — tipografía del contenido renderizado ─────────────────── */
+.wiki-content { font-size: 14px; line-height: 1.65; color: #2C2C2A; }
+.wiki-h { font-weight: 700; color: #2C2C2A; margin: 18px 0 8px; }
+.wiki-h1 { font-size: 20px; } .wiki-h2 { font-size: 17px; }
+.wiki-h3 { font-size: 15px; } .wiki-h4 { font-size: 14px; }
+.wiki-p { margin: 0 0 12px; }
+.wiki-list { margin: 0 0 12px; padding-left: 22px; }
+.wiki-list li { margin-bottom: 4px; }
+.wiki-quote { margin: 0 0 12px; padding: 4px 14px; border-left: 3px solid var(--dstac-800, #3C3489); color: #666; }
+.wiki-quote p { margin: 0 0 4px; }
+.wiki-hr { border: none; border-top: 1px solid #e2e0d8; margin: 18px 0; }
+.wiki-codeblock { background: #faf9f6; border: 1px solid #e2e0d8; border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 0 0 12px; font-size: 12.5px; }
+.wiki-inline-code { background: #f1efe9; border-radius: 4px; padding: 1px 5px; font-size: 12.5px; font-family: ui-monospace, monospace; }
+.wiki-link { color: var(--dstac-800, #3C3489); text-decoration: none; font-weight: 600; border-bottom: 1px dashed var(--dstac-800, #3C3489); }
+.wiki-link:hover { border-bottom-style: solid; }
+.wiki-ext-link { color: #1D9E75; text-decoration: underline; }
