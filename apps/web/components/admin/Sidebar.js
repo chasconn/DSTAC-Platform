@@ -69,6 +69,7 @@ const NAV_GROUPS = [
       { href: '/admin/usuarios',      label: 'Usuarios',       icon: IconUsuarios      },
       { href: '/admin/invitaciones',  label: 'Equipo clientes', icon: IconInvitaciones  },
       { href: '/admin/pendientes',  label: 'Pendientes', icon: IconPendientes },
+      { href: '/admin/wiki',        label: 'Wiki interna', icon: IconWiki      },
       { href: '/admin/changelog',   label: 'Registro de cambios', icon: IconChangelog },
     ],
   },
@@ -796,6 +797,15 @@ function IconOrdenCompra({ color }) {
       <rect x="2" y="3" width="20" height="14" rx="2"/>
       <path d="M8 21h8M12 17v4"/>
       <path d="M7 8h10M7 12h6"/>
+    </svg>
+  )
+}
+function IconWiki({ color }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      <path d="M9 7h7M9 11h5"/>
     </svg>
   )
 }
