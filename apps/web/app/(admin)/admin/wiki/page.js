@@ -43,6 +43,8 @@ export default function WikiPage() {
   const [notaActiva, setNotaActiva] = useState(null) // detalle completo
   const [modo, setModo] = useState('viendo') // viendo | creando | editando
   const [importOpen, setImportOpen] = useState(false)
+  const [seleccionando, setSeleccionando] = useState(false)
+  const [seleccionadas, setSeleccionadas] = useState(new Set())
   const [subiendoAdjunto, setSubiendoAdjunto] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -123,6 +125,32 @@ export default function WikiPage() {
     } catch (err) { showToast(err.message || 'Error al eliminar', 'error') }
   }
 
+  function toggleSeleccion(id) {
+    setSeleccionadas(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function cancelarSeleccion() {
+    setSeleccionando(false)
+    setSeleccionadas(new Set())
+  }
+
+  async function eliminarSeleccionadas() {
+    const ids = [...seleccionadas]
+    if (!ids.length) return
+    if (!await confirmDstac(`¿Eliminar ${ids.length} nota${ids.length !== 1 ? 's' : ''} seleccionada${ids.length !== 1 ? 's' : ''}? Los enlaces desde otras notas quedarán rotos.`, { titulo: 'Eliminar notas', textoConfirmar: 'Eliminar', peligro: true })) return
+    try {
+      const res = await apiFetch('/api/admin/wiki/eliminar-lote', { method: 'POST', body: JSON.stringify({ ids }) })
+      showToast(`${res.eliminadas.length} nota${res.eliminadas.length !== 1 ? 's' : ''} eliminada${res.eliminadas.length !== 1 ? 's' : ''}${res.omitidas.length ? ` · ${res.omitidas.length} omitida(s)` : ''}`)
+      if (notaActiva && ids.includes(notaActiva.id)) { setNotaActiva(null); setModo('viendo') }
+      cancelarSeleccion()
+      cargarLista()
+    } catch (err) { showToast(err.message || 'Error al eliminar', 'error') }
+  }
+
   async function subirAdjunto(file) {
     if (!notaActiva?.id) return
     setSubiendoAdjunto(true)
@@ -198,6 +226,25 @@ export default function WikiPage() {
             </select>
           )}
 
+          {notas.length > 0 && (
+            seleccionando ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F4F2FF', border: '1px solid #d7d1f7', borderRadius: 8, padding: '6px 10px' }}>
+                <span style={{ fontSize: 12, color: '#3C3489', fontWeight: 600, flex: 1 }}>{seleccionadas.size} seleccionada{seleccionadas.size !== 1 ? 's' : ''}</span>
+                <button onClick={eliminarSeleccionadas} disabled={!seleccionadas.size}
+                  style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: seleccionadas.size ? '#B23434' : '#e2e0d8', color: '#fff', cursor: seleccionadas.size ? 'pointer' : 'default', fontSize: 11.5, fontWeight: 600 }}>
+                  Eliminar
+                </button>
+                <button onClick={cancelarSeleccion} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', background: 'transparent', color: '#888780', cursor: 'pointer', fontSize: 11.5 }}>
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setSeleccionando(true)} style={{ alignSelf: 'flex-end', background: 'none', border: 'none', color: '#7F77DD', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, padding: '2px 4px' }}>
+                Seleccionar varias
+              </button>
+            )
+          )}
+
           <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e2e0d8', borderRadius: 10, background: '#fff' }}>
             {loading ? (
               <div style={{ padding: 16, fontSize: 12.5, color: '#888780' }}>Cargando…</div>
@@ -205,15 +252,23 @@ export default function WikiPage() {
               <div style={{ padding: 16, fontSize: 12.5, color: '#888780' }}>Sin notas todavía. Crea la primera.</div>
             ) : (
               notas.map(n => (
-                <div key={n.id} onClick={() => abrirNota(n.id)}
+                <div key={n.id} onClick={() => seleccionando ? (n.es_mia && toggleSeleccion(n.id)) : abrirNota(n.id)}
                   style={{
-                    padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f1efe9',
+                    padding: '10px 12px', cursor: seleccionando && !n.es_mia ? 'default' : 'pointer', borderBottom: '1px solid #f1efe9',
                     background: notaActiva?.id === n.id ? '#F4F2FF' : 'transparent',
+                    display: 'flex', alignItems: 'flex-start', gap: 8,
                   }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: n.es_fantasma ? '#B4B2A9' : '#2C2C2A', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {n.es_fantasma ? '👻' : (n.visibilidad === 'equipo' ? '👥' : '🔒')} {n.titulo}
+                  {seleccionando && (
+                    <input type="checkbox" checked={seleccionadas.has(n.id)} disabled={!n.es_mia}
+                      onChange={() => toggleSeleccion(n.id)} onClick={e => e.stopPropagation()}
+                      style={{ marginTop: 3, cursor: n.es_mia ? 'pointer' : 'default' }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: n.es_fantasma ? '#B4B2A9' : '#2C2C2A', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      {n.es_fantasma ? '👻' : (n.visibilidad === 'equipo' ? '👥' : '🔒')} {n.titulo}
+                    </div>
+                    {n.carpeta && <div style={{ fontSize: 11, color: '#B4B2A9', marginTop: 2 }}>📁 {n.carpeta}</div>}
                   </div>
-                  {n.carpeta && <div style={{ fontSize: 11, color: '#B4B2A9', marginTop: 2 }}>📁 {n.carpeta}</div>}
                 </div>
               ))
             )}

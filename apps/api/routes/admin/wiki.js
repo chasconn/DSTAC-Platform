@@ -437,6 +437,42 @@ router.delete('/:id', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// ─── ELIMINAR EN LOTE (solo notas propias) ─────────────────────────────────────
+// POST /api/admin/wiki/eliminar-lote  { ids: [1,2,3] }
+router.post('/eliminar-lote', async (req, res, next) => {
+  try {
+    const userId = req.user.user_id || req.user.id
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number).filter(Number.isInteger) : []
+    if (!ids.length) return res.status(400).json({ error: 'Sin notas seleccionadas' })
+
+    const [rows] = await centralDB.execute(
+      `SELECT id, titulo, creado_por FROM wiki_notes WHERE id IN (${ids.map(() => '?').join(',')})`,
+      ids
+    )
+
+    const eliminadas = [], omitidas = []
+    for (const id of ids) {
+      const nota = rows.find(r => r.id === id)
+      if (!nota) { omitidas.push({ id, motivo: 'No encontrada' }); continue }
+      if (nota.creado_por !== userId) { omitidas.push({ id, titulo: nota.titulo, motivo: 'Solo el dueño puede eliminarla' }); continue }
+      eliminadas.push(nota)
+    }
+
+    if (eliminadas.length) {
+      await centralDB.execute(
+        `DELETE FROM wiki_notes WHERE id IN (${eliminadas.map(() => '?').join(',')})`,
+        eliminadas.map(n => n.id)
+      )
+      await registrarActividad({
+        req, accion: 'eliminar', modulo: 'wiki',
+        descripcion: `Eliminó ${eliminadas.length} nota(s) en lote: ${eliminadas.map(n => n.titulo).join(', ')}`,
+      })
+    }
+
+    res.json({ eliminadas: eliminadas.map(n => n.id), omitidas })
+  } catch (err) { next(err) }
+})
+
 // ─── ADJUNTOS ───────────────────────────────────────────────────────────────────
 // POST /api/admin/wiki/:id/attachments
 router.post('/:id/attachments', upload.single('archivo'), async (req, res, next) => {
